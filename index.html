@@ -1,39 +1,70 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>AUTOCHEST — Auto Battle Prototype</title>
-<link rel="stylesheet" href="./src/styles.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <meta name="theme-color" content="#080d1f" />
+  <meta name="description" content="AUTOCHEST — เกมจัดทีมฮีโร่จิบิและต่อสู้อัตโนมัติ" />
+  <title>AUTOCHEST — Chibi Auto Battler</title>
+  <link rel="stylesheet" href="./src/styles.css" />
 </head>
 <body>
-<div class="shell">
- <header class="head"><div class="brand"><small>VERSION 0.1 • PLAYABLE ALPHA</small>✦ AUTOCHEST <span style="font-weight:300;color:#7fa1c6;font-size:15px">/ AUTO BATTLE</span></div><span class="pill">⚡ วางทีม • ปล่อยสู้ • อัปเกรด</span></header>
- <div class="layout">
-  <section class="card">
-   <div class="board-top"><div><div class="status" id="phaseLabel">◉ เตรียมจัดทีม</div><div class="sub" id="phaseSub">เลือกยูนิตจากม้านั่ง แล้วแตะช่องสีฟ้าด้านล่าง</div></div><div style="text-align:right"><div id="battleClock" style="font-size:21px;font-weight:700;color:#f4d08c">01</div><div style="font-size:11px;color:#aabbd1">WAVE</div></div></div>
-   <div class="canvas-wrap"><canvas id="battlefield" width="760" height="775" aria-label="สนามออโต้เชสแบบโต้ตอบ"></canvas></div>
-   <div class="board-bottom"><div class="counter">ยูนิตบนสนาม <strong id="unitCount">2 / 4</strong></div><div class="counter">สปีด <strong id="speedInfo">×1</strong></div><div class="counter">⚔️ <strong id="combatInfo">พร้อมรบ</strong></div></div>
-  </section>
-  <aside class="card panel">
-   <div class="stats"><div class="stat"><b id="gold">12</b><span>🪙 GOLD</span></div><div class="stat"><b id="wave">1</b><span>🌊 WAVE</span></div><div class="stat"><b id="record">0</b><span>🏆 ชนะ</span></div></div>
-   <div class="controls"><button class="btn primary" id="startBtn">⚔️ เริ่มต่อสู้</button><button class="btn ghost" id="speedBtn">⏩ ×2</button></div>
-   <div class="section-head"><div class="tiny-title" style="margin:0">ร้านรับสมัครนักรบ</div><button class="btn gold" id="rollBtn" style="padding:6px 10px;font-size:12px">🎲 รีโรล 2 G</button></div>
-   <p class="mini" style="margin:5px 0 11px">ซื้อยูนิต 3 ตัวชนิดเดียวกัน = อัปเกรด 2 ดาว ⭐</p>
-   <div class="shop" id="shop"></div>
-   <hr class="divider" />
-   <div class="section-head"><div class="tiny-title" style="margin:0">ม้านั่งสำรอง</div><span id="benchN" class="mini">0/9</span></div>
-   <div id="bench" class="bench" style="margin-top:10px"></div>
-   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn ghost" style="font-size:12px;padding:7px 10px" id="removeBtn">↩️ เก็บตัวที่เลือก</button><button class="btn ghost" style="font-size:12px;padding:7px 10px" id="restartBtn">🔄 เริ่มเกมใหม่</button></div>
-   <hr class="divider" />
-   <div class="tiny-title">โบนัสสายอาชีพ</div><div class="synergy" id="synergies"></div>
-   <div class="hint" id="tip">💡 เลือกตัวจากม้านั่งแล้วแตะช่องด้านล่างในสนามเพื่อวาง จากนั้นกดเริ่มต่อสู้</div>
-   <hr class="divider" /><div class="tiny-title">บันทึกการต่อสู้</div><div class="log" id="log"></div>
-   <p class="help">💠 ช่องสีน้ำเงินคือพื้นที่วางทีม / สีแดงคือฝ่ายศัตรู<br>🎯 ยูนิตจะเดิน หาเป้าหมาย และใช้สกิลเองทั้งหมด<br>💥 มีสกิลค้อนยักษ์ สายฟ้า การยิง และคลื่นพลัง<br>🎁 ชนะแล้วได้เงินซื้อยูนิตเพิ่มและจัดทีมรอบต่อไป</p>
-  </aside>
- </div>
- <div class="footer">AUTOCHEST v0.1 • playable alpha • ภาพตัวละครและเอฟเฟกต์เป็นกราฟิกต้นแบบ • เล่นออฟไลน์ได้</div>
-</div>
-<script defer src="./src/game.js"></script>
+  <div class="app-shell">
+    <header class="game-header">
+      <div class="brand-lockup"><div class="brand-mark">✦</div><div><div class="eyebrow">CHIBI • STRATEGY • AUTO BATTLE</div><h1>AUTO<span>CHEST</span></h1></div></div>
+      <div class="header-tools"><span class="server-pill"><span class="live-dot"></span> SINGLE PLAYER ALPHA</span><span class="edition-pill">SEASON 01 <b>✦</b></span></div>
+    </header>
+
+    <main class="game-layout">
+      <section class="arena-card" aria-label="สนามต่อสู้">
+        <div class="arena-header">
+          <div class="phase-block"><span class="eyebrow">BATTLE FIELD / ARENA</span><div class="phase-name" id="phaseLabel">◈ เตรียมจัดทัพ</div><div class="phase-desc" id="phaseSub">เลือกยูนิตจากม้านั่ง ลากลงไปบนสนามฝั่งเรา</div></div>
+          <div class="round-indicator"><span>ROUND</span><b id="battleClock">01</b><small>บอสทุก 3 รอบ</small></div>
+        </div>
+        <div class="arena-canvas-wrap" id="arenaDrop">
+          <div class="arena-surface-label enemy-label"><span></span> ENEMY FIELD <span></span></div>
+          <canvas id="battlefield" width="760" height="775" aria-label="สนามต่อสู้: คลิกเลือกหรือกดค้างเพื่อลากยูนิต" tabindex="0"></canvas>
+          <div class="arena-surface-label ally-label"><span></span> ALLIED FIELD <span></span></div>
+          <div class="board-tooltip" id="boardTooltip">✦ ลากยูนิตลงช่องเรืองแสง หรือแตะเลือกแล้วแตะช่องที่ต้องการ</div>
+        </div>
+        <div class="arena-footer">
+          <div class="squad-status"><span class="field-icon">♟</span><div><small>ยูนิตบนกระดาน</small><b id="unitCount">2 / 4</b></div><div class="squad-meter"><i id="squadFill"></i></div></div>
+          <div class="arena-stat"><span>⏩ ความเร็ว</span><b id="speedInfo">×1</b></div>
+          <div class="arena-stat"><span>⚔️ สถานะ</span><b id="combatInfo">พร้อมรบ</b></div>
+        </div>
+      </section>
+
+      <aside class="side-panel">
+        <section class="hud-panel economy-panel" aria-label="สถานะเกม">
+          <div class="panel-title"><span>COMMAND DECK</span><span class="round-small">BATTLE PASS / 01</span></div>
+          <div class="resource-strip"><div class="resource gold-resource"><span>✦ GOLD</span><b id="gold">12</b></div><div class="resource"><span>◉ ROUND</span><b id="wave">1</b></div><div class="resource"><span>★ WINS</span><b id="record">0</b></div></div>
+          <div class="combat-buttons"><button id="startBtn" class="action-btn start-btn"><span class="button-symbol">⚔</span><span>เริ่มการต่อสู้</span><small>▶</small></button><button id="speedBtn" class="action-btn speed-btn">⏩ ×2</button></div>
+          <div class="status-line" id="prepHint"><span class="live-dot"></span> จัดตำแหน่งฮีโร่ให้พร้อมก่อนเริ่ม</div>
+        </section>
+
+        <section class="hud-panel store-panel" aria-label="ร้านค้าฮีโร่">
+          <div class="section-title-row"><div><span class="eyebrow">RECRUITMENT</span><h2>ร้านค้าฮีโร่ <span class="tiny-glyph">✦</span></h2></div><button id="rollBtn" class="reroll-btn">⟳ รีโรล <b>2 G</b></button></div>
+          <div class="shop" id="shop"></div>
+          <p class="shop-note"><span>★</span> ฮีโร่เหมือนกัน 3 ตัว รวมเป็นฮีโร่ดาวสูงขึ้นโดยอัตโนมัติ</p>
+        </section>
+
+        <section class="hud-panel bench-panel" aria-label="ม้านั่งสำรอง">
+          <div class="section-title-row"><div><span class="eyebrow">YOUR RESERVE</span><h2>ม้านั่งสำรอง</h2></div><span class="count-chip" id="benchN">0 / 9</span></div>
+          <div class="bench-drop" id="benchDrop"><div class="bench" id="bench"></div><div class="bench-drop-hint">↩ ลากยูนิตจากสนามมาวางที่นี่เพื่อเก็บ</div></div>
+          <div class="bench-actions"><button id="removeBtn" class="light-btn">↩ เก็บตัวที่เลือก</button><button id="restartBtn" class="light-btn">⟳ เริ่มใหม่</button></div>
+        </section>
+
+        <section class="hud-panel details-panel" aria-label="ข้อมูลฮีโร่ที่เลือก"><div class="section-title-row"><div><span class="eyebrow">UNIT INSPECTOR</span><h2>ข้อมูลฮีโร่</h2></div><span class="eyebrow">✦ UNIT CARD</span></div><div id="unitDetails" class="unit-details"><div class="no-selection">แตะหรือคลิกฮีโร่เพื่อดูรายละเอียด</div></div></section>
+
+        <section class="hud-panel traits-panel" aria-label="โบนัสสายอาชีพ"><div class="section-title-row"><div><span class="eyebrow">TEAM COMPOSITION</span><h2>โบนัสสายอาชีพ</h2></div></div><div class="synergy" id="synergies"></div></section>
+
+        <section class="hud-panel help-panel"><div class="tip-icon">✧</div><div id="tip" class="hint" role="status">ลากตัวละครจากม้านั่งลงบนสนามเพื่อจัดทีม</div><details class="battle-log"><summary>บันทึกการต่อสู้ <span>▾</span></summary><div class="log" id="log"></div></details></section>
+      </aside>
+    </main>
+    <footer class="game-footer"><span>✦ AUTOCHEST / PLAYABLE ALPHA v0.2</span><span>CLICK • DRAG • DROP • AUTO BATTLE</span></footer>
+  </div>
+  <div id="dragGhost" class="drag-ghost" aria-hidden="true"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script defer src="./src/game.js"></script>
 </body>
 </html>
