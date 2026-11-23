@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>AUTOCHEST — Auto Battle Prototype</title>
+<link rel="stylesheet" href="./src/styles.css" />
+</head>
+<body>
+<div class="shell">
+ <header class="head"><div class="brand"><small>VERSION 0.1 • PLAYABLE ALPHA</small>✦ AUTOCHEST <span style="font-weight:300;color:#7fa1c6;font-size:15px">/ AUTO BATTLE</span></div><span class="pill">⚡ วางทีม • ปล่อยสู้ • อัปเกรด</span></header>
+ <div class="layout">
+  <section class="card">
+   <div class="board-top"><div><div class="status" id="phaseLabel">◉ เตรียมจัดทีม</div><div class="sub" id="phaseSub">เลือกยูนิตจากม้านั่ง แล้วแตะช่องสีฟ้าด้านล่าง</div></div><div style="text-align:right"><div id="battleClock" style="font-size:21px;font-weight:700;color:#f4d08c">01</div><div style="font-size:11px;color:#aabbd1">WAVE</div></div></div>
+   <div class="canvas-wrap"><canvas id="battlefield" width="760" height="775" aria-label="สนามออโต้เชสแบบโต้ตอบ"></canvas></div>
+   <div class="board-bottom"><div class="counter">ยูนิตบนสนาม <strong id="unitCount">2 / 4</strong></div><div class="counter">สปีด <strong id="speedInfo">×1</strong></div><div class="counter">⚔️ <strong id="combatInfo">พร้อมรบ</strong></div></div>
+  </section>
+  <aside class="card panel">
+   <div class="stats"><div class="stat"><b id="gold">12</b><span>🪙 GOLD</span></div><div class="stat"><b id="wave">1</b><span>🌊 WAVE</span></div><div class="stat"><b id="record">0</b><span>🏆 ชนะ</span></div></div>
+   <div class="controls"><button class="btn primary" id="startBtn">⚔️ เริ่มต่อสู้</button><button class="btn ghost" id="speedBtn">⏩ ×2</button></div>
+   <div class="section-head"><div class="tiny-title" style="margin:0">ร้านรับสมัครนักรบ</div><button class="btn gold" id="rollBtn" style="padding:6px 10px;font-size:12px">🎲 รีโรล 2 G</button></div>
+   <p class="mini" style="margin:5px 0 11px">ซื้อยูนิต 3 ตัวชนิดเดียวกัน = อัปเกรด 2 ดาว ⭐</p>
+   <div class="shop" id="shop"></div>
+   <hr class="divider" />
+   <div class="section-head"><div class="tiny-title" style="margin:0">ม้านั่งสำรอง</div><span id="benchN" class="mini">0/9</span></div>
+   <div id="bench" class="bench" style="margin-top:10px"></div>
+   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn ghost" style="font-size:12px;padding:7px 10px" id="removeBtn">↩️ เก็บตัวที่เลือก</button><button class="btn ghost" style="font-size:12px;padding:7px 10px" id="restartBtn">🔄 เริ่มเกมใหม่</button></div>
+   <hr class="divider" />
+   <div class="tiny-title">โบนัสสายอาชีพ</div><div class="synergy" id="synergies"></div>
+   <div class="hint" id="tip">💡 เลือกตัวจากม้านั่งแล้วแตะช่องด้านล่างในสนามเพื่อวาง จากนั้นกดเริ่มต่อสู้</div>
+   <hr class="divider" /><div class="tiny-title">บันทึกการต่อสู้</div><div class="log" id="log"></div>
+   <p class="help">💠 ช่องสีน้ำเงินคือพื้นที่วางทีม / สีแดงคือฝ่ายศัตรู<br>🎯 ยูนิตจะเดิน หาเป้าหมาย และใช้สกิลเองทั้งหมด<br>💥 มีสกิลค้อนยักษ์ สายฟ้า การยิง และคลื่นพลัง<br>🎁 ชนะแล้วได้เงินซื้อยูนิตเพิ่มและจัดทีมรอบต่อไป</p>
+  </aside>
+ </div>
+ <div class="footer">AUTOCHEST v0.1 • playable alpha • ภาพตัวละครและเอฟเฟกต์เป็นกราฟิกต้นแบบ • เล่นออฟไลน์ได้</div>
+</div>
+<script defer src="./src/game.js"></script>
+</body>
+</html>
