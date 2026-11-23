@@ -12,3 +12,16 @@ body:before{content:'';position:fixed;inset:0;pointer-events:none;background-ima
 @media(max-width:910px){.game-layout{grid-template-columns:minmax(0,1fr)}.arena-card{position:relative;top:auto}.side-panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.economy-panel,.store-panel,.bench-panel,.details-panel,.traits-panel,.help-panel{grid-column:auto}.bench-panel,.store-panel{grid-row:span 2}.game-header{min-height:73px}}
 @media(max-width:660px){.game-header{align-items:flex-start}.brand-mark{width:40px;height:40px;font-size:27px}.brand-lockup{gap:9px}.brand-lockup h1{font-size:29px}.eyebrow{font-size:9px;letter-spacing:1.5px}.header-tools{gap:4px}.server-pill{display:none}.edition-pill{font-size:10px;padding:6px 9px}.game-layout{display:flex;flex-direction:column;align-items:stretch}.side-panel{display:contents;align-items:stretch}.economy-panel{order:0}.bench-panel{order:1;position:sticky;top:6px;z-index:9;box-shadow:0 12px 26px #020914b0}.arena-card{order:2;width:100%}.store-panel{order:3}.details-panel{order:4}.traits-panel{order:5}.help-panel{order:6}.arena-header{padding:10px 12px}.phase-name{font-size:18px}.phase-desc{font-size:11px}.round-indicator{min-width:80px}.round-indicator b{font-size:28px}.arena-footer{padding:9px;gap:9px}.squad-meter{display:none}.squad-status{min-width:auto}.arena-stat span{font-size:10px}.arena-stat b{font-size:16px}.app-shell{padding:8px 7px 17px}.shop{gap:8px}.hud-panel{padding:12px}.benchitem,.bench-empty{height:52px}.game-footer{font-size:10px;flex-wrap:wrap}.board-tooltip{font-size:9px}.arena-surface-label{font-size:9px}.enemy-label{top:8px}.ally-label{bottom:24px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* v0.3 — artwork displayed from individual hero portrait files */
+.card-art{overflow:hidden;display:grid;place-items:center;isolation:isolate}
+.card-art img.hero-portrait{width:112%;height:112%;object-fit:contain;filter:drop-shadow(0 7px 7px #05091490);transform-origin:50% 65%;transition:transform .22s cubic-bezier(.2,.85,.2,1)}
+.shopitem:hover:not(:disabled) .card-art img.hero-portrait{transform:translateY(-4px) scale(1.12)}
+.bench-face{display:flex;justify-content:center;align-items:center;overflow:hidden}
+.bench-face img.hero-portrait{display:block;object-fit:contain;width:125%;height:125%;max-width:none;filter:drop-shadow(0 3px 4px #081020aa)}
+.inspector-avatar{overflow:hidden;display:flex;align-items:center;justify-content:center}
+.inspector-avatar img.hero-portrait{display:block;width:118%;height:118%;object-fit:contain;max-width:none}
+.ghost-face{display:flex;align-items:center;justify-content:center;overflow:hidden;height:64px}
+.ghost-face img.hero-portrait{width:78px;height:82px;object-fit:contain;filter:drop-shadow(0 7px 7px #0014)}
+.benchitem:hover .bench-face img.hero-portrait{transform:translateY(-3px)}
+@media (prefers-reduced-motion:reduce){.card-art img.hero-portrait,.bench-face img.hero-portrait{transition:none}}

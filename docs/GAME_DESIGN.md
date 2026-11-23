@@ -1,4 +1,4 @@
-# AUTOCHEST — Game Design v0.1
+# AUTOCHEST — Game Design v0.3
 
 ## Game Loop
 
@@ -39,7 +39,8 @@
 ## Milestones
 
 - [x] M1: สนาม, ร้าน, ม้านั่ง, วางยูนิต, AI ต่อสู้, boss waves
-- [ ] M2: ข้อมูลฮีโร่แยกโมดูล + asset pipeline + sprite animation
+- [x] M2a: ข้อมูลฮีโร่/ศัตรูแยกไฟล์รายตัว + PNG/SVG โปร่งใส + pose animation บน Canvas
+- [ ] M2b: frame-by-frame sprite sheets + แยก combat engine
 - [ ] M3: ระบบไอเทม, XP, class traits, UI แสดงข้อมูลฮีโร่
 - [ ] M4: Save / Load + round balancing + automation tests
 - [ ] M5: เผยแพร่ GitHub Pages และทดสอบบนอุปกรณ์จริง

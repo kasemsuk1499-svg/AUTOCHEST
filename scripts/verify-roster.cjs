@@ -1,0 +1,21 @@
+#!/usr/bin/env node
+const fs=require('fs'),vm=require('vm'),path=require('path');
+const root=path.resolve(__dirname,'..');
+const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+const scripts=[...html.matchAll(/<script defer src="([^"]+)"><\/script>/g)].map(m=>m[1]);
+const context=vm.createContext({window:{},console});
+for(const s of scripts.filter(x=>x!=='./src/game.js')){
+ const file=path.resolve(root,s);
+ if(!fs.existsSync(file))throw Error('Missing script '+s);
+ vm.runInContext(fs.readFileSync(file,'utf8'),context,{filename:file});
+}
+const reg=context.window.AUTOCHEST_CHARACTERS;
+const hero=Object.values(reg.HEROES),enemy=Object.values(reg.ENEMIES);
+if(hero.length!==7||enemy.length!==4)throw Error('Expected 7 heroes and 4 enemies');
+for(const c of [...hero,...enemy]){
+ const picture=path.resolve(root,c.portrait);
+ if(!fs.existsSync(picture))throw Error('Missing art '+picture);
+ if(fs.statSync(picture).size<100)throw Error('Empty art '+picture);
+ if(!fs.existsSync(picture.replace(/\.png$/,'.svg')))throw Error('Missing SVG source for '+c.id);
+}
+console.log('✅ AUTOCHEST character registry: '+hero.length+' heroes, '+enemy.length+' enemies, all PNG/SVG assets present');
