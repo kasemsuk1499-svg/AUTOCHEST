@@ -382,3 +382,8 @@ footer{margin:20px 0 0;display:flex;justify-content:space-between;color:#789db8;
 .fighter.guard-shield::before{content:'';position:absolute;inset:3% 6% 16%;border:2px solid #88d9ffb0;border-radius:48%;box-shadow:0 0 10px #70caff80,inset 0 0 12px #70caff30;pointer-events:none}
 .fighter.taunting .mini-stars{color:#ffdb92;background:#674720e8;border:1px solid #ffce78;border-radius:8px;padding:2px 5px}
 .fighter.taunting .mini-stars::after{content:' · ยั่วยุ';color:#fff0ba}
+
+/* Lisbeth: visible, timed weakening and vulnerability marks. */
+.fighter.weakened .fighter-name{color:#ffcb85}
+.fighter.vulnerable .fighter-name::after{content:' · DMG↑';color:#ff9faa;font-size:9px}
+.fighter.weakened .mini-stars::before{content:'ATK↓ ';color:#ffbc7e;font-size:9px}
