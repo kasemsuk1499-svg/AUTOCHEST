@@ -728,6 +728,7 @@ function visualEffect(event,actor,x=actor.x,y=actor.y,scale=1){
  const node=el('span',{class:'image-vfx'});
  const px=spec.size*Math.min(1.1,arenaSize.width/540)*scale;
  node.style.width=px+'px';node.style.height=px+'px';node.style.left=x+'%';node.style.top=y+'%';
+ node.style.setProperty('--vfx-duration',spec.ms+'ms');
  VFX.paint(node,spec);
  addTransientFx(node,spec.ms);
 }
@@ -742,7 +743,7 @@ function ring(x,y,cloak=false){
  node.style.left=x+'%';node.style.top=y+'%';
  addTransientFx(node,850);
 }
-function clearFx(){for(const node of Array.from($('fxLayer').children))if(!node.classList.contains('fx-number'))node.remove()}
+function clearFx(){for(const node of Array.from($('fxLayer').children))if(!node.classList.contains('fx-number')&&!node.classList.contains('image-vfx'))node.remove()}
 function buildFighters(preserve=false){
  const previous=new Map(preserve?fighters.map(f=>[f.id,f]):[]);
  fighters=state.squad.filter(id=>state.owned[id]).map((id,i)=>{
