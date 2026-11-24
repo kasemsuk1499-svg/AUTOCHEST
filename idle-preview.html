@@ -95,15 +95,30 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
        <div class="upgrade-guide">① เลือกฮีโร่จากทีม/คลัง → ② กดเพิ่มเลเวลหรือดาว → ③ ค่าสถานะเพิ่มทันที</div>
        <div id="heroDetails" class="hero-details upgrade-details"><div class="no-selection">เลือกฮีโร่จากทีมด้านบนเพื่อเสริมแกร่ง</div></div>
      </section></div></div>
-<div class="modal management-modal" id="panel-summon" hidden><div class="modal-overlay" data-close-panel></div><div class="management-dialog" role="dialog" aria-modal="true" aria-label="อัญเชิญฮีโร่"><button type="button" class="panel-close" data-close-panel aria-label="ปิด">✕</button><section class="side-card summon-card">
-       <div class="card-heading"><div><small>SUMMON GATE</small><h3>อัญเชิญฮีโร่</h3></div><span class="count-pill">7 HEROES</span></div>
-       <p>รับฮีโร่ใหม่หรือชิ้นส่วนตัวซ้ำ เพื่อปลดดาวให้แข็งแกร่งขึ้น</p>
-       <div class="summon-actions">
-         <button id="summonOneBtn" class="summon-btn">🎟️ อัญเชิญ ×1 <small>1 ตั๋ว / 120 💎</small></button>
-         <button id="summonTenBtn" class="summon-btn ten">✨ อัญเชิญ ×10 <small>10 ตั๋ว / ส่วนที่ขาดใช้ 💎</small></button>
-       </div>
-       <div id="summonResults" class="summon-results">✨ พร้อมอัญเชิญ!</div>
-     </section></div></div>
+<div class="modal management-modal" id="panel-summon" hidden><div class="modal-overlay" data-close-panel></div>
+<div class="management-dialog summon-dialog" role="dialog" aria-modal="true" aria-label="อัญเชิญฮีโร่"><button type="button" class="panel-close" data-close-panel aria-label="ปิด">✕</button>
+<section class="summon-page">
+ <header class="summon-header"><small>SAO · HERO SUMMON</small><h2>ประตูอัญเชิญ</h2><div class="summon-wallet"><span>🎟 <b id="summonTickets">0</b></span><span>💎 <b id="summonRubies">0</b></span></div></header>
+ <div id="summonBanner">
+  <div class="summon-banner-art">
+   <img src="./assets/heroes/kirito/art.png" alt="" class="summon-art-left">
+   <img src="./assets/heroes/asuna/art.png" alt="" class="summon-art-right">
+   <div class="summon-banner-copy"><small>PERMANENT BANNER</small><h3>AINCRAD<br>HEROES</h3><p>อัญเชิญเหล่านักผจญภัย</p></div>
+  </div>
+  <div class="summon-meta"><span>ฮีโร่ทั้งหมด <b id="summonPoolCount">7</b> คน</span><span>ตัวซ้ำ = +1 ชิ้นส่วน</span></div>
+  <div id="summonPool" class="summon-pool"></div>
+  <details class="summon-rate-details"><summary>รายละเอียดอัตราอัญเชิญ</summary><div id="summonRates"></div><p>ใช้อัตราเดิมทุกครั้ง ไม่มีการันตีหรือเพิ่มเรตตามจำนวนครั้ง</p></details>
+  <div class="summon-actions">
+   <button id="summonOneBtn" class="summon-btn"><strong>อัญเชิญ ×1</strong><small id="summonOneCost"></small></button>
+   <button id="summonTenBtn" class="summon-btn ten"><strong>อัญเชิญ ×10</strong><small id="summonTenCost"></small></button>
+  </div>
+  <button type="button" id="summonLastBtn" class="summon-text-button" hidden>ดูผลอัญเชิญครั้งล่าสุด</button>
+ </div>
+ <div id="summonReveal" class="summon-reveal" hidden><div class="summon-portal"><div></div><span>✦</span></div><strong>กำลังอัญเชิญ...</strong><button id="summonSkipBtn" type="button" class="summon-text-button">ข้ามอนิเมชั่น ›</button></div>
+ <div id="summonOutcome" hidden><div class="summon-result-heading"><small>SUMMON COMPLETE</small><h3>ผลการอัญเชิญ</h3><p id="summonSummary"></p></div>
+  <div id="summonResults" class="summon-results" aria-live="polite"></div><div id="summonReceipt" class="summon-receipt"></div><button type="button" id="summonBackBtn" class="summon-back">กลับหน้าตู้อัญเชิญ</button>
+ </div>
+</section></div></div>
 <div class="modal management-modal" id="panel-guide" hidden><div class="modal-overlay" data-close-panel></div><div class="management-dialog" role="dialog" aria-modal="true" aria-label="ภารกิจ"><button type="button" class="panel-close" data-close-panel aria-label="ปิด">✕</button><section class="side-card guide-card">
        <div class="card-heading"><div><small>GUIDE QUEST</small><h3>เป้าหมายต่อไป</h3></div></div>
        <div id="guideQuest" class="guide-quest"></div>
