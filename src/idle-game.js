@@ -38,7 +38,7 @@ const cellAtClient=(clientX,clientY)=>{
 let boardGesture=null,ignoreInspectUntil=0;
 // Hero-shaped enemies share art and skills with the player's SAO roster.
 const bosses=IDS.filter(id=>HEROES[id].cost===3);
-const enemyLimit=()=>Math.min(5,3+Math.floor((state.stage-1)/5));
+const enemyLimit=()=>CORE.waveSize(state.stage);
 const waveSlots=[[1,0],[4,0],[2,1],[0,1],[5,1]]; // finite TFT wave formation
 const near=(a,b)=>Math.hypot(a.x-b.x,(a.y-b.y)*.65);
 const reach=id=>Math.min(41,Math.max(10,HEROES[id].range*8.1+2));
@@ -712,7 +712,7 @@ function victoryBoss(){
 }
 function failBoss(){
  const stage=state.stage;
- state.bossRetryWaves=3;
+ CORE.bossDefeated(state);
  log('💥 ยังไม่ชนะบอสด่าน '+stage+' · ฟาร์มอีก 3 เวฟแล้ว AUTO จะลองใหม่');
  beginTravel(1.1);save();
  toast('💪 แพ้บอสแต่ยังอยู่ด่าน '+stage+' · Auto ฟาร์ม Gold/EXP ต่อ!');
@@ -727,7 +727,7 @@ function defeatMonster(foe){
  combat=enemies[0]||null;
  if(!combat){
   // Only spawn a fresh group AFTER the entire wave is defeated.
-  if(state.bossRetryWaves>0)state.bossRetryWaves--;
+  CORE.waveCleared(state);
   beginTravel(.95);save();
  }else{
   $('battleMessage').textContent='⚔️ เวฟ '+waveCount+' · เหลือ '+enemies.length+' ตัว';
@@ -902,8 +902,7 @@ function tick(dt){
  if(!combat){
   respawn-=t;
   if(respawn<=0){
-   const bossReady=state.kills>=CORE.killsNeeded(state.stage);
-   if(state.autoBoss&&bossReady&&state.bossRetryWaves===0)spawnMonster(true);
+   if(CORE.nextEncounter(state)==='boss')spawnMonster(true);
    else spawnWave();
   }
   return;
