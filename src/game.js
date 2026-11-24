@@ -82,7 +82,7 @@ function skillDetails(t){
   const hits=t.triggerEvery||4;
   switch(t.effect){
    case 'slash': return ['โจมตีเป้าหมายหลักแรง 200% ของ ATK พร้อมเอฟเฟกต์คลื่นดาบ','สามารถติดคริติคอลตามอัตราของฮีโร่ได้'];
-   case 'chain': return ['ปล่อยสายฟ้าสู่ศัตรูใกล้เคียง '+(t.id==='thunder'?4:3)+' เป้าหมาย','แต่ละเป้าหมายได้รับ '+(t.id==='thunder'?'125%':'112%')+' ATK (แทนการโจมตีปกติครั้งนั้น)'];
+   case 'chain': return ['โจมตีเชื่อมต่อศัตรูใกล้เคียง '+(t.chainTargets||3)+' เป้าหมาย','แต่ละเป้าหมายได้รับ '+Math.round((t.chainPower||1.12)*100)+'% ATK (แทนการโจมตีปกติครั้งนั้น)'];
    case 'triple': return ['ยิงเป้าหมายหลักแรง 200% ATK และยิงเสริมอีก 2 นัด นัดละ 85% ATK','กระสุนเสริมเลือกเป้าหมายอื่นได้ และคำนวณคริเป็นรายนัด'];
    case 'shield': return ['ได้รับโล่เท่ากับ 30% ของ HP สูงสุด','โจมตีเป้าหมายหลักแรง 200% ATK'];
    case 'blink': return ['เคลื่อนที่ฉับพลันไปใกล้เป้าหมาย','โจมตี 200% ATK ตามด้วยการโจมตีเสริม 50% ATK'];
@@ -309,7 +309,7 @@ else{damageWithCrit(u,target,u.atk*mul);fx.push({kind:'slash',x:target.x,y:targe
 function special(u,target){u.anim='skill';u.animUntil=bgtime+.65;let enemy=combat.filter(o=>o.alive&&o.side!==u.side),effect=(u.side==='ally'?TYPES[u.kind]:ENEMY[u.kind])?.effect;if(effect==='slam'){
 let cx=target.x,cy=target.y;fx.push({kind:'hammer',x:cx,y:cy,life:.65,total:.65,color:u.isBoss?'#ff9d73':'#ffc773'});waveFX(cx,cy,'#ffc773',135);shake=.22;enemy.filter(o=>Math.hypot(o.x-cx,o.y-cy)<140).forEach(o=>dmg(o,u.atk*1.8,o.x,o.y,true));}
 else if(effect==='chain'){
-let around=enemy.sort((a,b)=>dist(a,target)-dist(b,target)).slice(0,u.kind==='thunder'?4:3);around.forEach((o,i)=>{fx.push({kind:'lightning',x1:i===0?u.x:around[i-1].x,y1:i===0?u.y:around[i-1].y,x2:o.x,y2:o.y,life:.4,total:.4,color:u.kind==='thunder'?'#f3f6ff':'#cfacff'});dmg(o,u.atk*(u.kind==='thunder'?1.25:1.12),o.x,o.y,true)});shake=.09;}
+const cfg=TYPES[u.kind],around=enemy.sort((a,b)=>dist(a,target)-dist(b,target)).slice(0,cfg.chainTargets||3);around.forEach((o,i)=>{fx.push({kind:'lightning',x1:i===0?u.x:around[i-1].x,y1:i===0?u.y:around[i-1].y,x2:o.x,y2:o.y,life:.4,total:.4,color:cfg.col||'#cfacff'});dmg(o,u.atk*(cfg.chainPower||1.12),o.x,o.y,true)});shake=.09;}
 else if(effect==='shield'){u.shield+=u.maxHp*.30;waveFX(u.x,u.y,'#fbe1a2',76);floaters.push({x:u.x,y:u.y-27,v:'🛡 +SHIELD',color:'#ffde9b',t:0,life:1})}
 else if(effect==='blink'){u.x=target.x+rand(-27,27);u.y=target.y+rand(-16,16);burst(u.x,u.y,'#f879c3',17)}
 else if(effect==='slash'){waveFX(u.x,u.y,'#7bdeff',60)}}
@@ -497,6 +497,6 @@ $('speedBtn').addEventListener('click',()=>{speed=speed===1?2:1;renderUI();toast
 $('rollBtn').addEventListener('click',()=>{roll(false);toast('⟳ เปลี่ยนฮีโร่ในร้านแล้ว')});
 $('removeBtn').addEventListener('click',removeSelected);
 $('restartBtn').addEventListener('click',()=>{if(!confirm('เริ่มเกมใหม่ทั้งหมดหรือไม่?'))return;reset()});
-function reset(){closeHero();finishGesture();landings.clear();encounterWave=-1;encounterPlan=[];wave=1;gold=12;wins=0;units=[newUnit('knight',true,2,5),newUnit('mage',true,3,5),newUnit('archer')];selected=units[2].id;phase='prep';roundResult='';speed=1;combat=[];fx=[];bullets=[];floaters=[];messages=[];roll(true);addLog('✨ ยินดีต้อนรับสู่ AUTOCHEST');setTip('💡 มีมือปืนบนม้านั่งให้แล้ว! เลือกและวางลงสนามสีฟ้าได้เลย');renderUI()}
+function reset(){closeHero();finishGesture();landings.clear();encounterWave=-1;encounterPlan=[];wave=1;gold=12;wins=0;units=[newUnit('lisbeth',true,2,5),newUnit('silica',true,3,5),newUnit('kirito')];selected=units[2].id;phase='prep';roundResult='';speed=1;combat=[];fx=[];bullets=[];floaters=[];messages=[];roll(true);addLog('✨ ยินดีต้อนรับสู่ AUTOCHEST');setTip('💡 มีคิริโตะบนม้านั่งให้แล้ว! เลือกและวางลงสนามสีฟ้าได้เลย');renderUI()}
 reset();requestAnimationFrame(loop)
 })();
