@@ -593,10 +593,17 @@ function claimOffline(){
  closeOffline();renderPanels();save();
  toast('📦 รับรางวัลออฟไลน์ +'+fmt(earned.gold)+' G และ +'+fmt(earned.exp)+' EXP');
 }
+// Keep the effect layer bounded during long idle farming sessions.
+const MAX_VISUAL_EFFECTS=65,MAX_ACTIVE_SHOTS=36;
+function addTransientFx(node,duration){
+ const layer=$('fxLayer');
+ if(layer.childElementCount>=MAX_VISUAL_EFFECTS)return;
+ layer.appendChild(node);setTimeout(()=>node.remove(),duration);
+}
 function spawnFx(label,x,y,critical=false){
  const fx=el('span',{class:'fx-number'+(critical?' critical':'')},escapeText(label));
  fx.style.left=x+'%';fx.style.top=y+'%';
- $('fxLayer').appendChild(fx);setTimeout(()=>fx.remove(),850);
+ addTransientFx(fx,850);
 }
 function projectile(x1,y1,x2,y2,color='#c6f7ff'){
  const node=el('span',{class:'fx-bolt'});
@@ -604,12 +611,12 @@ function projectile(x1,y1,x2,y2,color='#c6f7ff'){
  const rect=$('stageViewport').getBoundingClientRect();
  node.style.setProperty('--dx',(x2-x1)*rect.width/100+'px');
  node.style.setProperty('--dy',(y2-y1)*rect.height/100+'px');
- $('fxLayer').appendChild(node);setTimeout(()=>node.remove(),360);
+ addTransientFx(node,360);
 }
 function ring(x,y,cloak=false){
  const node=el('span',{class:cloak?'fx-cloak':'fx-ring'});
  node.style.left=x+'%';node.style.top=y+'%';
- $('fxLayer').appendChild(node);setTimeout(()=>node.remove(),850);
+ addTransientFx(node,850);
 }
 function clearFx(){$('fxLayer').replaceChildren()}
 function buildFighters(preserve=false){
@@ -753,6 +760,12 @@ function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false){
 }
 function tftShot(attacker,target,mult=1,bonusCrit=0,execute=false,heavy=false,color){
  if(!target||target.hp<=0)return;
+ if(shots.length>=MAX_ACTIVE_SHOTS){
+  const h=HEROES[attacker.id];
+  const executeMult=execute&&target.hp/target.maxHp<(h.executeThreshold||.35)?h.executeMultiplier||1.2:1;
+  tftDamage(attacker,target,attacker.atk*mult*executeMult,bonusCrit);
+  return;
+ }
  const palette=color||HEROES[attacker.id].col||'#c3f7ff';
  const node=el('span',{class:'tft-bullet'+(heavy?' heavy':'')});
  node.style.left=attacker.x+'%';node.style.top=attacker.y+'%';
@@ -831,6 +844,15 @@ function tftSkill(attacker,target){
  }
  return false;
 }
+// Avoid synchronous offsetWidth reads on every hit: that forced a full layout reflow.
+function playAttackAnimation(attacker){
+ const node=attacker.node;
+ if(!node)return;
+ node.classList.remove('burst');
+ requestAnimationFrame(()=>{
+  if(node.isConnected&&attacker.attackUntil>stageClock)node.classList.add('burst');
+ });
+}
 function tftAttack(attacker,target){
  if(!target||target.hp<=0)return;
  const hero=HEROES[attacker.id],effect=hero.effect||'';
@@ -844,15 +866,14 @@ function tftAttack(attacker,target){
   if(tftSkill(attacker,target)){
    attacker.attackUntil=stageClock+(hero.visual?.attackMs||360)/1000;
    pose(attacker,true);
-   if(attacker.node){attacker.node.classList.remove('burst');void attacker.node.offsetWidth;attacker.node.classList.add('burst')}
+   playAttackAnimation(attacker);
    return;
   }
  }
  const bonusCrit=ambush?(hero.cloakCritBonus||0):0;
  attacker.attackUntil=stageClock+(hero.visual?.attackMs||300)/1000;
  pose(attacker,true);
- attacker.node?.classList.remove('burst');
- if(attacker.node){void attacker.node.offsetWidth;attacker.node.classList.add('burst')}
+ playAttackAnimation(attacker);
  if(TFT.isRanged(hero)){
   tftShot(attacker,target,mul,bonusCrit,ambush,special||ambush);
   if(special&&effect==='triple'){
