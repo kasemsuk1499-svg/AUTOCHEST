@@ -10,9 +10,27 @@
    asuna:{level:1,stars:1,shards:0},
    kirito:{level:1,stars:1,shards:0},
    silica:{level:1,stars:1,shards:0}
-  },autoBoss:true,autoWalk:true,speed:1,bossWins:0,totalSummons:0,offlineBank:{minutes:0,gold:0,exp:0},lastSaved:Date.now()
+  },placements:{asuna:{col:2,row:6},kirito:{col:3,row:6},silica:{col:1,row:5}},autoBoss:true,autoWalk:true,speed:1,bossWins:0,totalSummons:0,offlineBank:{minutes:0,gold:0,exp:0},lastSaved:Date.now()
  });
  const maxSquad=stage=>stage>=20?7:stage>=12?6:stage>=5?5:4;
+ // Same 6x7 board as the original AUTOCHEST (friendly deployment: rows 4-6).
+ const defaultCells=[[2,6],[3,6],[1,5],[4,5],[2,4],[3,4],[0,6]];
+ const allFriendlyCells=Array.from({length:3},(_,i)=>4+i)
+   .flatMap(row=>Array.from({length:6},(_,col)=>({col,row})));
+ function fillPlacements(state,saved){
+  const placements={},occupied=new Set();
+  for(const [i,id] of state.squad.entries()){
+   const pos=saved&&saved[id],key=pos&&pos.col+':'+pos.row;
+   const valid=pos&&Number.isInteger(pos.col)&&pos.col>=0&&pos.col<6&&
+    Number.isInteger(pos.row)&&pos.row>=4&&pos.row<=6&&!occupied.has(key);
+   let cell=valid?{col:pos.col,row:pos.row}:defaultCells[i];
+   if(occupied.has(cell.col+':'+cell.row))
+    cell=allFriendlyCells.find(p=>!occupied.has(p.col+':'+p.row));
+   if(cell){placements[id]={col:cell.col,row:cell.row};occupied.add(cell.col+':'+cell.row)}
+  }
+  state.placements=placements;
+  return placements;
+ }
  const killsNeeded=stage=>6+Math.floor((stage-1)/5);
  const stageName=stage=>['ทุ่งหญ้าแห่งการเริ่มต้น','ป่าแห่งความทรงจำ','หุบเขาเหล็ก','วิหารรัตติกาล','ปราสาทลอยฟ้า'][Math.floor((stage-1)/5)%5];
  const levelCost=level=>({gold:Math.round(75*Math.pow(level,1.35)),exp:Math.round(32*Math.pow(level,1.25))});
@@ -47,6 +65,7 @@
   }
   state.squad=Array.isArray(raw.squad)?[...new Set(raw.squad)].filter(id=>state.owned[id]&&roster[id]).slice(0,maxSquad(state.stage)):[];
   if(!state.squad.length)state.squad=Object.keys(state.owned).slice(0,maxSquad(state.stage));
+  fillPlacements(state,raw.placements);
   return state;
  }
  function stats(hero,progress){
@@ -111,6 +130,6 @@
   return rewards;
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,
-  initial,maxSquad,killsNeeded,stageName,levelCost,shardsNeeded,ascendCost,
+  initial,maxSquad,defaultCells,fillPlacements,killsNeeded,stageName,levelCost,shardsNeeded,ascendCost,
   normalized,stats,power,monster,farmReward,bossReward,offlineLoot,spendLevel,ascend,draw});
 })();
