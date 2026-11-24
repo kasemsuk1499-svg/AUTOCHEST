@@ -3,6 +3,8 @@
 const $=id=>document.getElementById(id);
 const HEROES=window.AUTOCHEST_CHARACTERS?.HEROES;
 const CORE=window.AUTOCHEST_IDLE_CORE;
+const TFT=window.AUTOCHEST_TFT_COMBAT;
+if(!TFT)throw Error('TFT combat module missing: src/idle-tft-combat.js');
 if(!HEROES||!CORE)throw Error('Character and Idle Core modules must be loaded before idle-game.js');
 const IDS=Object.keys(HEROES);
 if(!IDS.length)throw Error('No SAO heroes registered');
@@ -20,6 +22,7 @@ if(loaded){
 let pending=state.offlineBank;
 let selected=state.squad[0]||Object.keys(state.owned)[0]||IDS[0];
 let skillReturnFocus=null;
+let formationMode=false,shots=[];
 let combat=null,enemies=[],fighters=[],stageClock=0,respawn=1.8,spawnCooldown=0,travel=0,travelDistance=0,encounters=0,lastFrame=0,lastSave=0,lastHUD=0,toastTimer=0;
 let logLines=['✦ เริ่มการผจญภัย SAO IDLE แล้ว!'];
 const GRID_COLS=6,GRID_ROWS=7,ALLY_START_ROW=4;
@@ -181,6 +184,7 @@ function updateResources(){
  $('autoBossBtn').textContent=state.autoBoss?'🔄 AUTO BOSS ON':'⏸ AUTO BOSS OFF';
  $('autoBossBtn').classList.toggle('selected',state.autoBoss);
  $('speedBtn').textContent='⏩ ×'+state.speed;
+ refreshFormationControls();
  $('challengeBtn').disabled=!!combat?.boss||state.kills<need;
  $('challengeBtn').textContent=combat?.boss?'👑 กำลังต่อสู้กับบอส':state.kills<need?'👑 ปลดล็อกบอส '+state.kills+'/'+need:'👑 ท้าทายบอส!';
  $('bossTimer').hidden=!combat?.boss;
@@ -192,6 +196,54 @@ function updateResources(){
  $('summonOneBtn').disabled=state.tickets<1&&state.rubies<120;
  $('summonTenBtn').disabled=state.rubies<Math.max(0,10-state.tickets)*120;
  refreshUpgradeAvailability();
+}
+function refreshFormationControls(){
+ const form=$('formationBtn'),auto=$('autoBattleBtn'),label=$('formationStatus');
+ if(!form||!auto||!label)return;
+ form.textContent=formationMode?'✅ จัดทัพเสร็จ · เล่นต่อ':'♟️ จัดทัพ (พักการต่อสู้)';
+ form.classList.toggle('active',formationMode);
+ form.setAttribute('aria-pressed',String(formationMode));
+ auto.textContent=state.autoBattle?'⚔️ AUTO ON':'⏸ AUTO OFF';
+ auto.classList.toggle('off',!state.autoBattle);
+ auto.setAttribute('aria-pressed',String(state.autoBattle));
+ const reserve=state.owned[selected]&&!state.squad.includes(selected);
+ const full=state.squad.length>=CORE.maxSquad(state.stage);
+ label.textContent=formationMode?(reserve&&full?
+  '🟡 เลือกตัวสำรองอยู่ · แตะสมาชิกในทีมเพื่อสลับ':
+  '♟️ พักต่อสู้ · วางตัวใน 3 แถวล่าง / ลากย้าย / สลับตัวสำรองได้'):
+  state.autoBattle?'⚔️ TFT Auto กำลังต่อสู้':'⏸ ปิด Auto · กดเปิดเพื่อเล่นต่อ';
+ label.classList.toggle('editing',formationMode);
+ $('stageViewport').classList.toggle('formation-active',formationMode);
+ const hint=$('swapHelp');
+ if(hint)hint.textContent=reserve&&full?'↔️ เลือก '+HEROES[selected].name+' แล้วแตะสมาชิกบนแถบทีมเพื่อแทนที่':
+  '♟️ แตะตัวในทีมและแตะช่อง 3 แถวล่าง / ลากเพื่อย้ายตำแหน่ง';
+}
+function setFormationMode(value){
+ formationMode=!!value;
+ if(formationMode){
+  for(const f of fighters){
+   const slot=state.placements?.[f.id];if(!slot)continue;
+   const place=boardPoint(slot.col,slot.row);
+   f.x=place.x;f.y=place.y;f.walking=false;
+   f.attackUntil=0;pose(f,false);position(f);
+  }
+  toast('♟️ พักการต่อสู้ชั่วคราว · จัดทัพได้เลย');
+ }else toast(state.autoBattle?'⚔️ TFT Auto ต่อสู้ต่อแล้ว':'⏸ Auto ยังปิดอยู่');
+ refreshFormationControls();renderTeam();
+}
+function syncFormationRoster(){
+ buildFighters(true);renderPanels();save();
+}
+function swapSquadMember(oldId,newId){
+ if(!state.owned[newId]||state.squad.includes(newId)||!state.squad.includes(oldId))return false;
+ const index=state.squad.indexOf(oldId),slot=state.placements[oldId];
+ state.squad[index]=newId;
+ if(slot)state.placements[newId]={...slot};
+ delete state.placements[oldId];
+ CORE.fillPlacements(state,state.placements);
+ syncFormationRoster();
+ toast('↔️ สลับ '+HEROES[oldId].name+' → '+HEROES[newId].name);
+ return true;
 }
 function canLevel(id){
  const p=state.owned[id];if(!p||p.level>=CORE.MAX_LEVEL)return false;
@@ -676,7 +728,7 @@ function heroAttack(hero,target){
  if(target.hp<=0)defeatMonster(target);
 }
 function tick(dt){
- if(!$('rewardModal').hidden||!$('skillModal').hidden)return;
+ if(!$('rewardModal').hidden||!$('skillModal').hidden||formationMode||!state.autoBattle)return;
  const t=Math.max(0,Math.min(.08,dt))*state.speed;
  stageClock+=t;
  if(!combat){
