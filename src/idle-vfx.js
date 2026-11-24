@@ -17,6 +17,44 @@
  const studioMode=new URLSearchParams(window.location?.search||'').has('studioTrial');
  if(studioMode){try{draft=JSON.parse(sessionStorage.getItem('AUTOCHEST_VFX_DRAFT')||'null')}catch(_){}}
  async function loadPublished(){try{const response=await fetch('./assets/effects/published.json',{cache:'no-cache'});if(response.ok){const data=await response.json();if(data.version===1&&data.heroes&&typeof data.heroes==='object')published=data.heroes}}catch(_){}}
+ // The game owns slot geometry. Uploaded art can tune appearance, never hit detection.
+ function slotLayout(hero,event){
+  const mode=hero?.visual?.layout?.[event];
+  if(['point','beam','field'].includes(mode))return mode;
+  return hero?.effect==='pierce'&&event==='skillProjectile'?'beam':'point';
+ }
+ const bounded=(value,fallback,min,max)=>Number.isFinite(Number(value))&&value!==null&&value!==''?Math.max(min,Math.min(max,Number(value))):fallback;
+ function appearance(raw,mode='point'){
+  return {mode,scaleX:bounded(raw.scaleX,1,.1,5),scaleY:bounded(raw.scaleY,1,.1,5),rotation:bounded(raw.rotation,0,-180,180),
+   thickness:bounded(raw.thickness,48,4,300),orientation:raw.orientation==='vertical'?'vertical':'horizontal'};
+ }
+ function rayEnd(from,to){
+  const dx=to.x-from.x,dy=to.y-from.y;
+  if(Math.hypot(dx,dy)<.0001)return {x:from.x,y:from.y};
+  const t=Math.min(dx>0?(100-from.x)/dx:dx<0?-from.x/dx:Infinity,dy>0?(100-from.y)/dy:dy<0?-from.y/dy:Infinity);
+  return {x:from.x+dx*Math.max(0,t),y:from.y+dy*Math.max(0,t)};
+ }
+ function geometry(spec,area,from,to,scale=1){
+  const w=Math.max(1,area.width),h=Math.max(1,area.height),factor=Math.min(1.1,w/540)*scale;
+  const sx=from.x*w/100,sy=from.y*h/100;
+  if(spec.mode==='beam'&&to){
+   const ex=to.x*w/100,ey=to.y*h/100,dx=ex-sx,dy=ey-sy;
+   return {left:(sx+ex)/2,top:(sy+ey)/2,width:Math.max(1,Math.hypot(dx,dy)),height:spec.thickness*factor,angle:Math.atan2(dy,dx)*180/Math.PI};
+  }
+  if(spec.mode==='field')return {left:w/2,top:h/2,width:w*spec.scaleX,height:h*spec.scaleY,angle:spec.rotation};
+  return {left:sx,top:sy,width:spec.size*factor*spec.scaleX,height:spec.size*factor*spec.scaleY,angle:spec.rotation};
+ }
+ function placeRegion(node,spec,region){
+  node.style.left=region.left+'px';node.style.top=region.top+'px';node.style.width=region.width+'px';node.style.height=region.height+'px';
+  node.style.setProperty('--vfx-angle',region.angle+'deg');
+  // The frame painter lives inside the region, so vertical source art can be rotated
+  // without rotating the actual beam path or stretching its collision geometry.
+  const art=node.ownerDocument.createElement('span');art.style.position='absolute';art.style.left='50%';art.style.top='50%';art.style.pointerEvents='none';
+  const vertical=spec.mode==='beam'&&spec.orientation==='vertical';
+  art.style.width=(vertical?region.height:region.width)+'px';art.style.height=(vertical?region.width:region.height)+'px';
+  art.style.transform='translate(-50%,-50%)'+(vertical?' rotate(-90deg)':'');
+  node.replaceChildren(art);paint(art,spec,true);return art;
+ }
  function getSpec(hero,event){
   const override=studioMode&&draft?.hero===hero?.id&&draft?.event===event?draft.spec:null;
   const key=override??published[hero?.id]?.[event]??hero?.visual?.fx?.[event]??defaults[hero?.id]?.[event]??generic[event];
@@ -25,7 +63,7 @@
   if(!raw||typeof raw.src!=='string'||!(/^\.\/assets\/effects\/[a-z0-9_/-]+\.(svg|png|webp|gif)$/i.test(raw.src)||(override===raw&&/^data:image\/(png|gif|webp);base64,[a-z0-9+/=]+$/i.test(raw.src))))return null;
   const cols=Math.max(1,Math.min(32,Math.floor(raw.cols||1))),rows=Math.max(1,Math.min(32,Math.floor(raw.rows||1)));
   const row=Math.max(0,Math.min(rows-1,Math.floor(raw.row||0))),col=Math.max(0,Math.min(cols-1,Math.floor(raw.col||0))),frames=Math.max(1,Math.min((rows-row)*cols-col,Math.floor(raw.frames||cols)));
-  return {src:raw.src,cols,rows,row,col,frames,size:Math.max(16,Math.min(400,Number(raw.size)||100)),ms:Math.max(80,Math.min(3000,Number(raw.ms)||440))};
+  return {src:raw.src,cols,rows,row,col,frames,size:Math.max(16,Math.min(400,Number(raw.size)||100)),ms:Math.max(80,Math.min(3000,Number(raw.ms)||440)),...appearance(raw,slotLayout(hero,event))};
  }
  function paint(node,spec,animate=true){
   node.style.backgroundImage='url("'+spec.src+'")';
@@ -43,5 +81,5 @@
   for(const hero of Object.values(heroes))for(const event of Object.keys(generic)){const s=getSpec(hero,event);if(s)urls.add(s.src)}
   for(const url of urls){const img=new Image();img.src=url;img.decode?.().catch(()=>{});}
  }
- window.AUTOCHEST_VFX=Object.freeze({getSpec,paint,preload,loadPublished});
+ window.AUTOCHEST_VFX=Object.freeze({getSpec,paint,preload,loadPublished,slotLayout,appearance,rayEnd,geometry,placeRegion});
 })();

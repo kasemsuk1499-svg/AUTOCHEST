@@ -9,13 +9,17 @@
 .sheet-board #sheetGrid button.used{background:#4bd8c216;border-color:#8cfbe5}.sheet-board #sheetGrid button.edge{box-shadow:inset 0 0 0 2px #ffd078}
 .sheet-controls{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.sheet-controls>div{display:flex;align-items:center;gap:8px}.sheet-controls button{padding:5px 10px}.sheet-controls b{min-width:16px;text-align:center}
 #sheetChoices button{flex:0 1 auto;font-size:12px}button[aria-pressed=true]{border-color:#7ce4cf;background:#245d56}
+ #previewFx{position:absolute;transform:translate(-50%,-50%) rotate(var(--vfx-angle,0deg))} #previewTarget{position:absolute;left:72%;top:30%;transform:translate(-50%,-50%);color:#ffc4af;font-size:36px;z-index:0} .preview-unit.beam-preview{left:20%;top:76%;bottom:auto;height:65px;transform:translate(-50%,-50%)} #slotMode{margin-top:10px;font-weight:bold;color:#a5e6d5}
 </style></head><body>
-<header><div><small>AUTOCHEST / DEVELOPER TOOLS</small><h1>VFX Studio <small>v0.20.2</small></h1><div class="muted">แก้เอฟเฟกต์ภาพ • ทดลอง • เผยแพร่ให้ผู้เล่นทุกคน</div></div><a href="./index.html">← กลับเกม</a></header>
+<header><div><small>AUTOCHEST / DEVELOPER TOOLS</small><h1>VFX Studio <small>v0.20.3</small></h1><div class="muted">แก้เอฟเฟกต์ภาพ • ทดลอง • เผยแพร่ให้ผู้เล่นทุกคน</div></div><a href="./index.html">← กลับเกม</a></header>
 <main>
 <section class="panel"><h2>1. เลือกฮีโร่และภาพ</h2><label>ตัวละคร<select id="hero"></select></label><div class="hero-info"><img id="portrait" alt=""><div><strong id="heroName"></strong><small id="heroSkill"></small></div></div>
 <label>จังหวะแสดงเอฟเฟกต์<select id="event"></select></label><div id="eventHint" class="muted"></div>
 <label>นำเข้าภาพ PNG, GIF หรือ WebP (สูงสุด 1.5 MB)<input type="file" id="asset" accept="image/png,image/gif,image/webp,.png,.gif,.webp"></label><div id="fileInfo" class="muted"></div>
 <div class="pair"><label>ขนาดภาพ (px)<input id="size" type="number" min="16" max="400" value="140"></label><label>ระยะเวลา (ms)<input id="ms" type="number" min="80" max="3000" value="550"></label></div>
+<div class="muted" id="slotMode"></div>
+<div id="pointSettings"><div class="triple"><label>ยืดกว้าง (×)<input id="scaleX" type="number" min=".1" max="5" step=".1" value="1"></label><label>ยืดสูง (×)<input id="scaleY" type="number" min=".1" max="5" step=".1" value="1"></label><label>หมุน (°)<input id="rotation" type="number" min="-180" max="180" step="5" value="0"></label></div></div>
+<div id="beamSettings" hidden><div class="pair"><label>ความหนาลำแสง (px)<input id="thickness" type="number" min="4" max="300" step="2" value="48"></label><label>ทิศทางไฟล์ภาพ<select id="orientation"><option value="horizontal">แนวนอน →</option><option value="vertical">แนวตั้ง ↓</option></select></label></div><small>ความยาวและมุมอิงแนวยิงในสนามอัตโนมัติ</small></div>
 <details id="sheetAdvanced"><summary>ตั้งค่าตารางด้วยตัวเอง</summary><div class="triple"><label>คอลัมน์<input id="cols" type="number" min="1" max="32" value="1"></label><label>แถว<input id="rows" type="number" min="1" max="32" value="1"></label><label>จำนวนเฟรม<input id="frames" type="number" min="1" max="1024" value="1"></label></div>
 <div class="pair"><label>แถวเริ่มต้น (เริ่มจาก 0)<input id="row" type="number" min="0" max="31" value="0"></label><label>คอลัมน์เริ่มต้น (เริ่มจาก 0)<input id="col" type="number" min="0" max="31" value="0"></label></div></details>
 <div id="sheetHelper" hidden><h3>ตัวช่วยแบ่งเฟรม</h3><p class="muted" id="sheetGuess" role="status"></p><div id="sheetChoices" class="actions"></div>
@@ -23,7 +27,7 @@
 <div class="sheet-board" id="sheetBoard"><img id="sheetImage" alt="ภาพต้นฉบับ"><div id="sheetGrid"></div></div>
 <p class="muted" id="frameHint">เลือกช่วงเฟรมจากตารางได้</p><div class="actions"><button id="pickStart" type="button">เลือกเฟรมแรก</button><button id="pickEnd" type="button">เลือกเฟรมสุดท้าย</button><button id="allFrames" type="button">ใช้ทุกช่อง</button></div></div>
 <p class="muted">GIF / WebP ใช้ไฟล์เดียวอัตโนมัติ · ภาพ PNG จะแนะนำตารางถ้าแยกช่องได้</p></section>
-<section class="panel"><h2>2. พรีวิวเอฟเฟกต์</h2><div class="stage"><span id="previewHint">พื้นโปร่งใส / ภาพตัวอย่าง</span><img class="preview-unit" id="previewUnit" alt=""><div id="previewFx"></div></div><div class="actions"><button id="playBtn" type="button">▶ เล่นภาพ</button><button id="loopBtn" type="button" aria-pressed="false">↻ เล่นวน</button><button id="trialBtn" class="primary" type="button">⚔ ทดลองสกิลจริง</button></div><div id="previewStatus" class="status" role="status"></div><p class="muted">การทดลองนี้แยกจากเซฟเกมจริง ไม่หักทรัพยากร ไม่เปลี่ยนฮีโร่ในเกมหลัก</p></section>
+<section class="panel"><h2>2. พรีวิวเอฟเฟกต์</h2><div class="stage"><span id="previewHint">พื้นโปร่งใส / ภาพตัวอย่าง</span><img class="preview-unit" id="previewUnit" alt=""><span id="previewTarget" hidden>◎</span><div id="previewFx"></div></div><div class="actions"><button id="playBtn" type="button">▶ เล่นภาพ</button><button id="loopBtn" type="button" aria-pressed="false">↻ เล่นวน</button><button id="trialBtn" class="primary" type="button">⚔ ทดลองสกิลจริง</button></div><div id="previewStatus" class="status" role="status"></div><p class="muted">การทดลองนี้แยกจากเซฟเกมจริง ไม่หักทรัพยากร ไม่เปลี่ยนฮีโร่ในเกมหลัก</p></section>
 <section class="panel wide" id="trialPanel" hidden><header><div><h2>Hero Trial</h2><small>ใช้ไฟล์ภาพร่างของคุณเท่านั้น — ยังไม่เผยแพร่</small></div><button id="closeTrial" type="button">ปิด</button></header><iframe id="trialFrame" title="สนามทดลองเอฟเฟกต์จริง" src="about:blank"></iframe></section>
 <section class="panel wide"><h2>3. เผยแพร่บน GitHub</h2><p class="publish-note">ปลายทาง: <b>kasemsuk1499-svg/AUTOCHEST · main</b> — บันทึกไฟล์ภาพและค่าตั้งต้นใน commit เดียว ไม่แก้ไขสกิลหรือค่าสเตตัส</p>
 <div class="publish-note">ใช้ <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">Fine-grained personal access token</a> ที่จำกัดเฉพาะ Repo นี้ โดยให้สิทธิ์ Repository permissions → Contents: Read and write เท่านั้น ตั้งวันหมดอายุสั้น ๆ ไม่ต้องส่ง Token ในแชท</div>
@@ -32,16 +36,16 @@
 <button id="publishBtn" class="primary" type="button" disabled>เผยแพร่ให้ผู้เล่นทุกคน</button><div class="status" id="publishStatus" role="status"></div><a id="commitLink" target="_blank" rel="noopener noreferrer" hidden>เปิด commit ที่เผยแพร่</a>
 <details><summary>วิธีสำรอง / ย้อนกลับ</summary><p>ภาพเดิมยังอยู่ในประวัติ GitHub สามารถ revert commit ที่เผยแพร่ได้ หากต้องการเก็บภาพและค่าตั้งต้นไว้ใช้เอง ให้กดส่งออกด้านล่าง</p><div class="actions"><button id="exportBtn" type="button">ส่งออกค่าตั้งต้น JSON</button></div></details></section>
 </main>
-<script defer src="./src/characters.js?v=0.20.2"></script>
-<script defer src="./src/characters/heroes/asuna.js?v=0.20.2"></script>
-<script defer src="./src/characters/heroes/kirito.js?v=0.20.2"></script>
-<script defer src="./src/characters/heroes/sinon.js?v=0.20.2"></script>
-<script defer src="./src/characters/heroes/lisbeth.js?v=0.20.2"></script>
-<script defer src="./src/characters/heroes/deathgun.js?v=0.20.2"></script>
-<script defer src="./src/characters/heroes/heathcliff.js?v=0.20.2"></script>
-<script defer src="./src/characters/heroes/silica.js?v=0.20.2"></script>
-<script defer src="./src/characters/heroes/megumin.js?v=0.20.2"></script>
-<script defer src="./src/idle-vfx.js?v=0.20.2"></script>
-<script defer src="./src/vfx-sheet.js?v=0.20.2"></script>
-<script defer src="./src/vfx-studio.js?v=0.20.2"></script>
+<script defer src="./src/characters.js?v=0.20.3"></script>
+<script defer src="./src/characters/heroes/asuna.js?v=0.20.3"></script>
+<script defer src="./src/characters/heroes/kirito.js?v=0.20.3"></script>
+<script defer src="./src/characters/heroes/sinon.js?v=0.20.3"></script>
+<script defer src="./src/characters/heroes/lisbeth.js?v=0.20.3"></script>
+<script defer src="./src/characters/heroes/deathgun.js?v=0.20.3"></script>
+<script defer src="./src/characters/heroes/heathcliff.js?v=0.20.3"></script>
+<script defer src="./src/characters/heroes/silica.js?v=0.20.3"></script>
+<script defer src="./src/characters/heroes/megumin.js?v=0.20.3"></script>
+<script defer src="./src/idle-vfx.js?v=0.20.3"></script>
+<script defer src="./src/vfx-sheet.js?v=0.20.3"></script>
+<script defer src="./src/vfx-studio.js?v=0.20.3"></script>
 </body></html>

@@ -632,7 +632,7 @@ footer{margin:10px 0 0;font-size:9px;justify-content:center;color:#60788c}
 
 /* v0.19.7 — cached image effects, independent from combat math */
 .image-vfx{position:absolute;z-index:8;pointer-events:none;transform:translate(-50%,-50%);background-repeat:no-repeat;animation:image-vfx-life var(--vfx-duration,.44s) ease-out both}
-@keyframes image-vfx-life{0%{opacity:.95;transform:translate(-50%,-50%) scale(.86)}30%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:.15;transform:translate(-50%,-50%) scale(1.08)}}
+@keyframes image-vfx-life{0%{opacity:.95;transform:translate(-50%,-50%) rotate(var(--vfx-angle,0deg)) scale(.86)}30%{opacity:1;transform:translate(-50%,-50%) rotate(var(--vfx-angle,0deg)) scale(1)}100%{opacity:.15;transform:translate(-50%,-50%) rotate(var(--vfx-angle,0deg)) scale(1.08)}}
 .stage-viewport .tft-bullet.image-projectile{background-color:transparent;border:0;border-radius:0;box-shadow:none!important}
 @media(prefers-reduced-motion:reduce){.image-vfx{animation:none}}
 
@@ -663,3 +663,9 @@ body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
 .ur-reveal strong{color:#ffe2bd;letter-spacing:2px;text-shadow:0 0 10px #ed91d0;font-size:20px}
 @keyframes ur-portal{0%{opacity:0;transform:scale(.3)}45%{opacity:1;transform:scale(1.1)}75%{transform:scale(.94)}100%{transform:scale(1.2);opacity:1}}
 @media(prefers-reduced-motion:reduce){.ur-reveal .summon-portal,.ur-reveal .summon-portal>div{animation:none}}
+
+/* VFX regions: the beam retains its endpoints throughout the fade. */
+.image-vfx{transform:translate(-50%,-50%) rotate(var(--vfx-angle,0deg))}
+.image-vfx.beam-vfx{animation:beam-vfx-life var(--vfx-duration,.5s) ease-out both}
+@keyframes beam-vfx-life{0%{opacity:.95}25%{opacity:1}80%{opacity:1}100%{opacity:.12}}
+@media(prefers-reduced-motion:reduce){.image-vfx.beam-vfx{animation:none}}

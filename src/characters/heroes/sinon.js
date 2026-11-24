@@ -37,6 +37,8 @@ window.AUTOCHEST_CHARACTERS.registerHero({
     "scale": 1,
     "walkBob": 6,
     "skillGlow": 1,
-    "attackMs": 340
+    "attackMs": 340,
+    "layout": {"skillProjectile":"beam"},
+    "fx": {"skillProjectile":{"src":"./assets/effects/sinon/beam.svg","size":100,"thickness":48,"ms":650}}
   }
 });

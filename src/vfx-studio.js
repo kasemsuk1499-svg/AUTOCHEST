@@ -12,6 +12,7 @@ function eventsFor(h){
  if(direct)events.push('skillHit');
  if(ranged)events.push('projectile');
  if(ranged&&direct)events.push('skillProjectile');
+ for(const event of Object.keys(h.visual?.layout||{}))if(labels[event]&&!events.includes(event))events.push(event);
  if(h.effect==='slam')events.push('area','debuff');
  if(h.effect==='heal'||h.support||h.passive?.healOnAttack)events.push('heal','buff');
  if(h.effect==='shield'||h.guard)events.push('shield');
@@ -26,15 +27,19 @@ function selectHero(){
 }
 function selectEvent(){
  const event=$('event').value;const notes={skillHit:'ใช้กับสกิลที่สร้างดาเมจโดยตรง ไม่ใช่สกิลฮีล/โล่/กระแทกวงกว้าง',skillProjectile:'ใช้กับกระสุนสกิลที่เดินทางไปยังเป้าหมาย',heal:'แสดงที่พันธมิตรที่ได้รับการฮีลจริง',area:'แสดงตรงเป้าหมายของค้อน',revive:'แสดงเมื่อฮีโร่คืนชีพ',shield:'แสดงเมื่อได้รับหรือถูกตีโล่'};
- $('eventHint').textContent=notes[event]||'แสดงเมื่อกลไกนี้ทำงานจริงในสนาม';
- if(!dataURL){const s=V.getSpec(H[$('hero').value],event);if(s)for(const key of ['size','ms','cols','rows','frames','row','col'])$(key).value=s[key]}
+ const hero=H[$('hero').value],mode=V.slotLayout(hero,event),spec=V.getSpec(hero,event);
+ $('eventHint').textContent=mode==='beam'?'ลำแสงยืดตามแนวโจมตีจริงอัตโนมัติ · ไม่ต้องสร้างภาพยาวเท่าสนาม':mode==='field'?'ภาพยืดตามพื้นที่สนามโดยอัตโนมัติ':notes[event]||'แสดงเมื่อกลไกนี้ทำงานจริงในสนาม';
+ $('beamSettings').hidden=mode!=='beam';$('pointSettings').hidden=mode==='beam';$('slotMode').textContent=mode==='beam'?'BEAM · ยืดตามแนวยิง':mode==='field'?'FIELD · พื้นที่สนาม':'POINT · จุดแสดงผล';
+ if(spec){for(const key of ['scaleX','scaleY','rotation','thickness','orientation'])$(key).value=spec[key];if(!dataURL)for(const key of ['size','ms','cols','rows','frames','row','col'])$(key).value=spec[key]}
  invalidate();play();
 }
 function num(id,min,max){const n=Number($(id).value);if(!Number.isInteger(n)||n<min||n>max)throw Error(id+' ต้องอยู่ระหว่าง '+min+'–'+max);return n}
 function settings(src){
  const cols=num('cols',1,32),rows=num('rows',1,32),row=num('row',0,rows-1),col=num('col',0,cols-1),frames=num('frames',1,cols*(rows-row)-col);
  if(dataURL&&(ext==='gif'||ext==='webp')&&(cols!==1||rows!==1||frames!==1))throw Error('GIF / WebP ให้ใช้ 1 คอลัมน์ 1 แถว 1 เฟรม');
- return {src,cols,rows,row,col,frames,size:num('size',16,400),ms:num('ms',80,3000)};
+ const mode=V.slotLayout(H[$('hero').value],$('event').value);
+ const raw={scaleX:Number($('scaleX').value),scaleY:Number($('scaleY').value),rotation:Number($('rotation').value),thickness:Number($('thickness').value),orientation:$('orientation').value};
+ return {src,cols,rows,row,col,frames,size:num('size',16,400),ms:num('ms',80,3000),...V.appearance(raw,mode)};
 }
 function validDraft(){return !!(file&&dataURL&&!busy)}
 function sync(){let v=validDraft();for(const id of ['trialBtn','exportBtn'])$(id).disabled=!v;$('publishBtn').disabled=!v||!$('token').value.trim();}
@@ -45,8 +50,10 @@ function play(){
  try{
   const spec=dataURL?settings(dataURL):V.getSpec(H[$('hero').value],$('event').value);
   if(!spec)return;
-  const size=Math.min(spec.size,$('previewFx').parentElement.clientWidth-12,290);
-  node.style.width=size+'px';node.style.height=size+'px';node.style.opacity='1';V.paint(node,spec,true);
+  const stage=node.parentElement,area={width:stage.clientWidth,height:stage.clientHeight},beam=spec.mode==='beam',from=beam?{x:20,y:76}:{x:50,y:50},target={x:72,y:30};
+  const h=H[$('hero').value],to=beam?(h.effect==='pierce'&&$('event').value==='skillProjectile'?V.rayEnd(from,target):target):null;
+  $('previewTarget').hidden=!beam;$('previewUnit').classList.toggle('beam-preview',beam);
+  const region=V.geometry(spec,area,from,to);node.style.opacity='1';V.placeRegion(node,spec,region);
   if(node.animate)node.animate([{opacity:1},{opacity:1,offset:.8},{opacity:.35}],{duration:spec.ms,fill:'forwards'});
   status('previewStatus',dataURL?'ภาพร่าง • '+spec.frames+' ช่องภาพ · '+spec.ms+' ms':'เอฟเฟกต์ที่ใช้งานอยู่');
   if(loop)loopTimer=setTimeout(play,spec.ms+120);
@@ -104,7 +111,7 @@ async function loadFile(){
  }catch(e){if(seq!==sequence)return;status('fileInfo',e.message,true);sync()}
 }
 function draft(){if(!validDraft())throw Error('เลือกภาพก่อน');return {hero:$('hero').value,event:$('event').value,spec:settings(dataURL)}}
-function openTrial(){try{const d=draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&v=0.20.2';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
+function openTrial(){try{const d=draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&v=0.20.3';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
 function closeTrial(){$('trialFrame').src='about:blank';$('trialPanel').hidden=true;try{sessionStorage.removeItem(draftKey)}catch(_){}}
 function exportDraft(){try{const d=draft(),url=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='vfx-'+d.hero+'-'+d.event+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){status('publishStatus',e.message,true)}}
 async function api(token,path,method='GET',body){
@@ -136,7 +143,7 @@ async function publish(){
 }
 $('hero').replaceChildren(...Object.values(H).map(h=>new Option(h.rarity+' · '+h.name,h.id)));
 $('hero').addEventListener('change',selectHero);$('event').addEventListener('change',selectEvent);$('asset').addEventListener('change',loadFile);
-for(const id of ['size','ms','cols','rows','frames','row','col'])$(id).addEventListener('change',()=>{drawGrid();invalidate();play()});
+for(const id of ['size','ms','cols','rows','frames','row','col','scaleX','scaleY','rotation','thickness','orientation'])$(id).addEventListener('change',()=>{drawGrid();invalidate();play()});
 for(const [id,dc,dr] of [['lessCols',-1,0],['moreCols',1,0],['lessRows',0,-1],['moreRows',0,1]])$(id).onclick=()=>applyGrid(Math.max(1,Math.min(32,Number($('cols').value)+dc)),Math.max(1,Math.min(32,Number($('rows').value)+dr)));
 $('pickStart').onclick=()=>{pick='start';drawGrid()};$('pickEnd').onclick=()=>{pick='end';drawGrid()};$('allFrames').onclick=()=>applyGrid(Number($('cols').value),Number($('rows').value));
 $('loopBtn').onclick=()=>{loop=!loop;$('loopBtn').setAttribute('aria-pressed',String(loop));$('loopBtn').textContent=loop?'⏸ หยุดวน':'↻ เล่นวน';play()};
