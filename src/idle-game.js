@@ -374,7 +374,7 @@ function skillDescription(t,enemy=false){
  const n=t.triggerEvery||4,lines=['โจมตีปกติ 100% ATK เมื่อเป้าหมายอยู่ในระยะ TFT จริง • มีโอกาสคริติคอล'];
  switch(t.effect){
   case 'slash':
-   lines.push('ทุก '+n+' การโจมตี: ฟันหนัก 200% ATK พร้อมเอฟเฟกต์วงพลัง');
+   lines.push('ทุก '+n+' การโจมตี: โจมตีเป้าหมายเดียว '+Math.round((t.skillPower||2)*100)+'% ATK'+(t.skillGuaranteedCrit?' · ติดคริติคอลแน่นอน':' พร้อมเอฟเฟกต์วงพลัง'));
    break;
   case 'blink':
    lines.push('ทุก '+n+' การโจมตี: เคลื่อนฉับไวเข้าหาเป้าหมาย ฟัน 200% ATK และตามด้วยโจมตีอีก 50% ATK');
@@ -398,6 +398,7 @@ function skillDescription(t,enemy=false){
    break;
   default:lines.push('ทุก '+n+' การโจมตี: ใช้สกิลตามข้อมูลฮีโร่');
  }
+ if(t.passive?.focusCritStep)lines.push('พาสซีฟ — '+t.passive.name+': โจมตีเป้าหมายเดิมต่อเนื่องเพิ่มโอกาสคริติคอล '+Math.round(t.passive.focusCritStep*100)+' จุดเปอร์เซ็นต์ต่อครั้ง (สูงสุด +'+Math.round(t.passive.focusCritMax*100)+' จุดเปอร์เซ็นต์) · รีเซ็ตเมื่อเปลี่ยนเป้าหมาย');
  if(t.passive?.reviveHp)lines.push('พาสซีฟ — '+t.passive.name+': เมื่อ HP เหลือ 0 คืนชีพด้วย HP '+Math.round(t.passive.reviveHp*100)+'% และเป็นอมตะ '+t.passive.immortalSeconds+' วินาที (ไม่รับดาเมจ) · 1 ครั้งต่อเวฟหรือบอส');
  if(Number(t.range)>=1.8)lines.push('🎯 ยิงไกล: กระสุนเดินทางตามเป้าหมายและคำนวณดาเมจเมื่อกระสุนถึง; พยายามรักษาระยะเมื่อศัตรูประชิด');
  else lines.push('⚔️ ประชิด: วิ่งเข้าโจมตีตามระยะของสนาม TFT');
@@ -423,7 +424,7 @@ function openSkill(id,source='hero',unit=null){
  $('skillModalContent').innerHTML=
   '<div class="skill-modal-layout"><div class="skill-portrait"><img loading="lazy" src="'+escapeText(h.images.art||h.portrait)+'" alt="'+escapeText(h.name)+'"></div>'+
   '<div class="skill-modal-main"><div class="skill-status">'+escapeText(label)+'</div><h3>'+escapeText(h.name)+'</h3>'+
-  '<p>'+escapeText(h.subtitle||'')+'</p><div class="skill-tags"><span>'+escapeText(h.team)+'</span>'+
+  '<p>'+escapeText(h.subtitle||'')+'</p><div class="skill-tags"><span>'+escapeText(h.role||h.team)+'</span>'+
   (h.traits||[]).map(x=>'<span>'+escapeText(x)+'</span>').join('')+'</div>'+
   '<div class="skill-stats">'+stats.map(([k,v])=>'<div><small>'+escapeText(k)+'</small><strong>'+escapeText(v)+'</strong></div>').join('')+
   '</div></div></div><section class="skill-ability"><small>⚔ AUTO SKILL · IDLE MODE</small>'+
@@ -638,6 +639,7 @@ function buildFighters(preserve=false){
   return {id,side:'ally',x:point.x,y:point.y,startX:point.x,move:HEROES[id].move,
    hp,maxHp:stat.hp,atk:stat.atk,cool:stat.cool,remaining:old?.remaining??i*.12,
    attacks:old?.attacks||0,shield:old?.shield||0,
+   focusTarget:old?.focusTarget||null,focusHits:old?.focusHits||0,
    crit:stat.crit,critDamage:stat.critDamage,
    cloakUntil:old?.cloakUntil||0,ambush:old?.ambush||false,
    reviveUsed:!!revive,immortalUntil:revive?.until||0,
@@ -879,7 +881,7 @@ function tftAttack(attacker,target){
  const special=attacker.attacks%(hero.triggerEvery||4)===0;
  let mul=ambush?(hero.cloakShotMultiplier||1.7):1;
  if(special){
-  if(effect!=='cloakshot')mul*=2;
+  if(effect!=='cloakshot')mul*=hero.skillPower||2;
   if(tftSkill(attacker,target)){
    attacker.attackUntil=stageClock+(hero.visual?.attackMs||360)/1000;
    pose(attacker,true);
@@ -887,7 +889,7 @@ function tftAttack(attacker,target){
    return;
   }
  }
- const bonusCrit=ambush?(hero.cloakCritBonus||0):0;
+ const bonusCrit=(ambush?(hero.cloakCritBonus||0):0)+TFT.focusCritBonus(attacker,target,hero);
  attacker.attackUntil=stageClock+(hero.visual?.attackMs||300)/1000;
  pose(attacker,true);
  playAttackAnimation(attacker);
@@ -906,7 +908,7 @@ function tftAttack(attacker,target){
   let actual=mul;
   if(ambush&&target.hp/target.maxHp<(hero.executeThreshold||.35))
    actual*=hero.executeMultiplier||1.2;
-  tftDamage(attacker,target,attacker.atk*actual,bonusCrit);
+  tftDamage(attacker,target,attacker.atk*actual,bonusCrit,!!(special&&hero.skillGuaranteedCrit));
   if(special&&effect==='blink'&&target.hp>0)tftDamage(attacker,target,attacker.atk*.5);
  }
 }
