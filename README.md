@@ -60,3 +60,11 @@ Old original characters were removed from active roster and repository files. Th
 - หากเป้าหมาย HP ต่ำกว่า 35% เมื่อกระสุนกระทบ ดาเมจเพิ่ม 20%
 - กระสุนที่เล็งไว้ก่อนเริ่มพรางยังยิงโดนได้; การพรางป้องกันการล็อกเป้าหมาย **ใหม่** เท่านั้น
 - ทั้งฮีโร่ฝั่งเราและศัตรูใช้สกิลเดียวกัน และยังรองรับ PNG/GIF Art, Idle, Attack
+
+## v0.11 — Fixed the combat AI standing idle at attack range
+
+- Corrected floating-point asymptotic movement that could stop just **outside** attack range forever (even when a hero looks close enough).
+- Combat accepts a **3-pixel** range tolerance and moves into firing range in finite steps.
+- When every enemy is cloaked, heroes stop the walking animation and resume pursuing when a target becomes visible again.
+- Stealth duration now advances with combat speed (including ×2 mode).
+- Characters face the target before attacking. Verified long-range and melee units in regression scenarios.
