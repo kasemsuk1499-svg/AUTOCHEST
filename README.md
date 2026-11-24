@@ -4,7 +4,7 @@ A standalone, fan-made **Sword Art Online idle RPG prototype** with gameplay ins
 
 **Play:** https://kasemsuk1499-svg.github.io/AUTOCHEST/
 
-## Gameplay (v0.14.1)
+## Gameplay (v0.15.1)
 
 1. **Idle auto-hunt:** Asuna, Kirito, Silica and other SAO characters automatically battle field monsters. Receive Gold and Hero EXP every kill.
 2. **Stage / Boss:** Defeat 6+ mobs to unlock that stage's boss. Enable Auto Boss or trigger manually. Winning the timed boss battle opens the next stage and grants Rubies, tickets, EXP, and Gold. If it fails, farm and upgrade then retry.
@@ -32,7 +32,7 @@ Hero data: `src/characters/heroes/*.js` — images: `assets/heroes/<id>/{art.png
 
 ## Files
 
-- `index.html` — **new** Idle RPG entry point (v0.14.1)
+- `index.html` — Idle RPG entry point (v0.15.1)
 - `src/idle-style.css` — responsive Idle RPG presentation
 - `src/idle-core.js` — game economy, stage rules, XP, summon, offline rewards
 - `src/idle-game.js` — UI, boss battles, autoplay combat, hero skills, save/load
@@ -52,3 +52,18 @@ Chrome headless preview playtest performed on 2026-11-24 with UI actions (10x su
 ### Scope / next steps
 
 This release implements the core idle gameplay, **not** the entire Seven Knights Idle system. Future features could include more hero varieties, real equipment, a main quest chain, daily dungeons, party formations, additional status effects and polished boss animations. It does not provide multiplayer, offline server simulation, cross-device syncing, or an exact recreation of 7K Idle.
+
+## v0.15.1 — Walk around like an idle adventure
+
+The field now has an animated traveling phase and moving SAO enemies. Instead of a stationary emoji monster, a **shadow copy of one of our seven SAO heroes** is spawned from the same character data, idle/attack PNG or GIF artwork, attack range, cooldown, and skill effect. Bosses are large, aura-marked cost-3 SAO heroes. Stage scaling is still based on `idle-core.js`, so this changes the look and combat behavior without requiring a second enemy asset pack.
+
+**Controls**
+- **🏃 AUTO WALK ON:** entire party runs across scrolling scenery between encounters and chases enemies into individual attack ranges on its own.
+- **🕹️ MANUAL WALK:** toggles off auto travel/chase. Hold **WASD / arrow keys** or the **four-way D-pad** on the battlefield to walk the whole party manually. When enabled, your party still attacks and uses skills automatically when in range; enemies still approach.
+- Holding a direction while Auto Walk is ON temporarily overrides the party's auto movement. Release to resume AI.
+- Combat and scene movement honor the ×1/×2 speed button.
+- Existing saved games remain compatible; preference is saved in the same browser localStorage slot.
+
+**Verified in live headless Chrome:** v0.15.1 boots with all 7 heroes; MANUAL stops auto walking, KeyD moves the party visibly (31% → 54% battlefield X), AUTO resumes, and the enemy Kirito uses `assets/heroes/kirito/idle.png` and moves toward the party. Zero JavaScript runtime exceptions.
+
+This is a simplified two-dimensional field with responsive camera/parallax and auto fights, not the original Seven Knights Idle source or maps.
