@@ -30,12 +30,12 @@ const boardPoint=(col,row)=>({x:(col+.5)*100/GRID_COLS,y:(row+.5)*100/GRID_ROWS}
 const friendlyCell=(col,row)=>Number.isInteger(col)&&Number.isInteger(row)&&
   col>=0&&col<GRID_COLS&&row>=ALLY_START_ROW&&row<GRID_ROWS;
 const cellAtClient=(clientX,clientY)=>{
- const r=$('stageViewport').getBoundingClientRect();
+ const r=$('boardGrid').getBoundingClientRect();
  const col=Math.floor((clientX-r.left)/r.width*GRID_COLS);
  const row=Math.floor((clientY-r.top)/r.height*GRID_ROWS);
  return friendlyCell(col,row)?{col,row}:null;
 };
-let boardGesture=null,ignoreInspectUntil=0;
+let boardGesture=null,ignoreInspectUntil=0,dragGhost=null,dropHighlight=null;
 // Hero-shaped enemies share art and skills with the player's SAO roster.
 const bosses=IDS.filter(id=>HEROES[id].cost===3);
 const enemyLimit=()=>CORE.waveSize(state.stage);
@@ -217,17 +217,12 @@ function refreshFormationControls(){
  }
  auto.classList.toggle('off',!state.autoBattle);
  auto.setAttribute('aria-pressed',String(state.autoBattle));
- const reserve=state.owned[selected]&&!state.squad.includes(selected);
- const full=state.squad.length>=CORE.maxSquad(state.stage);
- label.textContent=formationMode?(reserve&&full?
-  '🟡 เลือกตัวสำรองอยู่ · แตะสมาชิกในทีมเพื่อสลับ':
-  '♟️ พักต่อสู้ · วางตัวใน 3 แถวล่าง / ลากย้าย / สลับตัวสำรองได้'):
-  state.autoBattle?'⚔️ TFT Auto กำลังต่อสู้':'⏸ ปิด Auto · กดเปิดเพื่อเล่นต่อ';
- label.classList.toggle('editing',formationMode);
- $('stageViewport').classList.toggle('formation-active',formationMode);
+ const editing=formationMode||!!boardGesture?.active;
+ label.textContent=editing?'♟️ พักต่อสู้ชั่วคราว · ปล่อยฮีโร่เพื่อจัดทีม':state.autoBattle?'⚔️ TFT Auto กำลังต่อสู้ · ลากจัดทีมได้เลย':'⏸ ปิด Auto · ยังลากจัดทีมได้';
+ label.classList.toggle('editing',editing);
+ $('stageViewport').classList.toggle('formation-active',editing);
  const hint=$('swapHelp');
- if(hint)hint.textContent=reserve&&full?'↔️ เลือก '+HEROES[selected].name+' แล้วแตะสมาชิกบนแถบทีมเพื่อแทนที่':
-  '♟️ แตะตัวในทีมและแตะช่อง 3 แถวล่าง / ลากเพื่อย้ายตำแหน่ง';
+ if(hint)hint.textContent='ลากฮีโร่จากคลังหรือทีมลงสนาม · ลากทับตัวเดิมเพื่อสลับ';
 }
 function setFormationMode(value){
  formationMode=!!value;
@@ -249,6 +244,7 @@ function swapSquadMember(oldId,newId){
  if(!state.owned[newId]||state.squad.includes(newId)||!state.squad.includes(oldId))return false;
  const index=state.squad.indexOf(oldId),slot=state.placements[oldId];
  state.squad[index]=newId;
+ selected=newId;
  if(slot)state.placements[newId]={...slot};
  delete state.placements[oldId];
  CORE.fillPlacements(state,state.placements);
@@ -284,7 +280,7 @@ function renderTeam(){
   const t=HEROES[id],p=state.owned[id],ready=readyUpgrade(id);
   return '<button type="button" class="team-slot '+(selected===id?'active ':'')+
    (ready?'is-upgrade-ready ':'')+
-   (formationMode&&state.owned[selected]&&!state.squad.includes(selected)?'swap-target':'')+
+   ''+
    '" data-slot="'+id+'" aria-label="เลือก '+escapeText(t.name)+' เลเวล '+p.level+' '+p.stars+' ดาว">'+
    '<span class="team-level">Lv.'+p.level+'</span>'+
    '<img loading="lazy" src="'+t.images.idle+'" alt="">'+
@@ -369,7 +365,7 @@ function renderSelected(){
    (atStarMax?'★ ดาวสูงสุด':'⭐ เพิ่มเป็น '+(p.stars+1)+' ดาว')+'</button>'+
   '</section>'+
   '<div class="upgrade-footer-actions"><button type="button" id="deployHeroBtn" class="deploy-action"'+'>'+
-   (inTeam?'↩ ถอนฮีโร่ออกจากทีม':full?'↔️ เลือกสมาชิกในทีมเพื่อสลับ':'⚔️ เพิ่มเข้าทีม')+'</button>'+
+   (inTeam?'↩ ถอนเข้าตัวสำรอง':full?'↔️ ลากทับฮีโร่ในทีม':'⚔️ เพิ่มเข้าทีม')+'</button>'+
    '<button type="button" id="openSkillBtn" class="inspect-skill-btn">ⓘ ดูสกิลทั้งหมด</button></div>';
 }
 function skillDescription(t,enemy=false){
@@ -524,21 +520,30 @@ function rankUp(){
  toast('⭐ '+HEROES[selected].name+' '+state.owned[selected].stars+' ดาว! พลังทีม +'+
   fmt(Math.max(0,CORE.power(state,HEROES)-before)));
 }
-function toggleHero(){
- const id=selected;if(!state.owned[id])return;
- if(state.squad.includes(id)){
-  if(state.squad.length<=1){toast('ต้องมีฮีโร่ในทีมอย่างน้อย 1 คน');return}
-  state.squad=state.squad.filter(x=>x!==id);
- }else{
-  if(state.squad.length>=CORE.maxSquad(state.stage)){
-   if(!formationMode)setFormationMode(true);
-   renderTeam();toast('↔️ ทีมเต็ม · แตะสมาชิกทีมที่จะให้ '+HEROES[id].name+' ลงแทน');
-   return;
-  }
-  state.squad.push(id);
+function heroAtCell(cell){
+ return cell&&state.squad.find(id=>state.placements[id]?.col===cell.col&&state.placements[id]?.row===cell.row);
+}
+function addToSquad(id,cell=null){
+ if(!state.owned[id]||state.squad.includes(id))return false;
+ if(state.squad.length>=CORE.maxSquad(state.stage)){
+  toast('ทีมเต็ม · ลาก '+HEROES[id].name+' ทับตัวในทีมเพื่อสลับ');return false;
  }
+ if(cell&&(!friendlyCell(cell.col,cell.row)||heroAtCell(cell)))return false;
+ state.squad.push(id);selected=id;
+ if(cell)state.placements[id]={...cell};
  CORE.fillPlacements(state,state.placements);
- syncFormationRoster();
+ syncFormationRoster();toast('⚔️ เพิ่ม '+HEROES[id].name+' ลงทีมแล้ว');return true;
+}
+function removeFromSquad(id){
+ if(!state.squad.includes(id))return false;
+ if(state.squad.length<=1){toast('ต้องมีฮีโร่ในทีมอย่างน้อย 1 คน');return false}
+ state.squad=state.squad.filter(x=>x!==id);
+ delete state.placements[id];selected=id;
+ CORE.fillPlacements(state,state.placements);
+ syncFormationRoster();toast('↩ '+HEROES[id].name+' กลับเป็นตัวสำรอง');return true;
+}
+function toggleHero(){
+ return state.squad.includes(selected)?removeFromSquad(selected):addToSquad(selected);
 }
 function autoTeam(){
  const owned=Object.keys(state.owned);
@@ -896,7 +901,7 @@ function tftAttack(attacker,target){
 function enemyAttack(enemy,target){tftAttack(enemy,target)}
 function heroAttack(hero,target){tftAttack(hero,target)}
 function tick(dt){
- if(!$('rewardModal').hidden||!$('skillModal').hidden||formationMode||!state.autoBattle)return;
+ if(!$('rewardModal').hidden||!$('skillModal').hidden||formationMode||boardGesture?.active||!state.autoBattle)return;
  const t=Math.max(0,Math.min(.08,dt))*state.speed;
  stageClock+=t;
  if(!combat){
@@ -968,19 +973,16 @@ $('heroList').addEventListener('click',e=>{
  const info=e.target.closest('[data-skill-hero]');
  if(info){choose(info.dataset.skillHero);openSkill(info.dataset.skillHero);return}
  const hero=e.target.closest('[data-hero]');
- if(hero)choose(hero.dataset.hero);
+ if(hero){const id=hero.dataset.hero;choose(id);if(state.owned[id]&&!state.squad.includes(id))addToSquad(id);}
 });
 $('teamSlots').addEventListener('click',e=>{
  const n=e.target.closest('[data-slot]');if(!n)return;
  if(n.dataset.slot==='empty'){
   if(state.owned[selected]&&!state.squad.includes(selected))toggleHero();
-  else toast('เลือกฮีโร่จากคลังแล้วกดเพิ่มเข้าทีมได้เลย');
+  else toast('แตะฮีโร่ในคลังเพื่อลงทีมอัตโนมัติ หรือใช้การลาก');
   return;
  }
  const target=n.dataset.slot;
- if(formationMode&&state.owned[selected]&&!state.squad.includes(selected)){
-  const newId=selected;if(swapSquadMember(target,newId))choose(newId);return;
- }
  choose(target);
 });
 $('heroDetails').addEventListener('click',e=>{
@@ -1033,25 +1035,101 @@ $('speedBtn').addEventListener('click',()=>{
  state.speed=state.speed===1?2:1;updateResources();save();
  toast('⏩ ความเร็วต่อสู้ ×'+state.speed);
 });
-// Select a teammate in the roster or on the board, then click a friendly tile to deploy.
+// Direct mouse/touch drag from collection, team card or arena; pause only during drag.
 $('boardGrid').addEventListener('click',e=>{
  const tile=e.target.closest('[data-col][data-row]');
- if(tile&&state.squad.includes(selected))
-  moveHeroToCell(selected,Number(tile.dataset.col),Number(tile.dataset.row));
- else if(tile)toast('♟️ เลือกฮีโร่ที่อยู่ในทีมก่อนวางลงช่องนะ');
+ if(tile&&state.squad.includes(selected))moveHeroToCell(selected,Number(tile.dataset.col),Number(tile.dataset.row));
 });
-// Mouse and touch drag of a deployed character to a friendly tile.
-$('heroLayer').addEventListener('pointerdown',e=>{
- const actor=e.target.closest('[data-inspect-id]');
- if(actor)boardGesture={id:actor.dataset.inspectId,x:e.clientX,y:e.clientY};
+function dragSource(node){
+ const ally=node.closest('#heroLayer [data-inspect-id]');
+ if(ally)return {id:ally.dataset.inspectId,origin:'board'};
+ const team=node.closest('#teamSlots [data-slot]');
+ if(team&&team.dataset.slot!=='empty')return {id:team.dataset.slot,origin:'team'};
+ const card=node.closest('#heroList [data-hero]');
+ if(card)return {id:card.dataset.hero,origin:'collection'};
+ return null;
+}
+function dropTarget(x,y){
+ const node=document.elementFromPoint(x,y);
+ if(!node)return null;
+ if(node.closest('#benchDrop'))return {kind:'bench',node:$('benchDrop')};
+ const team=node.closest('#teamSlots [data-slot]');
+ if(team)return {kind:'team',id:team.dataset.slot,node:team};
+ const ally=node.closest('#heroLayer [data-inspect-id]');
+ if(ally){const id=ally.dataset.inspectId;return {kind:'cell',cell:state.placements[id],id,node:ally}}
+ const grid=$('boardGrid').getBoundingClientRect();
+ if(x>=grid.left&&x<grid.right&&y>=grid.top&&y<grid.bottom){
+  const cell=cellAtClient(x,y);
+  if(cell)return {kind:'cell',cell,id:heroAtCell(cell),node:$('boardGrid').querySelector('[data-col="'+cell.col+'"][data-row="'+cell.row+'"]')};
+ }
+ const card=node.closest('#heroList [data-hero]');
+ if(card&&state.owned[card.dataset.hero])return {kind:'collection',id:card.dataset.hero,node:card};
+ return null;
+}
+function applyDrop(drag,target){
+ if(!target)return false;
+ const id=drag.id,inTeam=state.squad.includes(id),other=target.id;
+ if(other===id)return false;
+ if(target.kind==='bench')return inTeam&&removeFromSquad(id);
+ if(target.kind==='collection'){
+  return inTeam&&drag.origin!=='collection'&&!state.squad.includes(other)&&swapSquadMember(id,other);
+ }
+ if(target.kind==='team'&&other==='empty')return !inTeam&&addToSquad(id);
+ if(other&&state.squad.includes(other)){
+  if(!inTeam)return swapSquadMember(other,id);
+  const cell=state.placements[other];return !!cell&&moveHeroToCell(id,cell.col,cell.row);
+ }
+ if(target.kind==='cell'&&target.cell){
+  return inTeam?moveHeroToCell(id,target.cell.col,target.cell.row):addToSquad(id,target.cell);
+ }
+ return false;
+}
+function highlightDrop(target){
+ if(dropHighlight!==target?.node){
+  dropHighlight?.classList.remove('drag-target');dropHighlight=target?.node||null;
+  dropHighlight?.classList.add('drag-target');
+ }
+}
+function finishDrag(e,cancel=false){
+ const drag=boardGesture;
+ if(!drag||e.pointerId!==drag.pointerId)return;
+ if(drag.active){
+  const target=cancel?null:dropTarget(e.clientX,e.clientY);
+  ignoreInspectUntil=performance.now()+350;
+  highlightDrop(null);dragGhost?.remove();dragGhost=null;
+  document.body.classList.remove('hero-dragging');
+  boardGesture=null;
+  if(target)applyDrop(drag,target);
+  refreshFormationControls();
+ }else boardGesture=null;
+}
+document.addEventListener('pointerdown',e=>{
+ if(boardGesture||!e.isPrimary||e.button!==0||e.target.closest('[data-skill-hero]'))return;
+ const source=dragSource(e.target);
+ if(source&&state.owned[source.id])boardGesture={...source,x:e.clientX,y:e.clientY,pointerId:e.pointerId,active:false};
 });
-window.addEventListener('pointerup',e=>{
- const drag=boardGesture;boardGesture=null;
- if(!drag||Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<12)return;
- ignoreInspectUntil=performance.now()+380;
- const target=cellAtClient(e.clientX,e.clientY);
- if(target)moveHeroToCell(drag.id,target.col,target.row);
-});
+window.addEventListener('pointermove',e=>{
+ const drag=boardGesture;
+ if(!drag||e.pointerId!==drag.pointerId)return;
+ if(!drag.active){
+  if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<8)return;
+  drag.active=true;document.body.classList.add('hero-dragging');
+  dragGhost=el('div',{class:'hero-drag-ghost','aria-hidden':'true'});
+  dragGhost.innerHTML='<img src="'+HEROES[drag.id].images.idle+'" alt=""><span>'+escapeText(HEROES[drag.id].name)+'</span>';
+  document.body.appendChild(dragGhost);refreshFormationControls();
+ }
+ e.preventDefault();dragGhost.style.left=e.clientX+'px';dragGhost.style.top=e.clientY+'px';
+ highlightDrop(dropTarget(e.clientX,e.clientY));
+},{passive:false});
+window.addEventListener('pointerup',e=>finishDrag(e));
+window.addEventListener('pointercancel',e=>finishDrag(e,true));
+window.addEventListener('blur',()=>{if(boardGesture)finishDrag({pointerId:boardGesture.pointerId},true)});
+document.addEventListener('dragstart',e=>{if(dragSource(e.target))e.preventDefault()});
+document.addEventListener('click',e=>{
+ if(performance.now()<ignoreInspectUntil&&(dragSource(e.target)||e.target.closest('#boardGrid,#teamSlots,#benchDrop'))){
+  e.preventDefault();e.stopImmediatePropagation();
+ }
+},true);
 $('offlineBtn').addEventListener('click',openOffline);
 $('claimOfflineBtn').addEventListener('click',claimOffline);
 $('closeOfflineBtn').addEventListener('click',closeOffline);
