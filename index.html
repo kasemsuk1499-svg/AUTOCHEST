@@ -142,6 +142,19 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
     <div id="skillModalContent"></div>
    </section>
   </div>
+<div id="trialModal" class="modal trial-modal" hidden>
+ <div class="modal-overlay" id="trialOverlay"></div>
+ <section class="trial-dialog" role="dialog" aria-modal="true" aria-labelledby="trialTitle">
+  <header class="trial-header"><div><small>HERO TRIAL · TRAINING ROOM</small><h2 id="trialTitle">สนามทดลองฮีโร่</h2></div><button type="button" id="trialClose" aria-label="ปิดสนามทดลอง">✕</button></header>
+  <div class="trial-controls"><label>ฮีโร่<select id="trialHero"></select></label><label>หุ่นฝึก<select id="trialCount"><option value="1">1 ตัว</option><option value="3" selected>3 ตัว</option><option value="5">5 ตัว</option></select></label><button type="button" id="trialReset">↻ รีเซ็ต</button></div>
+  <div class="trial-meta"><b id="trialSkillName"></b><span id="trialStats"></span></div>
+  <div id="trialArena" class="stage-viewport trial-arena"><div class="trial-grid"></div><div id="trialUnits" class="battle-layer"></div><div id="trialFx" class="fx-layer" aria-hidden="true"></div><span class="trial-field-label">TRAINING FIELD</span></div>
+  <div class="trial-actions"><button type="button" id="trialNormal">⚔ โจมตีปกติ</button><button type="button" id="trialSkill">✦ ใช้สกิล</button><button type="button" id="trialPassive">ทดลองพาสซีฟ</button><button type="button" id="trialHit">รับการโจมตี</button></div>
+  <div class="trial-note" id="trialNote" role="status">เลือกคำสั่งเพื่อทดสอบ</div>
+  <div class="trial-log" id="trialLog" aria-live="polite"></div>
+  <p class="trial-footer">Lv.1 ★ · ใช้กลไกต่อสู้จริง · ไม่เสียทรัพยากร ไม่รับรางวัล · พักสนามหลักระหว่างทดลอง</p>
+ </section>
+</div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script defer src="./src/characters.js?v=0.19.3"></script>
 <script defer src="./src/characters/heroes/asuna.js?v=0.19.3"></script>
