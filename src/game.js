@@ -3,8 +3,8 @@ const $=id=>document.getElementById(id), canvas=$('battlefield'), ctx=canvas.get
 const W=760,H=775,COLS=6,ROWS=7,SX=94,SY=89,OX=104,OY=108;
 const roster=window.AUTOCHEST_CHARACTERS;
 if(!roster)throw new Error('Character roster not loaded. Check src/characters.js');
-const TYPES=roster.HEROES, ENEMY=roster.ENEMIES;
-if(Object.keys(TYPES).length===0||Object.keys(ENEMY).length===0)throw Error('No characters loaded; check character script order');
+const TYPES=roster.HEROES, ENEMY=TYPES; // One hero registry for both teams
+if(Object.keys(TYPES).length===0)throw Error('No heroes loaded; check character script order');
 // Art is rendered as <img> in the UI, PNG model images in Canvas, GIF models in a DOM overlay.
 const imageCache=new Map();
 const gifNodes=new Map(),gifLayer=$('animatedSprites');
@@ -16,7 +16,7 @@ function getPng(src){
  if(!imageCache.has(src)){const im=new Image();im.decoding='async';im.src=src;imageCache.set(src,im)}
  return imageCache.get(src);
 }
-for(const record of [TYPES,ENEMY])for(const data of Object.values(record))for(const slot of ['idle','attack'])getPng(assetFor(data,slot));
+for(const data of Object.values(TYPES))for(const slot of ['idle','attack'])getPng(assetFor(data,slot));
 const portraitTag=(data,slot='art')=>`<img class="hero-portrait" src="${assetFor(data,slot)}" alt="" draggable="false" loading="eager">`;
 function syncGifSprites(entries){
  const visible=new Set();
@@ -107,9 +107,54 @@ function renderUI(){
  $('synergies').innerHTML=Object.keys(traits).map(n=>`<div class="trait ${(counts[n]||0)>=2?'on':''}"><span>${traits[n]} ${n}</span><b>${counts[n]||0} / 2 ${(counts[n]||0)>=2?'✦':''}</b></div>`).join('');
  renderInspector()
 }
-function genEnemies(){let arr=[];let level=wave;let bosses=wave%3===0;let count=bosses?Math.min(5,2+Math.floor(wave/3)):Math.min(9,3+Math.floor(wave/2));let keys=bosses?['crab','ghost','slime']:['slime','slime','crab',...(wave>2?['ghost']:[])];for(let i=0;i<count;i++){let kind=keys[ri(keys.length)];arr.push({kind,side:'enemy',col:i%6,row:Math.floor(i/6),lv:1})}if(bosses)arr.push({kind:'boss',side:'enemy',col:2,row:0,lv:1});return arr}
-function makeFighter(base,side,index){let t=side==='ally'?TYPES[base.kind]:ENEMY[base.kind],p=pos(base.col,base.row),scale=side==='enemy'?(1+(wave-1)*.23):1,lvscale=side==='ally'?(base.lv===3?2.8:base.lv===2?1.72:1):1;
-return{id:base.id||'e'+index,kind:base.kind,side,lv:base.lv||1,x:p.x,y:p.y,vx:0,vy:0,hp:t.hp*scale*lvscale,maxHp:t.hp*scale*lvscale,atk:t.dmg*scale*(side==='ally'?(base.lv===3?2.25:base.lv===2?1.5:1):1),range:t.range,cool:t.cool,move:t.move,cooldown:rand(0,.5),attacks:0,shield:0,hitFlash:0,face:side==='ally'?-1:1,team:t.team||'',size:base.kind==='boss'?32:20,alive:true,anim:'idle',animUntil:0,motion:0,moving:false}}
+
+const ENEMY_SCALING=Object.freeze({
+ hpBase:0.62,hpPerWave:0.13,atkBase:0.69,atkPerWave:0.10,
+ model:0.94,bossHp:2.4,bossAtk:1.4,bossModel:1.65
+});
+let encounterWave=-1,encounterPlan=[];
+function genEnemies(){
+ if(encounterWave===wave && encounterPlan.length)return encounterPlan.map(u=>({...u}));
+ const bosses=wave%3===0;
+ const tier=Math.min(3,1+Math.floor((wave-1)/2));
+ const eligible=Object.keys(TYPES).filter(k=>TYPES[k].cost<=tier);
+ if(!eligible.length)throw Error('No eligible heroes for wave '+wave);
+ const count=Math.min(8,bosses?2+Math.floor(wave/3):3+Math.floor(wave/2));
+ const arr=[];
+ if(bosses){
+  const top=eligible.filter(k=>TYPES[k].cost===tier);
+  const pool=top.length?top:eligible;
+  arr.push({kind:pool[ri(pool.length)],side:'enemy',col:2,row:0,lv:1,boss:true});
+ }
+ const slots=[[0,1],[2,1],[4,1],[1,2],[3,2],[5,2],[0,2],[4,2]];
+ const countRegular=bosses?Math.max(2,count-1):count;
+ for(let i=0;i<countRegular;i++){
+  const [col,row]=slots[i];
+  arr.push({kind:eligible[ri(eligible.length)],side:'enemy',col,row,lv:1,boss:false});
+ }
+ encounterWave=wave;encounterPlan=arr;
+ return arr.map(u=>({...u}));
+}
+function makeFighter(base,side,index){
+ const t=TYPES[base.kind],p=pos(base.col,base.row);
+ if(!t)throw Error('Unknown hero '+base.kind);
+ const isBoss=side==='enemy'&&!!base.boss;
+ const lvscale=side==='ally'?(base.lv===3?2.8:base.lv===2?1.72:1):1;
+ const allyAttack=base.lv===3?2.25:base.lv===2?1.5:1;
+ const hpScale=side==='enemy'?
+  (ENEMY_SCALING.hpBase+(wave-1)*ENEMY_SCALING.hpPerWave)*(isBoss?ENEMY_SCALING.bossHp:1):lvscale;
+ const atkScale=side==='enemy'?
+  (ENEMY_SCALING.atkBase+(wave-1)*ENEMY_SCALING.atkPerWave)*(isBoss?ENEMY_SCALING.bossAtk:1):allyAttack;
+ return {
+  id:base.id||'e'+index,kind:base.kind,side,lv:base.lv||1,x:p.x,y:p.y,vx:0,vy:0,
+  hp:t.hp*hpScale,maxHp:t.hp*hpScale,atk:t.dmg*atkScale,
+  range:t.range,cool:t.cool,move:t.move,cooldown:rand(0,.5),
+  attacks:0,shield:0,hitFlash:0,face:side==='ally'?-1:1,
+  team:t.team||'',size:isBoss?32:20,isBoss,
+  visualScale:side==='enemy'?(isBoss?ENEMY_SCALING.bossModel:ENEMY_SCALING.model):1,
+  alive:true,anim:'idle',animUntil:0,motion:0,moving:false
+ };
+}
 function startBattle(){if(phase==='result'){wave++;phase='prep';roundResult='';roll(true);selected=null;renderUI();addLog('🌊 เวฟ '+wave+' เริ่มเตรียมทีม');return}if(phase!=='prep'||!refreshCount())return;
 let enemies=genEnemies();combat=units.filter(u=>u.board).map((u,i)=>makeFighter(u,'ally',i)).concat(enemies.map((u,i)=>makeFighter(u,'enemy',i)));bullets=[];floaters=[];fx=[];timeLeft=38;combatCount=0;phase='battle';roundResult='';addLog('⚔️ เริ่มเวฟ '+wave+(wave%3===0?' • BOSS!':''));renderUI()}
 function endBattle(win){if(phase!=='battle')return;phase='result';if(win){wins++;let reward=5+Math.min(10,Math.floor(wave/2));gold+=reward;roundResult='ชนะ! รับ '+reward+' G';addLog('🏆 ชนะเวฟ '+wave+'! ได้รับ '+reward+' G');setTip('🎉 ชนะแล้ว! กดปุ่มเวฟถัดไปเพื่อซื้อยูนิตและปรับทีม')}else{gold+=3;roundResult='พ่ายแพ้ • รับชดเชย 3 G';addLog('💔 แพ้เวฟ '+wave+' • รับ 3 G');setTip('ยังมีโอกาสแก้มือ! กดปุ่มด้านบนเพื่อไปเวฟถัดไป (หรือปรับทีม)')}
@@ -131,16 +176,14 @@ function burst(x,y,color,n=12){for(let i=0;i<n;i++){let a=rand(0,Math.PI*2),v=ra
 function waveFX(x,y,color,size=95){fx.push({kind:'ring',x,y,r:10,max:size,life:.45,total:.45,color})}
 function findTarget(u){let pool=combat.filter(o=>o.alive&&o.side!==u.side);if(!pool.length)return null;pool.sort((a,b)=>dist(a,u)-dist(b,u));return pool[0]}
 function attack(u,target){u.cooldown=u.cool;u.attacks++;u.hitFlash=.09;u.anim='attack';const spriteData=(u.side==='ally'?TYPES:ENEMY)[u.kind];u.animUntil=bgtime+(spriteData.visual?.attackMs ? spriteData.visual.attackMs/1000 : isGif(assetFor(spriteData,'attack')) ? .7 : .27);let heavy=false,mul=1;
-const effect=(u.side==='ally'?TYPES[u.kind]:ENEMY[u.kind])?.effect||'';
-if(u.side==='ally'){
- const trigger=TYPES[u.kind].triggerEvery||4;
- if(u.attacks%trigger===0){heavy=true;mul=2;combatCount++;special(u,target)}
-} else if(u.kind==='boss'&&u.attacks%3===0){heavy=true;mul=1.75;special(u,target)}
+const effect=spriteData.effect||'';
+const trigger=spriteData.triggerEvery||4;
+if(u.attacks%trigger===0){heavy=true;mul=2;if(u.side==='ally')combatCount++;special(u,target)}
 if(heavy&&['chain','slam'].includes(effect))return;
 if(u.range>=1.8){bullets.push({owner:u,from:u.side,x:u.x,y:u.y,tx:target.x,ty:target.y,target,life:1.6,speed:effect==='triple'?450:340,damage:u.atk*mul,color:TYPES[u.kind]?.col||'#fa8d9b',size:heavy?10:7});if(heavy&&effect==='triple'){for(let i=0;i<2;i++){let extra=combat.filter(o=>o.alive&&o.side!==u.side).sort((a,b)=>dist(a,u)-dist(b,u))[i+1]||target;bullets.push({owner:u,from:u.side,x:u.x,y:u.y,target:extra,life:1.6,speed:430,damage:u.atk*.85,color:'#b4ffe5',size:5})}}}
 else{damageWithCrit(u,target,u.atk*mul);fx.push({kind:'slash',x:target.x,y:target.y,a:rand(-.8,.8),life:.26,total:.26,color:u.side==='ally'?'#a9f8e8':'#ffa4b5'});if(heavy&&effect==='blink'){damageWithCrit(u,target,u.atk*.5);waveFX(target.x,target.y,'#ff8dc8',42)}}}
-function special(u,target){u.anim='skill';u.animUntil=bgtime+.65;let enemy=combat.filter(o=>o.alive&&o.side!==u.side),effect=(u.side==='ally'?TYPES[u.kind]:ENEMY[u.kind])?.effect;if(effect==='slam'||u.kind==='boss'){
-let cx=target.x,cy=target.y;fx.push({kind:'hammer',x:cx,y:cy,life:.65,total:.65,color:u.kind==='boss'?'#ff9d73':'#ffc773'});waveFX(cx,cy,'#ffc773',135);shake=.22;enemy.filter(o=>Math.hypot(o.x-cx,o.y-cy)<140).forEach(o=>dmg(o,u.atk*(u.kind==='boss'?1.6:1.8),o.x,o.y,true));}
+function special(u,target){u.anim='skill';u.animUntil=bgtime+.65;let enemy=combat.filter(o=>o.alive&&o.side!==u.side),effect=(u.side==='ally'?TYPES[u.kind]:ENEMY[u.kind])?.effect;if(effect==='slam'){
+let cx=target.x,cy=target.y;fx.push({kind:'hammer',x:cx,y:cy,life:.65,total:.65,color:u.isBoss?'#ff9d73':'#ffc773'});waveFX(cx,cy,'#ffc773',135);shake=.22;enemy.filter(o=>Math.hypot(o.x-cx,o.y-cy)<140).forEach(o=>dmg(o,u.atk*1.8,o.x,o.y,true));}
 else if(effect==='chain'){
 let around=enemy.sort((a,b)=>dist(a,target)-dist(b,target)).slice(0,u.kind==='thunder'?4:3);around.forEach((o,i)=>{fx.push({kind:'lightning',x1:i===0?u.x:around[i-1].x,y1:i===0?u.y:around[i-1].y,x2:o.x,y2:o.y,life:.4,total:.4,color:u.kind==='thunder'?'#f3f6ff':'#cfacff'});dmg(o,u.atk*(u.kind==='thunder'?1.25:1.12),o.x,o.y,true)});shake=.09;}
 else if(effect==='shield'){u.shield+=u.maxHp*.30;waveFX(u.x,u.y,'#fbe1a2',76);floaters.push({x:u.x,y:u.y-27,v:'🛡 +SHIELD',color:'#ffde9b',t:0,life:1})}
@@ -180,14 +223,14 @@ function drawCharacter(u){
  const lunge=action==='attack'?Math.sin(Math.max(0,1-(u.animUntil-bgtime)/.27)*Math.PI)*12:0;
  const casting=action==='skill';
  ctx.save();ctx.translate(x,y+hop);
- const boss=u.kind==='boss';
+ const boss=!!(u.isBoss||u.boss);
  if(phase==='prep'&&u.id===selected){ctx.strokeStyle='#91ffe9';ctx.lineWidth=3;ctx.setLineDash([5,5]);ctx.beginPath();ctx.arc(0,7,38,0,Math.PI*2);ctx.stroke();ctx.setLineDash([])}
  ctx.fillStyle='#06101c9e';ctx.beginPath();ctx.ellipse(0,29,boss?42:29,boss?12:8,0,0,Math.PI*2);ctx.fill();
  const col=data.col;circle(0,0,boss?44:32,col+'1a');
  if(casting){ctx.strokeStyle=col;ctx.lineWidth=3;ctx.shadowColor=col;ctx.shadowBlur=22;ctx.beginPath();ctx.arc(0,-6,boss?50:41,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0}
  ctx.translate((u.face||1)*lunge,-(casting?8:0));
  if(u.hitFlash>0)ctx.filter='brightness(1.55)';
- const size=(boss?1.2:1)*(data.visual?.scale||1);ctx.scale(size*(u.face===-1?-1:1),size);
+ const size=(data.visual?.scale||1)*(u.visualScale||(side==='enemy'?(boss?ENEMY_SCALING.bossModel:ENEMY_SCALING.model):1));ctx.scale(size*(u.face===-1?-1:1),size);
  if(moving)ctx.rotate(Math.sin((u.motion||0)*1.2)*.055);
  if(action==='attack')ctx.rotate(Math.sin(bgtime*25)*.08);
  if(animated){
@@ -212,7 +255,7 @@ for(let f of fx){ctx.save();ctx.globalAlpha=clamp(f.life/f.total,0,1);if(f.kind=
 for(let f of floaters){ctx.globalAlpha=clamp(1-f.t/f.life,0,1);text(typeof f.v==='number'?f.v.toLocaleString():f.v,f.x,f.y,typeof f.v==='number'?'700 22px Kanit':'700 18px Kanit',f.color)}ctx.globalAlpha=1;
 if(phase==='result'){ctx.fillStyle='#061426c9';ctx.fillRect(0,270,W,210);text(roundResult.includes('ชนะ')?'🏆 VICTORY!':'💔 DEFEAT',W/2,345,'700 42px Kanit',roundResult.includes('ชนะ')?'#8ef0d5':'#ff9fa6');text(roundResult,W/2,395,'500 22px Kanit','#fff1db');text('กด “ไปเวฟต่อไป” เพื่อจัดทีมอีกครั้ง',W/2,434,'16px Kanit','#c3ddf5')}
 ctx.restore();syncGifSprites(gifDrawList)}
-function genGhostEnemies(){return wave%3===0?[{kind:'boss',col:2,row:0},{kind:'slime',col:1,row:1},{kind:'crab',col:4,row:1}]:[{kind:'slime',col:1,row:0},{kind:'slime',col:4,row:0},{kind:'crab',col:2,row:1}]}
+function genGhostEnemies(){return genEnemies().filter((u,i)=>u.boss||i<3).slice(0,4)}
 function loop(now){let dt=clamp((now-last)/1000||0,0,.04);last=now;update(dt);draw();requestAnimationFrame(loop)}
 // Pointer input: tap to select, hold/drag to place or swap. Works with mouse, pen and touch.
 const ghost=$('dragGhost'),benchDrop=$('benchDrop');
@@ -272,6 +315,6 @@ $('speedBtn').addEventListener('click',()=>{speed=speed===1?2:1;renderUI();toast
 $('rollBtn').addEventListener('click',()=>{roll(false);toast('⟳ เปลี่ยนฮีโร่ในร้านแล้ว')});
 $('removeBtn').addEventListener('click',removeSelected);
 $('restartBtn').addEventListener('click',()=>{if(!confirm('เริ่มเกมใหม่ทั้งหมดหรือไม่?'))return;reset()});
-function reset(){finishGesture();landings.clear();wave=1;gold=12;wins=0;units=[newUnit('knight',true,2,5),newUnit('mage',true,3,5),newUnit('archer')];selected=units[2].id;phase='prep';roundResult='';speed=1;combat=[];fx=[];bullets=[];floaters=[];messages=[];roll(true);addLog('✨ ยินดีต้อนรับสู่ AUTOCHEST');setTip('💡 มีมือปืนบนม้านั่งให้แล้ว! เลือกและวางลงสนามสีฟ้าได้เลย');renderUI()}
+function reset(){finishGesture();landings.clear();encounterWave=-1;encounterPlan=[];wave=1;gold=12;wins=0;units=[newUnit('knight',true,2,5),newUnit('mage',true,3,5),newUnit('archer')];selected=units[2].id;phase='prep';roundResult='';speed=1;combat=[];fx=[];bullets=[];floaters=[];messages=[];roll(true);addLog('✨ ยินดีต้อนรับสู่ AUTOCHEST');setTip('💡 มีมือปืนบนม้านั่งให้แล้ว! เลือกและวางลงสนามสีฟ้าได้เลย');renderUI()}
 reset();requestAnimationFrame(loop)
 })();
