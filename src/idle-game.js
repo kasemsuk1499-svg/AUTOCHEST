@@ -19,6 +19,7 @@ if(loaded){
 }
 let pending=state.offlineBank;
 let selected=state.squad[0]||Object.keys(state.owned)[0]||IDS[0];
+let skillReturnFocus=null;
 let combat=null,enemies=[],fighters=[],stageClock=0,respawn=1.8,spawnCooldown=0,travel=0,travelDistance=0,encounters=0,lastFrame=0,lastSave=0,lastHUD=0,toastTimer=0;
 let logLines=['✦ เริ่มการผจญภัย SAO IDLE แล้ว!'];
 const slots=[[20,71],[28,52],[19,35],[35,76],[34,28],[42,48],[42,67]];
@@ -146,11 +147,11 @@ function renderTeam(){
 function renderHeroes(){
  $('heroList').innerHTML=IDS.map(id=>{
   const hero=HEROES[id],owned=state.owned[id];
-  return '<button type="button" class="hero-card '+(!owned?'locked ':'')+(selected===id?'active':'')+'" data-hero="'+id+'">'+
-  '<img loading="lazy" src="'+hero.portrait+'" alt="">'+
-  '<strong>'+escapeText(hero.name)+'</strong>'+
-  '<small>'+(owned?'Lv.'+owned.level: 'ยังไม่พบ')+'</small>'+
-  '<div class="starline">'+(owned?'★'.repeat(owned.stars):'✦')+'</div></button>';
+  return '<div class="hero-entry"><button type="button" class="hero-card '+(!owned?'locked ':'')+(selected===id?'active':'')+'" data-hero="'+id+'">'+
+   '<img loading="lazy" src="'+hero.portrait+'" alt="">'+
+   '<strong>'+escapeText(hero.name)+'</strong><small>'+(owned?'Lv.'+owned.level:'ยังไม่พบ')+'</small>'+
+   '<div class="starline">'+(owned?'★'.repeat(owned.stars):'✦')+'</div></button>'+
+   '<button type="button" class="hero-info-btn" data-skill-hero="'+id+'" aria-label="ดูสกิล '+escapeText(hero.name)+'">ⓘ</button></div>';
  }).join('');
 }
 function renderSelected(){
@@ -159,7 +160,8 @@ function renderSelected(){
  if(!hero){box.textContent='เลือกฮีโร่เพื่อดูข้อมูล';return}
  if(!prog){
   box.innerHTML='<div class="detail-hero"><img src="'+hero.portrait+'" alt=""><div><h4>'+escapeText(hero.name)+'</h4>'+
-   '<p>'+escapeText(hero.subtitle)+'</p><p>🔒 ยังไม่ได้อัญเชิญ</p><p>ใช้กาชาเพื่อปลดล็อกฮีโร่คนนี้</p></div></div>';
+   '<p>'+escapeText(hero.subtitle)+'</p><p>🔒 ยังไม่ได้อัญเชิญ</p><p>ใช้กาชาเพื่อปลดล็อกฮีโร่คนนี้</p></div></div>'+
+   '<button type="button" id="openSkillBtn" class="inspect-skill-btn">ⓘ ดูรายละเอียดสกิล</button>';
   return;
  }
  const stats=CORE.stats(hero,prog),cost=CORE.levelCost(prog.level),
@@ -175,6 +177,7 @@ function renderSelected(){
   '<div><small>ATK</small><strong>'+fmt(stats.atk)+'</strong></div>'+
   '<div><small>CRIT</small><strong>'+Math.round(stats.crit*100)+'%</strong></div></div>'+
   '<p class="detail-skill">✨ สกิลอัตโนมัติ: <b>'+escapeText(hero.skill)+'</b></p>'+
+  '<button type="button" id="openSkillBtn" class="inspect-skill-btn">ⓘ ดูสกิลทั้งหมด / ค่าสถานะ</button>'+
   '<div class="detail-actions">'+
   '<button id="levelHeroBtn" '+(prog.level>=CORE.MAX_LEVEL||state.gold<cost.gold||state.heroExp<cost.exp?'disabled':'')+'>'+
    (prog.level>=CORE.MAX_LEVEL?'LEVEL MAX':'⬆ อัป Lv. · '+fmt(cost.gold)+' G / '+fmt(cost.exp)+' XP')+'</button>'+
@@ -184,6 +187,64 @@ function renderSelected(){
    (isIn?'↩ ถอนจากทีม':'⚔️ เพิ่มเข้าทีม')+'</button>'+
   '<button id="levelFiveBtn" '+(prog.level>=CORE.MAX_LEVEL||state.gold<cost.gold||state.heroExp<cost.exp?'disabled':'')+'>'+
    '⬆ อัปต่อเนื่อง ×5</button></div>';
+}
+function skillDescription(t,enemy=false){
+ const n=t.triggerEvery||4;
+ const lines=['โจมตีปกติแรง 100% ATK เมื่ออยู่ในระยะและมีโอกาสติดคริติคอล'];
+ switch(t.effect){
+ case 'slash':case 'blink':case 'triple':case 'chain':case 'slam':
+  lines.push('ทุก '+n+' ครั้งที่โจมตี ใช้สกิลใส่เป้าหมายแรง '+(enemy?'165%':'170%')+' ATK (ก่อนคริติคอล)');
+  if(['triple','chain','slam'].includes(t.effect))
+   lines.push('เวอร์ชัน Idle ปัจจุบันโจมตีเป้าหมายเดียวต่อการใช้สกิล (ยังไม่แยกหลายเป้าหมาย)');
+  if(t.effect==='blink')lines.push('แอนิเมชันโจมตีเร็ว แต่ระยะเคลื่อนที่ยังอิงระบบเดินปกติ');
+  break;
+ case 'shield':
+  lines.push('ทุก '+n+' การโจมตี ได้รับโล่ '+(enemy?'23%':'30%')+' ของ HP สูงสุด พร้อมโจมตีธรรมดา');
+  break;
+ case 'cloakshot':
+  lines.push('ทุก '+n+' การโจมตี พรางตัว '+(t.cloakDuration||2).toFixed(1)+' วินาที ศัตรูจะไม่เลือกเป็นเป้าหมายใหม่');
+  lines.push('นัดแรกหลังพรางแรง '+Math.round((t.cloakShotMultiplier||1.7)*100)+'% ATK และโอกาสคริเพิ่ม '+Math.round((t.cloakCritBonus||.5)*100)+' จุดเปอร์เซ็นต์');
+  lines.push('เมื่อเป้าหมายเหลือ HP ต่ำกว่า '+Math.round((t.executeThreshold||.35)*100)+'% ดาเมจเพิ่ม '+Math.round(((t.executeMultiplier||1.2)-1)*100)+'%');
+  break;
+ default: lines.push('สกิลทำงานอัตโนมัติทุก '+n+' การโจมตี');
+ }
+ return lines;
+}
+function openSkill(id,source='hero',unit=null){
+ const h=HEROES[id],modal=$('skillModal');if(!h||!modal)return;
+ const enemy=source==='enemy',progress=state.owned[id],stat=CORE.stats(h,progress||{level:1,stars:1});
+ const active=enemy?(unit||enemies.find(x=>x.id===id)):null;
+ const stats=[
+  ['HP',fmt(active?active.maxHp:stat.hp)],
+  ['ATK',fmt(active?active.atk:stat.atk)],
+  ['โจมตีทุก',Number(active?active.delay:stat.cool).toFixed(2)+' วินาที'],
+  ['ระยะโจมตี',Number(h.range).toFixed(2)+' ช่อง'],
+  ['ความเร็วเดิน',String(h.move)],
+  ['โอกาสคริ',Math.round((active?active.crit:stat.crit)*100)+'%'],
+  ['ความแรงคริ','×'+Number(h.critDamage||1.5).toFixed(2)],
+  ['ความถี่สกิล','ทุก '+(h.triggerEvery||4)+' ครั้ง']
+ ];
+ const label=enemy?'👹 ฮีโร่เงาศัตรู · ด่าน '+state.stage:progress?
+  '⭐ Lv.'+progress.level+' · '+progress.stars+' ดาว':'🔒 ยังไม่อัญเชิญ · ค่าสถานะพื้นฐาน';
+ $('skillModalTitle').textContent=h.name+' — '+h.skill;
+ $('skillModalContent').innerHTML=
+  '<div class="skill-modal-layout"><div class="skill-portrait"><img loading="lazy" src="'+escapeText(h.images.art||h.portrait)+'" alt="'+escapeText(h.name)+'"></div>'+
+  '<div class="skill-modal-main"><div class="skill-status">'+escapeText(label)+'</div><h3>'+escapeText(h.name)+'</h3>'+
+  '<p>'+escapeText(h.subtitle||'')+'</p><div class="skill-tags"><span>'+escapeText(h.team)+'</span>'+
+  (h.traits||[]).map(x=>'<span>'+escapeText(x)+'</span>').join('')+'</div>'+
+  '<div class="skill-stats">'+stats.map(([k,v])=>'<div><small>'+escapeText(k)+'</small><strong>'+escapeText(v)+'</strong></div>').join('')+
+  '</div></div></div><section class="skill-ability"><small>⚔ AUTO SKILL · IDLE MODE</small>'+
+  '<h3>✨ '+escapeText(h.skill)+'</h3><ul>'+
+  skillDescription(h,enemy).map(x=>'<li>'+escapeText(x)+'</li>').join('')+'</ul>'+
+  '<p class="skill-mode-note">ข้อมูลตามระบบ Idle ปัจจุบัน ซึ่งอาจต่างจากโหมด TFT เดิม</p></section>';
+ skillReturnFocus=modal.hidden?document.activeElement:skillReturnFocus;
+ modal.hidden=false;$('closeSkillBtn').focus();
+}
+function closeSkill(){
+ const modal=$('skillModal');if(modal.hidden)return;
+ modal.hidden=true;
+ if(skillReturnFocus?.isConnected&&skillReturnFocus.focus)skillReturnFocus.focus();
+ skillReturnFocus=null;
 }
 function renderQuest(){
  let task;
@@ -288,6 +349,8 @@ function buildFighters(){
  const layer=$('heroLayer');layer.replaceChildren();
  for(const hero of fighters){
   const base=HEROES[hero.id],node=el('div',{class:'fighter party-fighter walking'});
+  node.dataset.inspectId=hero.id;node.dataset.inspectSide='ally';
+  node.tabIndex=0;node.setAttribute('role','button');node.setAttribute('aria-label','ดูสกิล '+base.name);
   node.style.left=hero.x+'%';node.style.top=hero.y+'%';
   node.innerHTML='<span class="mini-stars">'+'★'.repeat(hero.progress.stars)+'</span>'+
    '<img src="'+base.images.idle+'" alt="">'+
@@ -511,17 +574,40 @@ function frame(now){
  if(now-lastSave>6000){save()}
  requestAnimationFrame(frame);
 }
-$('heroList').addEventListener('click',e=>{const n=e.target.closest('[data-hero]');if(n)choose(n.dataset.hero)});
+$('heroList').addEventListener('click',e=>{
+ const info=e.target.closest('[data-skill-hero]');
+ if(info){choose(info.dataset.skillHero);openSkill(info.dataset.skillHero);return}
+ const hero=e.target.closest('[data-hero]');
+ if(hero)choose(hero.dataset.hero);
+});
 $('teamSlots').addEventListener('click',e=>{
  const n=e.target.closest('[data-slot]');if(!n)return;
  if(n.dataset.slot==='empty'){toast('เลือกฮีโร่ด้านล่าง แล้วกดเพิ่มเข้าทีมนะ');return}
  choose(n.dataset.slot);
 });
 $('heroDetails').addEventListener('click',e=>{
- if(e.target.closest('#levelHeroBtn'))upgrade();
+ if(e.target.closest('#openSkillBtn'))openSkill(selected);
+ else if(e.target.closest('#levelHeroBtn'))upgrade();
  else if(e.target.closest('#levelFiveBtn'))upgrade(5);
  else if(e.target.closest('#rankHeroBtn'))rankUp();
  else if(e.target.closest('#deployHeroBtn'))toggleHero();
+});
+for(const layerId of ['heroLayer','monsterLayer']){
+ const layer=$(layerId);
+ layer.addEventListener('click',e=>{
+  const n=e.target.closest('[data-inspect-id]');if(!n)return;
+  openSkill(n.dataset.inspectId,n.dataset.inspectSide==='enemy'?'enemy':'hero');
+ });
+ layer.addEventListener('keydown',e=>{
+  if(e.key!=='Enter'&&e.key!==' ')return;
+  const n=e.target.closest('[data-inspect-id]');if(!n)return;
+  e.preventDefault();openSkill(n.dataset.inspectId,n.dataset.inspectSide==='enemy'?'enemy':'hero');
+ });
+}
+$('closeSkillBtn').addEventListener('click',closeSkill);
+$('skillModal').querySelector('.modal-overlay').addEventListener('click',closeSkill);
+document.addEventListener('keydown',e=>{
+ if(e.key==='Escape'&&!$('skillModal').hidden){e.preventDefault();closeSkill()}
 });
 $('autoTeamBtn').addEventListener('click',autoTeam);
 $('summonOneBtn').addEventListener('click',()=>summon(1));
