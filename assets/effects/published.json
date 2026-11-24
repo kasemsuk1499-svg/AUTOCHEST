@@ -138,6 +138,18 @@
         "size": 100,
         "ms": 500
       }
+    },
+    "lisbeth": {
+      "hit": {
+        "src": "./assets/effects/lisbeth/hit-6de78bc56c40.png",
+        "cols": 8,
+        "rows": 2,
+        "row": 0,
+        "col": 0,
+        "frames": 16,
+        "size": 150,
+        "ms": 440
+      }
     }
   }
 }
