@@ -23,6 +23,16 @@
         "frames": 7,
         "size": 105,
         "ms": 440
+      },
+      "projectile": {
+        "src": "./assets/effects/megumin/projectile-5915fffaaa69.png",
+        "cols": 22,
+        "rows": 1,
+        "row": 0,
+        "col": 0,
+        "frames": 14,
+        "size": 105,
+        "ms": 800
       }
     }
   }
