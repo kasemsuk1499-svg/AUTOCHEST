@@ -19,6 +19,15 @@ assert(main.includes('const bosses=IDS.filter(id=>HEROES[id].cost===3)'),'Boss p
 assert(main.includes('const hero=HEROES[id],stat=CORE.monster'),'Enemies must reuse SAO hero configs');
 assert(main.includes("class:'fighter enemy-unit'"),'Enemy character must render as a hero sprite');
 assert(main.includes('function moveManually(t)'),'Manual party movement must work');
+assert(main.includes('const enemyLimit=()'),'Regular enemies must have a bounded crowd size');
+assert(main.includes('function pickEnemy(f)'),'Each ally must select an enemy individually');
+assert(main.includes('function defeatMonster(foe)'),'Defeat must remove the individual enemy');
+assert(main.includes('function openSkill(id,source='+'\'hero\''),'Skill inspector entrypoint is required');
+assert(main.includes('function skillDescription(t,enemy=false)'),'Describe actual Idle combat skills');
+assert(html.includes('id="skillModal"')&&html.includes('id="closeSkillBtn"'),'Skill modal controls required');
+assert(main.includes('data-skill-hero'),'Hero skill card buttons must exist');
+assert(main.includes('data-inspect-id'),'Battle units must support inspector interaction');
+
 assert(main.includes('WALK_BUTTONS'),'WASD and D-pad control state is required');
 assert(!main.includes('monsterIcons'),'Emoji monsters should no longer be used');
 for(const key of ['autoWalkBtn','walkPad','data-walk="up"','data-walk="down"','data-walk="left"','data-walk="right"'])
