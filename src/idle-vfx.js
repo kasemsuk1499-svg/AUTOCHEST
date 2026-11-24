@@ -24,14 +24,14 @@
   const raw=typeof key==='string'?specs[key]:key;
   if(!raw||typeof raw.src!=='string'||!(/^\.\/assets\/effects\/[a-z0-9_/-]+\.(svg|png|webp|gif)$/i.test(raw.src)||(override===raw&&/^data:image\/(png|gif|webp);base64,[a-z0-9+/=]+$/i.test(raw.src))))return null;
   const cols=Math.max(1,Math.min(32,Math.floor(raw.cols||1))),rows=Math.max(1,Math.min(32,Math.floor(raw.rows||1)));
-  const row=Math.max(0,Math.min(rows-1,Math.floor(raw.row||0))),frames=Math.max(1,Math.min((rows-row)*cols,Math.floor(raw.frames||cols)));
-  return {src:raw.src,cols,rows,row,frames,size:Math.max(16,Math.min(400,Number(raw.size)||100)),ms:Math.max(80,Math.min(3000,Number(raw.ms)||440))};
+  const row=Math.max(0,Math.min(rows-1,Math.floor(raw.row||0))),col=Math.max(0,Math.min(cols-1,Math.floor(raw.col||0))),frames=Math.max(1,Math.min((rows-row)*cols-col,Math.floor(raw.frames||cols)));
+  return {src:raw.src,cols,rows,row,col,frames,size:Math.max(16,Math.min(400,Number(raw.size)||100)),ms:Math.max(80,Math.min(3000,Number(raw.ms)||440))};
  }
  function paint(node,spec,animate=true){
   node.style.backgroundImage='url("'+spec.src+'")';
   node.style.backgroundSize=(spec.cols*100)+'% '+(spec.rows*100)+'%';
   node.style.backgroundRepeat='no-repeat';
-  const pos=i=>{const x=i%spec.cols,y=spec.row+Math.floor(i/spec.cols);return (spec.cols>1?x/(spec.cols-1)*100:0)+'% '+(spec.rows>1?y/(spec.rows-1)*100:0)+'%'};
+  const pos=i=>{const j=i+(spec.col||0),x=j%spec.cols,y=spec.row+Math.floor(j/spec.cols);return (spec.cols>1?x/(spec.cols-1)*100:0)+'% '+(spec.rows>1?y/(spec.rows-1)*100:0)+'%'};
   node.style.backgroundPosition=pos(0);
   if(animate&&spec.frames>1&&node.animate&&!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
    const frames=Array.from({length:spec.frames+1},(_,i)=>({backgroundPosition:pos(Math.min(i,spec.frames-1)),offset:i/spec.frames,easing:'steps(1,end)'}));
