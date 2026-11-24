@@ -313,3 +313,35 @@ footer{margin:20px 0 0;display:flex;justify-content:space-between;color:#789db8;
   0%,100%{transform:scaleX(-1) translateX(0) scale(1)}
   48%{transform:scaleX(-1) translateX(9px) scale(1.10);filter:brightness(1.55)}
 }
+
+/* v0.18 — old TFT tactical board, mid-battle formation and idle auto economy */
+.formation-toolbar{display:grid;grid-template-columns:1.25fr 1fr;gap:8px;margin:6px 0 8px}
+.formation-toolbar button{min-height:41px;padding:8px 10px;font-size:12px;font-weight:700;border-radius:10px}
+.formation-action{color:#dcfff2;background:linear-gradient(110deg,#244d67,#296c71);border:1px solid #75c9bb}
+.formation-action.active{background:linear-gradient(110deg,#a47c47,#a6774e);border-color:#ffd398;color:#fff7df}
+.auto-battle-action{color:#baffde;background:#185044;border:1px solid #70dbb4}
+.auto-battle-action.off{color:#ffded3;background:#583b45;border-color:#d38e9a}
+.formation-status,.swap-help{font-size:11px;padding:8px 10px;border-radius:9px;line-height:1.55}
+.formation-status{border:1px solid #3c7184;background:#12394b;color:#ccebf2}
+.formation-status.editing{background:#4b4033;border-color:#d6b677;color:#fff2d3}
+.swap-help{margin:8px 0 0;border:1px dashed #48647d;background:#12283e;color:#acc8db}
+.team-slot.swap-target{border-color:#e9c883;box-shadow:0 0 0 2px #e7c78588;animation:swapGlow 1.5s ease-in-out infinite}
+@keyframes swapGlow{50%{box-shadow:0 0 0 3px #ffe5a3a8}}
+.stage-viewport.formation-active .board-cell.ally-cell{border-color:#aaf7d4;background:#64e1d331}
+.stage-viewport.formation-active .board-cell.ally-cell:hover{background:#7bf1c25c}
+.stage-viewport.formation-active .fighter.party-fighter{cursor:grab}
+.stage-viewport.formation-active .fighter.party-fighter:active{cursor:grabbing}
+.stage-viewport.formation-active .fighter.party-fighter img{pointer-events:none}
+.tft-mode-status{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:4px 14px 0}
+.tft-mode-status>span{font:700 10px Rajdhani,Kanit,sans-serif;color:#aad9e6;background:#0f3450;
+ border:1px solid #3e6d87;border-radius:7px;padding:3px 7px}
+.tft-bullet{position:absolute;z-index:7;pointer-events:none;width:11px;height:11px;border-radius:50%;
+ background:var(--bullet-color,#a6f9f2);border:1px solid #ffffffcc;
+ box-shadow:0 0 8px var(--bullet-color,#a6f9f2),0 0 21px var(--bullet-color,#a6f9f2);
+ transform:translate(-50%,-50%)}
+.tft-bullet.heavy{width:17px;height:17px;box-shadow:0 0 15px var(--bullet-color,#ffcbb2),0 0 27px var(--bullet-color,#ffcbb2)}
+.fighter.party-fighter .mini-stars{color:#ffe6a3}
+@media(max-width:730px){.formation-toolbar{grid-template-columns:1fr 1fr}
+ .formation-toolbar button{font-size:11px;padding:8px 5px}
+ .tft-mode-status{padding:5px 8px 0}.tft-mode-status>span{font-size:9px}
+}
