@@ -51,5 +51,13 @@
   return true;
  }
  const isImmortal=(actor,clock)=>(actor?.immortalUntil||0)>clock;
- window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,isImmortal});
+ // Focus stacks are tied to the actual target object, not its character ID.
+ function focusCritBonus(actor,target,hero){
+  const p=hero?.passive;
+  if(!(p?.focusCritStep>0))return 0;
+  if(actor.focusTarget!==target){actor.focusTarget=target;actor.focusHits=0}
+  else actor.focusHits=Math.min(Math.ceil(p.focusCritMax/p.focusCritStep), (actor.focusHits||0)+1);
+  return Math.min(p.focusCritMax,actor.focusHits*p.focusCritStep);
+ }
+ window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,isImmortal,focusCritBonus});
 })();
