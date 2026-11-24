@@ -13,3 +13,6 @@ Combat controls geometry; Studio publishes artwork and appearance only.
 - loopFrames = repeat sprite-sheet frames until the region is removed; otherwise hold the final frame. Animated GIF/WebP retain native timing.
 - Moving projectiles are always removed when their physical flight ends; explicit airtime can hide them earlier, not delay impact or persist a shot after impact. Regions are removed after delay + airtime. Studio preview uses region timing; Hero Trial shows actual flight limits.
 - All values affect appearance only and are stored with the published artwork. Existing manifests remain valid.
+
+## Artoria v0.20.5
+Artoria uses the shared pierce/beam slot, plus a separate `cleave` event for normal attacks around the target. Boss damage multiplier is calculated in the shared damage pipeline, independent of artwork and VFX timing. Hero Trial supports a boss dummy.

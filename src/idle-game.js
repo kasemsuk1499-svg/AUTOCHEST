@@ -46,7 +46,7 @@ const cellAtClient=(clientX,clientY)=>{
 };
 let boardGesture=null,ignoreInspectUntil=0,dragGhost=null,dropHighlight=null;
 // Hero-shaped enemies share art and skills with the player's SAO roster.
-const ENEMY_IDS=IDS.filter(id=>HEROES[id].effect!=='explosion');
+const ENEMY_IDS=IDS.filter(id=>HEROES[id].effect!=='explosion'&&!HEROES[id].playerOnly);
 const bosses=ENEMY_IDS.filter(id=>HEROES[id].cost===3);
 const enemyLimit=()=>CORE.waveSize(state.stage);
 const waveSlots=[[1,0],[4,0],[2,1],[0,1],[5,1]]; // finite TFT wave formation
@@ -416,7 +416,7 @@ function skillDescription(t,enemy=false){
    lines.push('ทุก '+n+' การโจมตี: เคลื่อนฉับไวเข้าหาเป้าหมาย ฟัน 200% ATK และตามด้วยโจมตีอีก 50% ATK');
    break;
   case 'pierce':
-   lines.push('ทุก '+n+' การโจมตี: ยิงกระสุนทะลวงเป็นเส้นตรงจนถึงขอบสนาม ทำดาเมจ '+Math.round((t.skillPower||2.4)*100)+'% ATK ต่อศัตรูทุกตัวที่กระสุนผ่าน · ไม่สนโล่ป้องกัน แต่ไม่ทะลุอมตะ');
+   lines.push('ทุก '+n+' การโจมตี: '+(t.range<1.8?'ฟันปล่อยลำแสงศักดิ์สิทธิ์':'ยิงทะลวง')+'เป็นเส้นตรงจนถึงขอบสนาม ทำดาเมจ '+Math.round((t.skillPower||2.4)*100)+'% ATK ต่อศัตรูทุกตัวในแนว (โดนครั้งเดียวต่อตัว) · '+(t.pierceShield===false?'โล่ป้องกันได้':'ไม่สนโล่ป้องกัน')+' · ไม่ทะลุอมตะ');
    break;
   case 'triple':
    lines.push('ทุก '+n+' การโจมตี: ยิงกระสุนหลักแรง 200% ATK และกระสุนรองอีก 2 นัด นัดละ 85% ATK (เลือกเป้าหมายอื่นได้)');
@@ -443,6 +443,8 @@ function skillDescription(t,enemy=false){
    break;
   default:lines.push('ทุก '+n+' การโจมตี: ใช้สกิลตามข้อมูลฮีโร่');
  }
+ if(t.cleave)lines.push('โจมตีปกติ: ฟันศัตรูอื่นรอบเป้าหมายในรัศมี '+t.cleave.radius+' px คนละ '+Math.round(t.cleave.power*100)+'% ATK');
+ if(t.passive?.bossMultiplier)lines.push('พาสซีฟ — '+t.passive.name+': ดาเมจทุกชนิดต่อบอส ×'+t.passive.bossMultiplier+' ก่อนคริติคอลและการป้องกัน');
  if(t.passive?.healOnAttack)lines.push('พาสซีฟ — '+t.passive.name+': เมื่อโจมตีปกติ ฟื้น HP ให้สมาชิกที่บาดเจ็บหนักที่สุด (ตามเปอร์เซ็นต์ HP) เท่ากับ '+Math.round(t.passive.healOnAttack*100)+'% ของ ATK พื้นฐานในการต่อสู้ของตนเอง');
  if(t.passive?.damageReduction)lines.push('พาสซีฟ — '+t.passive.name+': ลดความเสียหายที่ได้รับ '+Math.round(t.passive.damageReduction*100)+'% ตลอดการต่อสู้ ก่อนคำนวณโล่');
  if(t.passive?.focusCritStep)lines.push('พาสซีฟ — '+t.passive.name+': โจมตีเป้าหมายเดิมต่อเนื่องเพิ่มโอกาสคริติคอล '+Math.round(t.passive.focusCritStep*100)+' จุดเปอร์เซ็นต์ต่อครั้ง (สูงสุด +'+Math.round(t.passive.focusCritMax*100)+' จุดเปอร์เซ็นต์) · รีเซ็ตเมื่อเปลี่ยนเป้าหมาย');
@@ -897,7 +899,7 @@ function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false,pierceShie
  const hero=HEROES[attacker.id]||{};
  const chance=Math.min(1,Math.max(0,(attacker.crit||0)+bonusCrit));
  const critical=forcedCrit||(chance>0&&Math.random()<chance);
- const raw=TFT.incomingDamage(power*TFT.outgoingMultiplier(attacker,stageClock)*TFT.vulnerabilityMultiplier(target,stageClock)*(critical?(attacker.critDamage||hero.critDamage||1.5):1),HEROES[target.id]);
+ const raw=TFT.incomingDamage(power*TFT.bossDamageMultiplier(hero,target)*TFT.outgoingMultiplier(attacker,stageClock)*TFT.vulnerabilityMultiplier(target,stageClock)*(critical?(attacker.critDamage||hero.critDamage||1.5):1),HEROES[target.id]);
  const {damage,absorbed}=TFT.resolveDamage(target,raw,pierceShield);
  position(target);
  if(damage>0){unitFx(target,(critical?'CRIT ':'')+'−'+fmt(damage),'damage',critical);if(visual)visualEffect(visual,attacker,target.x,target.y,critical?1.18:1)}
@@ -958,7 +960,7 @@ function tftPiercingShot(attacker,target){
   effectLayer().appendChild(node);
  }
  shots.push({owner:attacker,side:attacker.side,x:attacker.x,y:attacker.y,pierce:p,
-  speed:hero.projectileSpeed||950,radius:hero.pierceRadius||36,power:attacker.atk*(hero.skillPower||2.4),node});
+  speed:hero.projectileSpeed||950,radius:hero.pierceRadius||36,power:attacker.atk*(hero.skillPower||2.4),pierceShield:hero.pierceShield!==false,node});
 }
 function clearTftShots(){
  for(const b of shots)if(b.node)b.node.remove();
@@ -974,7 +976,7 @@ function advanceTftShots(t){
    const result=TFT.advancePierce(bullet,t,targets);
    for(const target of result.hits){
     if(!shots.includes(bullet))break;
-    tftDamage(bullet.owner,target,bullet.power,0,false,true,'skillHit');
+    tftDamage(bullet.owner,target,bullet.power,0,false,bullet.pierceShield!==false,'skillHit');
     if(target.hp>0)ring(target.x,target.y);
    }
    if(result.expired){finished.add(bullet);bullet.node?.remove()}
@@ -1146,7 +1148,10 @@ function tftAttack(attacker,target){
   let actual=mul;
   if(ambush&&target.hp/target.maxHp<(hero.executeThreshold||.35))
    actual*=hero.executeMultiplier||1.2;
+  const extra=!special&&hero.cleave?TFT.cleaveTargets(target,attacker.side==='ally'?enemies:fighters,hero.cleave.radius):[];
+  if(!special&&hero.cleave)visualEffect('cleave',attacker,target.x,target.y);
   tftDamage(attacker,target,attacker.atk*actual,bonusCrit,!!(special&&hero.skillGuaranteedCrit),false,special?'skillHit':'hit');
+  for(const u of extra)tftDamage(attacker,u,attacker.atk*hero.cleave.power,0,false,false,null);
   if(special&&effect==='blink'&&target.hp>0)tftDamage(attacker,target,attacker.atk*.5);
  }
 }
@@ -1248,7 +1253,7 @@ function trialUnit(id,side,x,y,hp,maxHp,label){
 }
 function resetTrial(){
  if($('trialModal').hidden)return;
- const id=$('trialHero').value,h=HEROES[id],count=Number($('trialCount').value),st=CORE.stats(h,{level:1,stars:1}),arena=$('trialArena');
+ const id=$('trialHero').value,h=HEROES[id],bossTrial=$('trialCount').value==='boss',count=bossTrial?1:Number($('trialCount').value),st=CORE.stats(h,{level:1,stars:1}),arena=$('trialArena');
  $('trialUnits').replaceChildren();$('trialFx').replaceChildren();$('trialLog').replaceChildren();
  trial={id,clock:0,size:{width:arena.clientWidth,height:arena.clientHeight},fighters:[],enemies:[],shots:[],revives:new Map(),events:[],queue:[],active:null,nextAt:0,lastLog:'',note:'พร้อมทดลอง'};
  trial.hero=trialUnit(id,'ally',50,78,st.hp,st.hp);
@@ -1260,8 +1265,8 @@ function resetTrial(){
    trial.fighters.push(trialUnit(other,'ally',x,82,Math.round(max*(h.support?ratio:1)),max,HEROES[other].name));
   }
  }
- const cells=h.effect==='pierce'?[[50,42],[50,25],[50,10],[24,30],[76,30]]:[[50,38],[33,32],[67,32],[18,15],[82,15]];
- for(let i=0;i<count;i++){const [x,y]=cells[i];trial.enemies.push(trialUnit('__dummy','enemy',x,y,3000,3000,'หุ่น '+(i+1)))}
+ const cells=h.cleave?[[50,42],[50,27],[66,37],[25,25],[80,20]]:h.effect==='pierce'?[[50,42],[50,25],[50,10],[24,30],[76,30]]:[[50,38],[33,32],[67,32],[18,15],[82,15]];
+ for(let i=0;i<count;i++){const [x,y]=cells[i];const dummy=trialUnit('__dummy','enemy',x,y,bossTrial?12000:3000,bossTrial?12000:3000,bossTrial?'👑 หุ่นบอส':'หุ่น '+(i+1));dummy.boss=bossTrial;trial.enemies.push(dummy)}
  $('trialSkillName').innerHTML=rarityBadge(h)+' '+escapeText(h.skill);
  $('trialStats').textContent='HP '+fmt(st.hp)+' · ATK '+fmt(st.atk)+' · '+(h.globalRange?'ทั่วสนาม':h.range+' ช่อง');
  $('trialPassive').disabled=!(h.passive||h.guard||h.effect==='cloakshot');

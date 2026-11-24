@@ -97,6 +97,8 @@
   actor.tauntUntil=clock+g.tauntSeconds;
   return protectedUnits;
  }
+ const bossDamageMultiplier=(hero,target)=>target?.boss===true?Math.max(1,hero?.passive?.bossMultiplier||1):1;
+ const cleaveTargets=(target,others,radius)=>others.filter(u=>u!==target&&u.hp>0&&u.alive!==false&&pxDist(u,target)<=radius);
  const incomingDamage=(raw,hero)=>Math.max(0,raw*(1-clamp(hero?.passive?.damageReduction||0,0,.95)));
  // Timed debuffs refresh; overlapping applications retain the strongest active amount.
  function applyDebuff(target,config,clock){
@@ -139,5 +141,5 @@
   target.shield=shieldBefore-absorbed;target.hp=hpBefore-damage;
   return {damage,absorbed,total};
  }
- window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage,applyDebuff,debuffValue,outgoingMultiplier,vulnerabilityMultiplier,attackInterval,healWeakest,applySupport,resolveDamage});
+ window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,outgoingMultiplier,vulnerabilityMultiplier,attackInterval,healWeakest,applySupport,resolveDamage});
 })();
