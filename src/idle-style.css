@@ -599,3 +599,33 @@ footer{margin:10px 0 0;font-size:9px;justify-content:center;color:#60788c}
 .trial-event.heal b,.trial-event.buff b{color:#8ff3b6}.trial-event.shield b{color:#8fd3ff}.trial-event.debuff b{color:#ffa8b3}.trial-event.status b{color:#dbccff}
 .trial-footer{font-size:10px;color:#849cae;text-align:center;margin:10px 0 0}
 @media(max-width:540px){.trial-dialog{padding:11px}.trial-header h2{font-size:17px}.trial-controls{gap:5px}.trial-actions{grid-template-columns:1fr 1fr}.trial-log{grid-template-columns:1fr}.trial-meta{font-size:10px}.trial-arena .fighter .fighter-name{font-size:8px}.trial-arena .trial-values{font-size:7px}}
+
+/* v0.19.6 — rarity remains distinct from upgrade stars and NEW/shard rewards. */
+.rarity-r{--rarity:#77b9ee;--rarity-bg:#17314a;--rarity-ink:#c6e7ff}
+.rarity-sr{--rarity:#c19af7;--rarity-bg:#36254e;--rarity-ink:#ead9ff}
+.rarity-ssr{--rarity:#f2c66c;--rarity-bg:#46351f;--rarity-ink:#fff0be}
+.rarity-badge{display:inline-flex!important;align-items:center;justify-content:center;vertical-align:middle;background:var(--rarity-bg)!important;color:var(--rarity-ink)!important;border:1px solid var(--rarity)!important;border-radius:4px;padding:2px 5px!important;font:700 11px/1.15 Rajdhani,sans-serif!important;letter-spacing:.25px;white-space:nowrap}
+.hero-card[class*="rarity-"],.team-slot[class*="rarity-"],.summon-pool-hero[class*="rarity-"],.summon-result-card[class*="rarity-"]{border:1px solid var(--rarity);border-top:3px solid var(--rarity);background:linear-gradient(160deg,var(--rarity-bg),#152235 82%);box-shadow:none}
+.hero-card[class*="rarity-"].locked{opacity:1}
+.hero-card.locked img{filter:grayscale(.8) brightness(.5)}
+.hero-card>.rarity-badge,.summon-pool-hero>.rarity-badge{position:absolute;top:3px;left:3px;z-index:2}
+.team-slot>.rarity-badge{position:absolute;top:3px;right:3px;z-index:3}
+.team-slot.is-upgrade-ready .team-ready{top:auto;bottom:25px;right:2px}
+.team-slot .team-level{left:2px;top:3px}
+.hero-card img,.summon-pool-hero img{margin-top:12px}
+.hero-card.active,.team-slot.active{outline:2px solid #e1edf4;outline-offset:1px}
+.summon-result-art>.rarity-badge{position:absolute;top:5px;right:5px;z-index:2}
+.summon-result-card.new-hero{border-color:var(--rarity)}
+.summon-result-card .result-tag{font-size:9px;max-width:65%}
+.summon-result-card .result-tag{z-index:1}
+.skill-tags .rarity-badge,.upgrade-identity .rarity-badge{font-size:12px!important}
+@media(max-width:540px){
+ .hero-list{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .hero-card img{height:58px}
+ .hero-card>.rarity-badge,.team-slot>.rarity-badge,.summon-pool-hero>.rarity-badge{font-size:9px!important;padding:1px 3px!important}
+ .team-slot .team-level{top:17px;left:3px;font-size:8px}
+ .team-slot img{margin-top:18px;height:48%}
+ .summon-pool{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .summon-pool-hero img{height:56px}
+ .summon-result-card .rarity-badge{font-size:10px!important}
+}
