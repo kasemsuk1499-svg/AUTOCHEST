@@ -37,3 +37,7 @@ Optional fields: `critChance` 0..1; `critDamage` multiplier; `traits` descriptiv
 - All new heroes also become eligible enemies according to tier/wave progression
 
 The initial kits of Kirito, Sinon, Lisbeth, Death Gun, Heathcliff and Silica are provisional, for future adjustment.
+
+## Death Gun v0.10 — cloakshot ability
+
+`effect:'cloakshot'`, `triggerEvery:4`, `cloakDuration:2.0` and `cloakShotMultiplier:1.7` apply to the shared combat engine. `cloakCritBonus:0.5` adds 50 percentage points to base crit on the first attack after stealth (28% → 78%). `executeThreshold:0.35` and `executeMultiplier:1.2` grant +20% damage to that attack if target HP is below 35% upon projectile impact. While cloaked, the unit can move but cannot shoot or be newly targeted by AI. In-flight bullets remain valid. Both allies and enemy Death Gun inherit the same behavior. PNG/GIF sprite opacity reduced to 26% during invisibility.

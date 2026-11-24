@@ -86,6 +86,11 @@ function skillDetails(t){
    case 'triple': return ['ยิงเป้าหมายหลักแรง 200% ATK และยิงเสริมอีก 2 นัด นัดละ 85% ATK','กระสุนเสริมเลือกเป้าหมายอื่นได้ และคำนวณคริเป็นรายนัด'];
    case 'shield': return ['ได้รับโล่เท่ากับ 30% ของ HP สูงสุด','โจมตีเป้าหมายหลักแรง 200% ATK'];
    case 'blink': return ['เคลื่อนที่ฉับพลันไปใกล้เป้าหมาย','โจมตี 200% ATK ตามด้วยการโจมตีเสริม 50% ATK'];
+   case 'cloakshot': return [
+    'ทุก '+(t.triggerEvery||4)+' การโจมตี: พรางตัว '+(t.cloakDuration||2).toFixed(1)+' วินาที ไม่ถูกเลือกเป็นเป้าหมายใหม่และงดยิงระหว่างพราง (ยังเคลื่อนที่ได้)',
+    'นัดแรกหลังสิ้นสุดพราง: ดาเมจ '+Math.round((t.cloakShotMultiplier||1.7)*100)+'% ATK และโอกาสคริเพิ่ม '+Math.round((t.cloakCritBonus||.5)*100)+' จุดเปอร์เซ็นต์',
+    'ถ้าเป้าหมาย HP ต่ำกว่า '+Math.round((t.executeThreshold||.35)*100)+'% ตอนกระสุนกระทบ ดาเมจเพิ่มอีก '+Math.round(((t.executeMultiplier||1.2)-1)*100)+'%'
+   ];
    case 'slam': return ['โจมตีพื้นที่รอบเป้าหมายในรัศมี 140 หน่วย','ศัตรูที่อยู่ในพื้นที่ได้รับ 180% ATK ต่อเป้าหมาย'];
    default: return ['โจมตีและใช้ทักษะอัตโนมัติตามระบบต่อสู้'];
   }
@@ -276,7 +281,8 @@ function makeFighter(base,side,index){
   attacks:0,shield:0,hitFlash:0,face:side==='ally'?-1:1,
   team:t.team||'',size:isBoss?32:20,isBoss,
   visualScale:side==='enemy'?(isBoss?ENEMY_SCALING.bossModel:ENEMY_SCALING.model):1,
-  alive:true,anim:'idle',animUntil:0,motion:0,moving:false
+  alive:true,anim:'idle',animUntil:0,motion:0,moving:false,
+  cloakUntil:0,cloakPrimed:false
  };
 }
 function startBattle(){if(phase==='result'){wave++;phase='prep';roundResult='';roll(true);selected=null;renderUI();addLog('🌊 เวฟ '+wave+' เริ่มเตรียมทีม');return}if(phase!=='prep'||!refreshCount())return;
@@ -285,9 +291,10 @@ function endBattle(win){if(phase!=='battle')return;phase='result';if(win){wins++
 selected=null;renderUI()}
 function dmg(target,amount,x,y,crit=false){if(!target.alive)return;let shieldHit=Math.min(target.shield||0,amount);target.shield-=shieldHit;let dealt=amount-shieldHit;target.hp-=dealt;target.hitFlash=.17;floaters.push({x:x??target.x,y:(y??target.y)-30,v:Math.round(amount),color:crit?'#ffe083':target.side==='ally'?'#ff8d98':'#fff4c8',t:0,life:.9});burst(target.x,target.y,target.side==='ally'?'#ff8d98':'#9bf4ff',5);if(target.hp<=0){target.alive=false;burst(target.x,target.y,ENEMY[target.kind]?.col||TYPES[target.kind]?.col||'#ffc475',24);shake=Math.max(shake,.1)}}
 // Resolve critical hits when damage is dealt. Existing heroes retain their original damage.
-function damageWithCrit(attacker,target,baseDamage){
+function damageWithCrit(attacker,target,baseDamage,bonusCrit=0){
  const data=(attacker.side==='ally'?TYPES:ENEMY)[attacker.kind];
- const critical=Number(data?.critChance||0)>0&&Math.random()<data.critChance;
+ const critChance=Math.min(1,Math.max(0,Number(data?.critChance||0)+bonusCrit));
+ const critical=critChance>0&&Math.random()<critChance;
  dmg(target,critical?baseDamage*(data.critDamage||1.5):baseDamage,undefined,undefined,critical);
  if(critical){
   floaters.push({x:target.x,y:target.y-54,v:'CRIT!',color:'#ffe990',t:0,life:.74});
@@ -298,25 +305,66 @@ function damageWithCrit(attacker,target,baseDamage){
 }
 function burst(x,y,color,n=12){for(let i=0;i<n;i++){let a=rand(0,Math.PI*2),v=rand(25,150);fx.push({kind:'dot',x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:rand(.23,.7),total:.7,color,size:rand(2,6)})}}
 function waveFX(x,y,color,size=95){fx.push({kind:'ring',x,y,r:10,max:size,life:.45,total:.45,color})}
-function findTarget(u){let pool=combat.filter(o=>o.alive&&o.side!==u.side);if(!pool.length)return null;pool.sort((a,b)=>dist(a,u)-dist(b,u));return pool[0]}
-function attack(u,target){u.cooldown=u.cool;u.attacks++;u.hitFlash=.09;u.anim='attack';const spriteData=(u.side==='ally'?TYPES:ENEMY)[u.kind];u.animUntil=bgtime+(spriteData.visual?.attackMs ? spriteData.visual.attackMs/1000 : isGif(assetFor(spriteData,'attack')) ? .7 : .27);let heavy=false,mul=1;
-const effect=spriteData.effect||'';
-const trigger=spriteData.triggerEvery||4;
-if(u.attacks%trigger===0){heavy=true;mul=2;if(u.side==='ally')combatCount++;special(u,target)}
-if(heavy&&['chain','slam'].includes(effect))return;
-if(u.range>=1.8){bullets.push({owner:u,from:u.side,x:u.x,y:u.y,tx:target.x,ty:target.y,target,life:1.6,speed:effect==='triple'?450:340,damage:u.atk*mul,color:TYPES[u.kind]?.col||'#fa8d9b',size:heavy?10:7});if(heavy&&effect==='triple'){for(let i=0;i<2;i++){let extra=combat.filter(o=>o.alive&&o.side!==u.side).sort((a,b)=>dist(a,u)-dist(b,u))[i+1]||target;bullets.push({owner:u,from:u.side,x:u.x,y:u.y,target:extra,life:1.6,speed:430,damage:u.atk*.85,color:'#b4ffe5',size:5})}}}
-else{damageWithCrit(u,target,u.atk*mul);fx.push({kind:'slash',x:target.x,y:target.y,a:rand(-.8,.8),life:.26,total:.26,color:u.side==='ally'?'#a9f8e8':'#ffa4b5'});if(heavy&&effect==='blink'){damageWithCrit(u,target,u.atk*.5);waveFX(target.x,target.y,'#ff8dc8',42)}}}
+function findTarget(u){let pool=combat.filter(o=>o.alive&&o.side!==u.side&&!(o.cloakUntil>bgtime));if(!pool.length)return null;pool.sort((a,b)=>dist(a,u)-dist(b,u));return pool[0]}
+function attack(u,target){
+ const spriteData=TYPES[u.kind],effect=spriteData.effect||'';
+ const ambush=effect==='cloakshot'&&u.cloakPrimed&&!(u.cloakUntil>bgtime);
+ if(ambush)u.cloakPrimed=false;
+ const bonusCrit=ambush?(spriteData.cloakCritBonus||0):0;
+ u.cooldown=u.cool;u.attacks++;u.hitFlash=.09;u.anim='attack';
+ u.animUntil=bgtime+(spriteData.visual?.attackMs?spriteData.visual.attackMs/1000:isGif(assetFor(spriteData,'attack'))?0.7:0.27);
+ let heavy=false,mul=ambush?(spriteData.cloakShotMultiplier||1.7):1;
+ const trigger=spriteData.triggerEvery||4;
+ if(u.attacks%trigger===0){
+  heavy=true;
+  if(effect!=='cloakshot')mul*=2;
+  if(u.side==='ally')combatCount++;
+  special(u,target);
+ }
+ if(heavy&&['chain','slam'].includes(effect))return;
+ if(u.range>=1.8){
+  bullets.push({
+   owner:u,from:u.side,x:u.x,y:u.y,tx:target.x,ty:target.y,target,
+   life:1.6,speed:effect==='triple'?450:340,
+   damage:u.atk*mul,bonusCrit,execute:ambush,
+   color:TYPES[u.kind]?.col||'#fa8d9b',size:heavy||ambush?10:7
+  });
+  if(heavy&&effect==='triple'){
+   for(let i=0;i<2;i++){
+    const extra=combat.filter(o=>o.alive&&o.side!==u.side&&!(o.cloakUntil>bgtime)).sort((a,b)=>dist(a,u)-dist(b,u))[i+1]||target;
+    bullets.push({owner:u,from:u.side,x:u.x,y:u.y,target:extra,life:1.6,speed:430,damage:u.atk*.85,color:'#b4ffe5',size:5});
+   }
+  }
+ }else{
+  const execute=ambush&&target.hp/target.maxHp<(spriteData.executeThreshold||.35)?spriteData.executeMultiplier||1.2:1;
+  damageWithCrit(u,target,u.atk*mul*execute,bonusCrit);
+  fx.push({kind:'slash',x:target.x,y:target.y,a:rand(-.8,.8),life:.26,total:.26,color:u.side==='ally'?'#a9f8e8':'#ffa4b5'});
+  if(heavy&&effect==='blink'){damageWithCrit(u,target,u.atk*.5);waveFX(target.x,target.y,'#ff8dc8',42)}
+ }
+}
 function special(u,target){u.anim='skill';u.animUntil=bgtime+.65;let enemy=combat.filter(o=>o.alive&&o.side!==u.side),effect=(u.side==='ally'?TYPES[u.kind]:ENEMY[u.kind])?.effect;if(effect==='slam'){
 let cx=target.x,cy=target.y;fx.push({kind:'hammer',x:cx,y:cy,life:.65,total:.65,color:u.isBoss?'#ff9d73':'#ffc773'});waveFX(cx,cy,'#ffc773',135);shake=.22;enemy.filter(o=>Math.hypot(o.x-cx,o.y-cy)<140).forEach(o=>dmg(o,u.atk*1.8,o.x,o.y,true));}
 else if(effect==='chain'){
 const cfg=TYPES[u.kind],around=enemy.sort((a,b)=>dist(a,target)-dist(b,target)).slice(0,cfg.chainTargets||3);around.forEach((o,i)=>{fx.push({kind:'lightning',x1:i===0?u.x:around[i-1].x,y1:i===0?u.y:around[i-1].y,x2:o.x,y2:o.y,life:.4,total:.4,color:cfg.col||'#cfacff'});dmg(o,u.atk*(cfg.chainPower||1.12),o.x,o.y,true)});shake=.09;}
 else if(effect==='shield'){u.shield+=u.maxHp*.30;waveFX(u.x,u.y,'#fbe1a2',76);floaters.push({x:u.x,y:u.y-27,v:'🛡 +SHIELD',color:'#ffde9b',t:0,life:1})}
 else if(effect==='blink'){u.x=target.x+rand(-27,27);u.y=target.y+rand(-16,16);burst(u.x,u.y,'#f879c3',17)}
-else if(effect==='slash'){waveFX(u.x,u.y,'#7bdeff',60)}}
+else if(effect==='slash'){waveFX(u.x,u.y,'#7bdeff',60)}
+ else if(effect==='cloakshot'){
+  const cfg=TYPES[u.kind];
+  u.cloakUntil=bgtime+cfg.cloakDuration;
+  u.cloakPrimed=true;
+  waveFX(u.x,u.y,'#c5a2ff',65);
+  burst(u.x,u.y,'#b8a6ff',14);
+  floaters.push({x:u.x,y:u.y-48,v:'พรางตัว',color:'#cfafff',t:0,life:1});
+ }}
 function update(dt){bgtime+=dt;shake=Math.max(0,shake-dt);for(let v of fx){v.life-=dt;if(v.kind==='dot'){v.x+=v.vx*dt;v.y+=v.vy*dt;v.vx*=.95;v.vy*=.95}}fx=fx.filter(x=>x.life>0);for(let f of floaters){f.t+=dt;f.y-=32*dt}floaters=floaters.filter(x=>x.t<x.life);
 if(phase!=='battle')return;let t=dt*speed;timeLeft-=t;let allies=combat.filter(u=>u.alive&&u.side==='ally'),enemies=combat.filter(u=>u.alive&&u.side==='enemy');if(!allies.length||!enemies.length){endBattle(!!allies.length);return}if(timeLeft<0){let ap=allies.reduce((s,u)=>s+u.hp/u.maxHp,0),ep=enemies.reduce((s,u)=>s+u.hp/u.maxHp,0);endBattle(ap>=ep);return}
-for(let u of combat){if(!u.alive)continue;u.hitFlash=Math.max(0,u.hitFlash-t);u.cooldown-=t;let target=findTarget(u);if(!target)continue;let d=dist(u,target),r=u.range*SX;if(d>r){let dirx=(target.x-u.x)/d,diry=(target.y-u.y)/d;let step=Math.min((d-r)*.63,u.move*t);u.x=clamp(u.x+dirx*step,42,W-42);u.y=clamp(u.y+diry*step,62,H-57);u.face=dirx>=0?1:-1;u.moving=true;u.motion+=t*8}else{u.moving=false;if(u.cooldown<=0)attack(u,target)}}
-for(let b of bullets){b.life-=t;if(!b.target.alive){b.life=0;continue}let d=dist(b,b.target),step=b.speed*t;if(d<step+9){if(b.owner)damageWithCrit(b.owner,b.target,b.damage);else dmg(b.target,b.damage,b.target.x,b.target.y);waveFX(b.target.x,b.target.y,b.color,25);b.life=0}else{b.x+=(b.target.x-b.x)/d*step;b.y+=(b.target.y-b.y)/d*step}}bullets=bullets.filter(b=>b.life>0)}
+for(let u of combat){if(!u.alive)continue;u.hitFlash=Math.max(0,u.hitFlash-t);u.cooldown-=t;let target=findTarget(u);if(!target)continue;let d=dist(u,target),r=u.range*SX;if(d>r){let dirx=(target.x-u.x)/d,diry=(target.y-u.y)/d;let step=Math.min((d-r)*.63,u.move*t);u.x=clamp(u.x+dirx*step,42,W-42);u.y=clamp(u.y+diry*step,62,H-57);u.face=dirx>=0?1:-1;u.moving=true;u.motion+=t*8}else{u.moving=false;if(u.cooldown<=0&&!(u.cloakUntil>bgtime))attack(u,target)}}
+for(let b of bullets){b.life-=t;if(!b.target.alive){b.life=0;continue}let d=dist(b,b.target),step=b.speed*t;if(d<step+9){if(b.owner){
+  const cfg=TYPES[b.owner.kind];
+  const executeBonus=b.execute&&b.target.hp/b.target.maxHp<(cfg.executeThreshold||.35)?cfg.executeMultiplier||1.2:1;
+  damageWithCrit(b.owner,b.target,b.damage*executeBonus,b.bonusCrit||0);
+ }else dmg(b.target,b.damage,b.target.x,b.target.y);waveFX(b.target.x,b.target.y,b.color,25);b.life=0}else{b.x+=(b.target.x-b.x)/d*step;b.y+=(b.target.y-b.y)/d*step}}bullets=bullets.filter(b=>b.life>0)}
 const rrect=(x,y,w,h,r)=>{ctx.beginPath();ctx.roundRect(x,y,w,h,r)};
 function tile(x,y,w,h,r,fill,stroke){rrect(x,y,w,h,r);ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke()}}
 function circle(x,y,r,color){ctx.beginPath();ctx.arc(x,y,r,0,2*Math.PI);ctx.fillStyle=color;ctx.fill()}
@@ -352,6 +400,7 @@ function drawCharacter(u){
  ctx.fillStyle='#06101c9e';ctx.beginPath();ctx.ellipse(0,29,boss?42:29,boss?12:8,0,0,Math.PI*2);ctx.fill();
  const col=data.col;circle(0,0,boss?44:32,col+'1a');
  if(casting){ctx.strokeStyle=col;ctx.lineWidth=3;ctx.shadowColor=col;ctx.shadowBlur=22;ctx.beginPath();ctx.arc(0,-6,boss?50:41,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0}
+ if(u.cloakUntil>bgtime)ctx.globalAlpha*=.26;
  ctx.translate((u.face||1)*lunge,-(casting?8:0));
  if(u.hitFlash>0)ctx.filter='brightness(1.55)';
  const size=(data.visual?.scale||1)*(u.visualScale||(side==='enemy'?(boss?ENEMY_SCALING.bossModel:ENEMY_SCALING.model):1));ctx.scale(size*(u.face===-1?-1:1),size);
@@ -368,6 +417,7 @@ function drawCharacter(u){
  const max=u.maxHp||data.hp,hp=u.hp??max,p=hp/max;
  if(!(phase==='prep'&&side==='enemy')){tile(x-28,y-62,56,7,3,'#07172aca');tile(x-28,y-62,56*clamp(p,0,1),7,3,side==='ally'?'#6aebbb':'#ff8e9c')}
  if(u.shield){ctx.fillStyle='#9dd7ff';ctx.fillRect(x-28,y-65,56*clamp(u.shield/max,0,1),2)}
+ if(u.cloakUntil>bgtime)text('◈ พรางตัว',x,y-81,'600 12px Kanit','#d8b5ff');
  if(phase==='prep'&&side==='ally'){text(data.name,x,y+54,'600 13px Kanit','#e3f7ff');if(u.lv>1)text('★'.repeat(u.lv),x,y-69,'15px sans-serif','#ffe49d')}
 }
 

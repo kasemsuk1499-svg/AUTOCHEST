@@ -28,6 +28,10 @@ for(const c of hero){
  }
  /* User-provided PNG/GIF portraits do not require editable SVG source files. */
 }
+const deathgun=reg.HEROES.deathgun;
+if(!deathgun||deathgun.effect!=='cloakshot'||deathgun.range!==4.7||deathgun.team!=='ยิงไกล'||
+ deathgun.triggerEvery!==4||deathgun.cloakDuration!==2||deathgun.cloakCritBonus!==.5||
+ deathgun.cloakShotMultiplier!==1.7||deathgun.executeThreshold!==.35)throw Error('Death Gun stealth sniper stats invalid');
 const asuna=reg.HEROES.asuna;
 if(!asuna||asuna.critChance!==.35||asuna.critDamage!==1.9||asuna.cool!==.58)throw Error('Asuna speed/crit build missing');
 console.log('✅ SAO roster: '+hero.length+' heroes; 7 complete art/idle/attack sets; same assets for ally and enemy');
