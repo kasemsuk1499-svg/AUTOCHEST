@@ -307,6 +307,22 @@
         "rotation": 0,
         "thickness": 48,
         "orientation": "horizontal"
+      },
+      "heal": {
+        "src": "./assets/effects/silica/heal-6519f75b9417.png",
+        "cols": 8,
+        "rows": 2,
+        "row": 0,
+        "col": 0,
+        "frames": 16,
+        "size": 150,
+        "ms": 1200,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "thickness": 48,
+        "orientation": "horizontal"
       }
     }
   }
