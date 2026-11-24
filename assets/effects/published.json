@@ -13,14 +13,23 @@
         "ms": 1000
       },
       "hit": {
-        "src": "./assets/effects/asuna/hit-bff06fa9b80e.png",
+        "src": "./assets/effects/asuna/hit-0e1b081cf7ad.png",
         "cols": 8,
-        "rows": 1,
+        "rows": 2,
         "row": 0,
         "col": 0,
-        "frames": 7,
-        "size": 105,
-        "ms": 500
+        "frames": 16,
+        "size": 150,
+        "ms": 800,
+        "mode": "point",
+        "scaleX": 2,
+        "scaleY": 1,
+        "rotation": -90,
+        "thickness": 48,
+        "orientation": "horizontal",
+        "delayMs": 0,
+        "airtimeMs": 0,
+        "loopFrames": false
       }
     },
     "megumin": {
