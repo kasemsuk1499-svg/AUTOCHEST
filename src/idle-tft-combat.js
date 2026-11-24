@@ -98,5 +98,18 @@
   return protectedUnits;
  }
  const incomingDamage=(raw,hero)=>Math.max(0,raw*(1-clamp(hero?.passive?.damageReduction||0,0,.95)));
- window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage});
+ // Timed debuffs refresh; overlapping applications retain the strongest active amount.
+ function applyDebuff(target,config,clock){
+  if(!target||target.hp<=0||target.alive===false||!config)return false;
+  for(const k of ['attackDown','vulnerability']){
+   const amount=clamp(config[k]||0,0,.95);if(!amount)continue;
+   const prev=target[k],until=clock+config.duration;
+   target[k]={amount:Math.max(prev?.until>clock?prev.amount:0,amount),until:Math.max(prev?.until||0,until)};
+  }
+  return true;
+ }
+ const debuffValue=(actor,key,clock)=>actor?.[key]?.until>clock?actor[key].amount:0;
+ const outgoingMultiplier=(actor,clock)=>1-debuffValue(actor,'attackDown',clock);
+ const vulnerabilityMultiplier=(actor,clock)=>1+debuffValue(actor,'vulnerability',clock);
+ window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage,applyDebuff,debuffValue,outgoingMultiplier,vulnerabilityMultiplier});
 })();
