@@ -109,7 +109,26 @@
   return true;
  }
  const debuffValue=(actor,key,clock)=>actor?.[key]?.until>clock?actor[key].amount:0;
- const outgoingMultiplier=(actor,clock)=>1-debuffValue(actor,'attackDown',clock);
+ const outgoingMultiplier=(actor,clock)=>(1-debuffValue(actor,'attackDown',clock))*(1+debuffValue(actor,'attackUp',clock));
+ const attackInterval=(actor,base,clock)=>base/(1+debuffValue(actor,'speedUp',clock));
  const vulnerabilityMultiplier=(actor,clock)=>1+debuffValue(actor,'vulnerability',clock);
- window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage,applyDebuff,debuffValue,outgoingMultiplier,vulnerabilityMultiplier});
+ // Healing only affects living units; priority is lowest percentage HP.
+ function healWeakest(allies,count,amount){
+  const units=[...new Set(allies)].filter(u=>u&&u.alive!==false&&u.hp>0&&u.maxHp>u.hp)
+   .sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp).slice(0,count);
+  return units.map(u=>{
+   const healed=Math.min(u.maxHp-u.hp,Math.max(0,Math.round(amount(u))));
+   u.hp+=healed;return {unit:u,healed};
+  });
+ }
+ function applySupport(allies,config,clock){
+  const units=[...new Set(allies)].filter(u=>u&&u.hp>0&&u.alive!==false);
+  const healed=healWeakest(units,config.healTargets,u=>u.maxHp*config.healHp);
+  for(const u of units)for(const k of ['attackUp','speedUp']){
+   const amount=clamp(config[k]||0,0,1);if(!amount)continue;
+   const prev=u[k];u[k]={amount:Math.max(prev?.until>clock?prev.amount:0,amount),until:Math.max(prev?.until||0,clock+config.duration)};
+  }
+  return {healed,units};
+ }
+ window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage,applyDebuff,debuffValue,outgoingMultiplier,vulnerabilityMultiplier,attackInterval,healWeakest,applySupport});
 })();
