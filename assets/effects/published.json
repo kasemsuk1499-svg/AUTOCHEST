@@ -117,6 +117,16 @@
         "frames": 16,
         "size": 105,
         "ms": 550
+      },
+      "projectile": {
+        "src": "./assets/effects/sinon/projectile-d66c32bde8db.png",
+        "cols": 8,
+        "rows": 1,
+        "row": 0,
+        "col": 0,
+        "frames": 8,
+        "size": 80,
+        "ms": 500
       }
     }
   }
