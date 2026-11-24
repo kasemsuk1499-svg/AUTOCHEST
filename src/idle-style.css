@@ -124,3 +124,149 @@ footer{margin:20px 0 0;display:flex;justify-content:space-between;color:#789db8;
  .skill-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
  .skill-stats strong{font-size:14px}.skill-ability{padding:11px}
 }
+
+/* v0.17 — AUTOCHEST original 6x7 fixed board, with accessible team upgrade UX. */
+.stage-viewport{
+ height:auto;aspect-ratio:760/775;min-height:0;
+ background:radial-gradient(ellipse at 54% 44%,#204460 0%,#112840 47%,#091625 100%);
+ box-shadow:inset 0 0 50px #0008;
+}
+.stage-viewport::before{display:none}
+.board-grid{
+ position:absolute;inset:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+ grid-template-rows:repeat(7,minmax(0,1fr));z-index:1;touch-action:pan-y;
+}
+.board-cell{position:relative;min-width:0;min-height:0;border:1px solid #6e9fbb28;
+ background:linear-gradient(135deg,#3b759315,#081a3116);padding:0;border-radius:0;
+}
+.board-cell.enemy-cell{background:linear-gradient(148deg,#ed8a9114,#a14a6010);border-color:#ed9b9b35}
+.board-cell.ally-cell{background:linear-gradient(148deg,#70dce322,#2b819a0b);border-color:#73c9e15c;
+ cursor:pointer;transition:background .15s,box-shadow .15s}
+.board-cell.mid-cell{background:linear-gradient(150deg,#d7eafc0c,#13394b0b);border-color:#77a9bd23}
+.board-cell.ally-cell:hover{background:#6cd5c33b;box-shadow:inset 0 0 0 1px #b5fdeb65}
+.board-cell.occupied-cell{background:radial-gradient(circle,#5be5d332 8%,#376b8f0f 70%)}
+.board-cell.selected-cell{box-shadow:inset 0 0 0 2px #aaffdeaa;background:#6cd9bf35}
+.board-selected-marker{position:absolute;top:3px;right:7px;font-size:13px;color:#aaffdf;text-shadow:0 1px 5px #000}
+.board-region{position:absolute;z-index:2;left:50%;transform:translateX(-50%);
+ color:#d3f8ff99;letter-spacing:2.2px;font:700 11px Rajdhani,Kanit,sans-serif;
+ pointer-events:none;white-space:nowrap;text-shadow:0 2px 5px #050e1c}
+.board-enemy-label{top:1.2%;color:#ffbfc8af}
+.board-ally-label{top:58.2%;color:#b0ffe6b4}
+.stage-viewport .battle-layer{z-index:3}
+.stage-viewport .fx-layer{z-index:6}
+.stage-viewport .fighter{width:min(13%,98px);height:17%;transform:translate(-50%,-50%)}
+.stage-viewport .fighter.enemy-unit{width:min(13%,104px);height:17%;z-index:3}
+.stage-viewport .fighter.boss-unit{width:min(18%,154px);height:22%}
+.stage-viewport .fighter .mini-stars{font-size:10px;white-space:nowrap}
+.stage-viewport .fighter .fighter-name{top:89%;font-size:10px;white-space:nowrap}
+.stage-viewport .fighter img{height:80%}
+.stage-viewport .boss-timer{z-index:9;top:4%}
+.stage-viewport .arena-caption{z-index:7;bottom:0;left:0;right:0;
+ padding:7px 11px;background:#061625dc;align-items:center;
+ font-size:10px;white-space:normal}
+.stage-viewport .arena-caption span:last-child{max-width:46%;text-align:right;font-size:10px}
+.stage-foot{background:#0c1d33}
+.board-help{font-size:11px;color:#bad4e9}
+.team-slot{isolation:isolate;min-width:0;overflow:visible}
+.team-slot img{height:68%;margin-top:13px}
+.team-slot strong{z-index:2;bottom:18px;border-radius:0;font-size:10px;padding:2px 0}
+.team-level{position:absolute;left:3px;top:2px;z-index:2;font:700 12px Rajdhani,Kanit,sans-serif;
+ padding:1px 4px;color:#f6f9ff;background:#0d2d49e6;border:1px solid #6787a7;border-radius:6px}
+.team-stars{position:absolute;bottom:2px;left:0;right:0;z-index:2;
+ color:#ffe29a;font-size:10px;text-shadow:0 2px 3px #000}
+.team-ready{display:none;position:absolute;top:-6px;right:-5px;z-index:4;
+ padding:2px 5px;font:700 13px Rajdhani,Kanit,sans-serif;border-radius:8px;
+ background:#0d6c55;color:#d7ffe9;border:1px solid #79ffcc;box-shadow:0 1px 8px #68e4b94b}
+.team-slot.is-upgrade-ready .team-ready{display:block}
+.team-slot.is-upgrade-ready{border-color:#84f3bd;box-shadow:0 0 0 1px #7ce9be55}
+.hero-card{min-height:137px}
+.hero-card .collection-level{display:block;font:700 11px Rajdhani,Kanit,sans-serif;color:#dff2ff;line-height:1.1}
+.hero-card .collection-stars{display:block;color:#ffe09d;font-size:10px;white-space:nowrap}
+.hero-card .collection-ready{display:none;font-size:10px;padding:3px;color:#aeffcf;
+ font-weight:600;background:#145545}
+.hero-card.is-upgrade-ready{border:1px solid #6ef2b4;box-shadow:0 0 12px #70eab328}
+.hero-card.is-upgrade-ready .collection-ready{display:block}
+.hero-card.locked{opacity:.7}
+.upgrade-card{border-color:#71c6b68a;background:linear-gradient(145deg,#143d48,#14263c)}
+.upgrade-card .card-heading h3{color:#e1fff3}
+#upgradeReadyCount{font:700 12px Rajdhani,Kanit,sans-serif;white-space:nowrap;background:#234e4b;color:#aaf4d8;border-color:#6fc6ab}
+.upgrade-guide{font-size:11px;line-height:1.65;color:#c9e6ed;background:#15394d;
+ border:1px solid #447c88;border-radius:8px;padding:8px 10px}
+.upgrade-details{padding:0;margin-top:12px;background:transparent;border:0}
+.upgrade-hero-header{display:grid;grid-template-columns:83px minmax(0,1fr);gap:11px;
+ border:1px solid #456e83;border-radius:11px;background:linear-gradient(120deg,#1d4960,#153147);padding:10px}
+.upgrade-hero-header img{width:83px;height:108px;object-fit:contain;border-radius:8px;
+ background:radial-gradient(circle,#3c768755,#092237)}
+.upgrade-identity{min-width:0}
+.upgrade-identity h4{font-size:20px;margin:2px 0;line-height:1.3}
+.upgrade-identity p{font-size:10px;color:#c0dce7;margin:1px 0 7px}
+.upgrade-kicker{font:700 10px Rajdhani,Kanit,sans-serif;letter-spacing:1.2px;color:#82e6cc}
+.upgrade-badges{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.upgrade-badges span{font:700 12px Rajdhani,Kanit,sans-serif;padding:4px 7px;
+ background:#102e42;border:1px solid #4a8290;border-radius:6px;color:#e3faff}
+.upgrade-badges .gold-stars{font-size:13px;color:#ffdf8d}
+.upgrade-badges .equipped-tag{color:#abffdf;border-color:#6ad7af}
+.upgrade-badges .reserve-tag{color:#c9d4dd}
+.upgrade-lock{color:#ffdbaa;font-size:12px}
+.upgrade-empty{padding:14px;margin-top:10px;border-radius:9px;background:#1d3852;border:1px solid #48617a;
+ font-size:12px;color:#c8dfed;line-height:1.7}
+.upgrade-stat-row{margin-top:8px}
+.upgrade-stat-row div{border-color:#46798c;background:#173e50}
+.upgrade-step{margin-top:11px;padding:12px;border:1px solid #56818e;border-radius:11px;background:#103346}
+.upgrade-step.star-step{background:#37304c88;border-color:#81759b}
+.upgrade-step-heading{display:flex;justify-content:space-between;gap:7px;align-items:center}
+.upgrade-step-heading>div{display:flex;align-items:center;gap:8px}
+.upgrade-step-heading strong{font-size:14px;color:#e7faff}
+.upgrade-current{font:700 13px Rajdhani,Kanit,sans-serif;color:#c9f8ed;white-space:nowrap}
+.upgrade-current.gold-stars{color:#ffda90}
+.step-num{display:grid;place-items:center;width:25px;height:25px;border-radius:8px;
+ background:#287477;color:#dcfff3;font:700 14px Rajdhani,Kanit,sans-serif}
+.star-step .step-num{background:#70518c}
+.upgrade-progress{margin:10px 0 8px;height:9px;border-radius:10px;border:1px solid #44707d;background:#0a2030;overflow:hidden}
+.upgrade-progress i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#56bbef,#8ef5d5);
+ transition:width .25s ease}
+.star-progress i{background:linear-gradient(90deg,#bc84ee,#ffe4a6)}
+.upgrade-benefit{font-size:11px;color:#d1e7ea;line-height:1.5;margin:0 0 8px}
+.upgrade-benefit b{color:#a9ffe0}
+.upgrade-materials{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:7px}
+.upgrade-materials span{display:block;padding:7px 5px;text-align:center;
+ font-size:11px;border-radius:7px;border:1px solid #4d6d7c;white-space:normal}
+.upgrade-materials .enough{background:#1d635244;border-color:#65cba59a;color:#b8f6dd}
+.upgrade-materials .missing{background:#633a3744;border-color:#ba807a88;color:#ffcebd}
+.upgrade-hint{font-size:11px;line-height:1.45;color:#bfdaeb;margin:6px 0 10px;min-height:18px}
+.upgrade-action-row{display:grid;grid-template-columns:1.1fr 1fr;gap:7px}
+.upgrade-action-row button,.star-upgrade-button,.upgrade-footer-actions button{
+ min-height:41px;border-radius:9px;font-weight:600;font-size:12px;padding:8px;line-height:1.3}
+.upgrade-primary{background:linear-gradient(120deg,#61e5c3,#3bbab8);
+ border:1px solid #a3ffe4;color:#0b3040}
+.upgrade-secondary{background:#294c65;border:1px solid #6889a6;color:#def0ff}
+.star-upgrade-button{width:100%;background:linear-gradient(120deg,#a481df,#d4aa71);
+ border:1px solid #e4c49b;color:#1a233e}
+.upgrade-max-notice{padding:9px;border:1px solid #669e92;border-radius:7px;color:#a4f7d2;font-size:12px;margin-bottom:8px}
+.upgrade-footer-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px}
+.upgrade-footer-actions button{margin:0}
+.deploy-action{background:#253e58;border:1px solid #617b95;color:#d6e8f8}
+.collection-hint{padding:7px 9px;background:#173449;border-radius:8px;
+ border:1px solid #3d6480;font-size:11px;color:#b5d8e7;margin-bottom:11px}
+@media(max-width:1110px){.stage-card{position:relative}}
+@media(max-width:730px){
+ .stage-viewport{height:auto;aspect-ratio:760/775;min-height:0}
+ .stage-viewport .fighter,.stage-viewport .fighter.enemy-unit{width:13%;height:17%}
+ .stage-viewport .fighter.boss-unit{width:19%;height:22%}
+ .stage-viewport .fighter .mini-stars{font-size:8px}
+ .stage-viewport .fighter .fighter-name{font-size:8px}
+ .stage-viewport .arena-caption{font-size:8px;gap:6px;padding:5px 7px}
+ .stage-viewport .arena-caption span:last-child{font-size:8px}
+ .board-region{font-size:8px;letter-spacing:1px}
+ .board-selected-marker{font-size:9px}
+ .team-slot strong{bottom:15px;font-size:9px}
+ .team-level{font-size:10px}.team-stars{font-size:9px}
+ .hero-card{min-height:120px}
+}
+@media(max-width:380px){
+ .upgrade-hero-header{grid-template-columns:68px 1fr}
+ .upgrade-hero-header img{width:68px;height:93px}
+ .upgrade-action-row,.upgrade-footer-actions{grid-template-columns:1fr}
+ .upgrade-materials span{font-size:10px}
+ .hero-card .collection-stars{font-size:8px}
+}
