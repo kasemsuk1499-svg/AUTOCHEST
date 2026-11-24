@@ -207,6 +207,22 @@
         "rotation": 0,
         "thickness": 48,
         "orientation": "horizontal"
+      },
+      "skillProjectile": {
+        "src": "./assets/effects/deathgun/skillProjectile-11362ebe0765.png",
+        "cols": 8,
+        "rows": 2,
+        "row": 0,
+        "col": 0,
+        "frames": 16,
+        "size": 80,
+        "ms": 200,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 2,
+        "rotation": 0,
+        "thickness": 48,
+        "orientation": "horizontal"
       }
     }
   }
