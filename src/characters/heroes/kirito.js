@@ -1,5 +1,43 @@
 /* คิริโตะ: provisional stats and skills; art slots await your PNG/GIF. */
 window.AUTOCHEST_CHARACTERS.registerHero({
+ starUpgrades:[
+  {
+    "star": 2,
+    "label": "ดาบคู่ 200% → 260% ATK",
+    "patch": {
+      "skillPower": 2.6
+    }
+  },
+  {
+    "star": 3,
+    "label": "คืนชีพ HP 75% · อมตะ 4 วินาที",
+    "patch": {
+      "passive": {
+        "reviveHp": 0.75,
+        "immortalSeconds": 4
+      }
+    }
+  },
+  {
+    "star": 4,
+    "label": "ใช้สกิลทุก 2 ครั้ง",
+    "patch": {
+      "triggerEvery": 2
+    }
+  },
+  {
+    "star": 5,
+    "label": "ดาบคู่ 350% ATK · คืนชีพ HP 100% · อมตะ 5 วินาที",
+    "patch": {
+      "skillPower": 3.5,
+      "passive": {
+        "reviveHp": 1,
+        "immortalSeconds": 5
+      }
+    }
+  }
+],
+
   "id": "kirito",
   "name": "คิริโตะ",
   "subtitle": "ไฟต์เตอร์ • นักดาบดำผู้ไม่ยอมตาย",

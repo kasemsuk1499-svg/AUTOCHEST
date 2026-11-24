@@ -1,5 +1,39 @@
 /* Death Gun: stealth sniper — art/idle/attack remain replaceable PNG/GIF slots. */
 window.AUTOCHEST_CHARACTERS.registerHero({
+ starUpgrades:[
+  {
+    "star": 2,
+    "label": "ซุ่มยิง 170% → 220% ATK",
+    "patch": {
+      "cloakShotMultiplier": 2.2
+    }
+  },
+  {
+    "star": 3,
+    "label": "พรางตัว 3 วินาที · โอกาสคริซุ่มยิง +60 จุดเปอร์เซ็นต์",
+    "patch": {
+      "cloakDuration": 3,
+      "cloakCritBonus": 0.6
+    }
+  },
+  {
+    "star": 4,
+    "label": "ใช้สกิลทุก 3 ครั้ง · Execute เมื่อ HP ต่ำกว่า 50%",
+    "patch": {
+      "triggerEvery": 3,
+      "executeThreshold": 0.5
+    }
+  },
+  {
+    "star": 5,
+    "label": "ซุ่มยิง 300% ATK · Execute ดาเมจ ×1.5",
+    "patch": {
+      "cloakShotMultiplier": 3,
+      "executeMultiplier": 1.5
+    }
+  }
+],
+
  id:'deathgun', name:'เดธกัน', subtitle:'สไนเปอร์มรณะ • พรางตัว',
  team:'ยิงไกล', traits:['พรางตา','สไนเปอร์','คริติคอล'], cost:3,
  hp:430, dmg:118, range:4.7, cool:1.28, move:82,

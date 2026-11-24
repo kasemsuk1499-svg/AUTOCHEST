@@ -1,5 +1,52 @@
 /* ซิลิก้า: provisional stats and skills; art slots await your PNG/GIF. */
 window.AUTOCHEST_CHARACTERS.registerHero({
+ starUpgrades:[
+  {
+    "star": 2,
+    "label": "ฮีล 22% → 30% HP สูงสุด",
+    "patch": {
+      "support": {
+        "healHp": 0.3
+      }
+    }
+  },
+  {
+    "star": 3,
+    "label": "บัฟ ATK/SPD 25% นาน 5 วินาที",
+    "patch": {
+      "support": {
+        "attackUp": 0.25,
+        "speedUp": 0.25,
+        "duration": 5
+      }
+    }
+  },
+  {
+    "star": 4,
+    "label": "ฮีล 3 เป้าหมาย · ตีปกติฮีล 70% ATK",
+    "patch": {
+      "support": {
+        "healTargets": 3
+      },
+      "passive": {
+        "healOnAttack": 0.7
+      }
+    }
+  },
+  {
+    "star": 5,
+    "label": "ฮีล 40% HP · บัฟ ATK/SPD 35% นาน 6 วินาที",
+    "patch": {
+      "support": {
+        "healHp": 0.4,
+        "attackUp": 0.35,
+        "speedUp": 0.35,
+        "duration": 6
+      }
+    }
+  }
+],
+
   "id": "silica",
   "name": "ซิลิก้า",
   "subtitle": "Dragon Tamer • พีน่าผู้เยียวยา",

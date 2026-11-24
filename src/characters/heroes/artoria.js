@@ -1,5 +1,47 @@
 /* Artoria Pendragon (Saber) — Fate. Game-original boss/farm specialist. */
 window.AUTOCHEST_CHARACTERS.registerHero({
+ starUpgrades:[
+  {
+    "star": 2,
+    "label": "Excalibur 650% ATK",
+    "patch": {
+      "skillPower": 6.5
+    }
+  },
+  {
+    "star": 3,
+    "label": "ดาเมจบอส ×2.5 · ฟันหมู่ 130% ATK",
+    "patch": {
+      "passive": {
+        "bossMultiplier": 2.5
+      },
+      "cleave": {
+        "power": 1.3
+      }
+    }
+  },
+  {
+    "star": 4,
+    "label": "ใช้ Excalibur ทุก 3 ครั้ง",
+    "patch": {
+      "triggerEvery": 3
+    }
+  },
+  {
+    "star": 5,
+    "label": "Excalibur 900% ATK · ดาเมจบอส ×3 · ฟันหมู่ 160% ATK",
+    "patch": {
+      "skillPower": 9,
+      "passive": {
+        "bossMultiplier": 3
+      },
+      "cleave": {
+        "power": 1.6
+      }
+    }
+  }
+],
+
  id:'artoria',name:'อาเธอเรีย',subtitle:'Fate • King of Knights',team:'นักรบ',role:'BOSS SLAYER / FARMER',
  traits:['ฟันหมู่ทุกครั้ง','ดาเมจบอส x2','Excalibur ทะลุสนาม'],cost:3,playerOnly:true,
  hp:950,dmg:120,range:1.12,cool:.8,move:120,critChance:.18,critDamage:1.7,

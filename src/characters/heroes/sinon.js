@@ -1,5 +1,37 @@
 /* ชิน่อน: provisional stats and skills; art slots await your PNG/GIF. */
 window.AUTOCHEST_CHARACTERS.registerHero({
+ starUpgrades:[
+  {
+    "star": 2,
+    "label": "กระสุนพิฆาต 240% → 320% ATK",
+    "patch": {
+      "skillPower": 3.2
+    }
+  },
+  {
+    "star": 3,
+    "label": "โอกาสคริติคอล 40%",
+    "patch": {
+      "critChance": 0.4
+    }
+  },
+  {
+    "star": 4,
+    "label": "ใช้สกิลทุก 3 ครั้ง",
+    "patch": {
+      "triggerEvery": 3
+    }
+  },
+  {
+    "star": 5,
+    "label": "กระสุนพิฆาต 450% ATK · CRIT DMG 240%",
+    "patch": {
+      "skillPower": 4.5,
+      "critDamage": 2.4
+    }
+  }
+],
+
   "id": "sinon",
   "name": "ชิน่อน",
   "subtitle": "Hecate II • สไนเปอร์ยิงทะลุสนาม",

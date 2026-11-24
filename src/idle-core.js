@@ -82,9 +82,29 @@
   fillPlacements(state,raw.placements);
   return state;
  }
+ const starCache=new WeakMap();
+ const starKeys=new Set(['skillPower','triggerEvery','critChance','critDamage','cool','castSeconds','cloakDuration','cloakShotMultiplier','cloakCritBonus','executeThreshold','executeMultiplier','pierceRadius','slamRadius','passive','support','guard','debuff','cleave']);
+ function heroAtStars(hero,stars=1){
+  if(!hero)return hero;
+  const n=clamp(Math.floor(number(stars,1)),1,MAX_STARS);
+  if(n===1||!Array.isArray(hero.starUpgrades))return hero;
+  let byStar=starCache.get(hero);if(!byStar){byStar=new Map();starCache.set(hero,byStar)}
+  if(byStar.has(n))return byStar.get(n);
+  const result={...hero};
+  for(const step of [...hero.starUpgrades].sort((a,b)=>a.star-b.star)){
+   if(step.star<2||step.star>n)continue;
+   for(const [key,value] of Object.entries(step.patch||{})){
+    if(!starKeys.has(key))continue;
+    if(value&&typeof value==='object'&&!Array.isArray(value))result[key]=Object.freeze({...result[key],...value});
+    else if(Number.isFinite(value))result[key]=value;
+   }
+  }
+  const out=Object.freeze(result);byStar.set(n,out);return out;
+ }
  function stats(hero,progress){
   if(!hero||!progress)return null;
-  const level=Math.max(1,progress.level),star=Math.max(1,progress.stars);
+  const level=Math.max(1,progress.level),star=clamp(Math.floor(number(progress.stars,1)),1,MAX_STARS);
+  hero=heroAtStars(hero,star);
   return {
    hp:Math.round(hero.hp*(1+(level-1)*.11)*(1+(star-1)*.32)),
    atk:Math.round(hero.dmg*(1+(level-1)*.09)*(1+(star-1)*.26)),
@@ -160,5 +180,5 @@
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,
   initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,levelCost,shardsNeeded,ascendCost,
-  normalized,stats,power,monster,farmReward,bossReward,offlineLoot,spendLevel,ascend,draw,summonCost,summonOdds,drawDetailed});
+  normalized,heroAtStars,stats,power,monster,farmReward,bossReward,offlineLoot,spendLevel,ascend,draw,summonCost,summonOdds,drawDetailed});
 })();
