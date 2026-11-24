@@ -635,3 +635,10 @@ footer{margin:10px 0 0;font-size:9px;justify-content:center;color:#60788c}
 @keyframes image-vfx-life{0%{opacity:.95;transform:translate(-50%,-50%) scale(.86)}30%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:.15;transform:translate(-50%,-50%) scale(1.08)}}
 .stage-viewport .tft-bullet.image-projectile{background-color:transparent;border:0;border-radius:0;box-shadow:none!important}
 @media(prefers-reduced-motion:reduce){.image-vfx{animation:none}}
+
+/* Studio preview uses a disposable game instance and only shows Hero Trial. */
+body.studio-trial-mode{overflow:hidden;background:#101b2c}
+body.studio-trial-mode>.app-shell{display:none}
+body.studio-trial-mode #trialModal{padding:4px;background:#101b2c}
+body.studio-trial-mode #trialModal .modal-overlay,body.studio-trial-mode #trialClose{display:none}
+body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
