@@ -102,10 +102,25 @@ function pose(actor,attack){
  const image=HEROES[actor.id].images[attack?'attack':'idle'];
  if(actor.sprite!==image){actor.img.src=image;actor.sprite=image}
 }
+// Translate on the compositor instead of restarting a 280ms CSS transition each frame.
+let arenaSize={width:0,height:0};
+function refreshArenaSize(){
+ const arena=$('stageViewport');
+ arenaSize={width:arena.clientWidth,height:arena.clientHeight};
+ for(const actor of [...fighters,...enemies])position(actor);
+ for(const shot of shots)positionShot(shot);
+}
+function setArenaPosition(node,x,y){
+ if(!node)return;
+ const px=x*arenaSize.width/100,py=y*arenaSize.height/100;
+ const transform='translate3d('+px.toFixed(2)+'px,'+py.toFixed(2)+'px,0) translate(-50%,-50%)';
+ if(node.style.transform!==transform)node.style.transform=transform;
+}
+function positionShot(shot){setArenaPosition(shot.node,shot.x,shot.y);if(shot.pierce&&shot.node)shot.node.style.transform+=' rotate('+Math.atan2(shot.pierce.dy,shot.pierce.dx)+'rad)'}
 function position(actor){
  if(!actor?.node)return;
- actor.node.style.left=actor.x+'%';actor.node.style.top=actor.y+'%';
- actor.node.classList.toggle('walking',!!actor.walking);
+ setArenaPosition(actor.node,actor.x,actor.y);
+ actor.node.classList.toggle('walking',!!actor.walking&&actor.attackUntil<=stageClock);
  actor.node.classList.toggle('cloaked',actor.cloakUntil>stageClock);
  actor.node.classList.toggle('immortal',TFT.isImmortal(actor,stageClock));
  actor.node.classList.toggle('guard-shield',actor.hp>0&&(actor.shield||0)>0);
@@ -620,23 +635,43 @@ function claimOffline(){
  toast('📦 รับรางวัลออฟไลน์ +'+fmt(earned.gold)+' G และ +'+fmt(earned.exp)+' EXP');
 }
 // Keep the effect layer bounded during long idle farming sessions.
-const MAX_VISUAL_EFFECTS=65,MAX_ACTIVE_SHOTS=36;
+const MAX_VISUAL_EFFECTS=70,MAX_ACTIVE_SHOTS=36;
+const fxLanes=new WeakMap();
 function addTransientFx(node,duration){
  const layer=$('fxLayer');
- if(layer.childElementCount>=MAX_VISUAL_EFFECTS)return;
+ if(layer.childElementCount>=MAX_VISUAL_EFFECTS){
+  // Prioritize actual combat numbers; remove the oldest decorative effect first.
+  const old=layer.querySelector('.fx-ring,.fx-cloak,.fx-bolt');
+  if(old)old.remove();
+  else if(node.classList.contains('fx-number'))layer.querySelector('.fx-number')?.remove();
+  else return;
+ }
  layer.appendChild(node);setTimeout(()=>node.remove(),duration);
 }
-function spawnFx(label,x,y,critical=false){
- const fx=el('span',{class:'fx-number'+(critical?' critical':'')},escapeText(label));
- fx.style.left=x+'%';fx.style.top=y+'%';
- addTransientFx(fx,850);
+function spawnFx(label,x,y,critical=false,kind='status',lane=0){
+ const fx=el('span',{class:'fx-number fx-'+kind+(critical?' critical':'')},escapeText(label));
+ fx.style.left=Math.max(7,Math.min(93,x))+'%';
+ fx.style.top=Math.max(10,Math.min(92,y))+'%';
+ fx.style.setProperty('--fx-x',[-18,18,0,-32,32][lane%5]+'px');
+ fx.style.setProperty('--fx-y',(-22-Math.floor(lane%5/2)*13)+'px');
+ addTransientFx(fx,1050);
+}
+function unitFx(actor,label,kind='status',critical=false){
+ const now=performance.now(),prev=fxLanes.get(actor);
+ const lane=prev&&now-prev.at<360?(prev.lane+1)%5:0;
+ fxLanes.set(actor,{at:now,lane});
+ spawnFx(label,actor.x,actor.y,critical,kind,lane);
+}
+function statusFx(actor,key,label){
+ const now=performance.now(),map=actor.fxStatusTimes||(actor.fxStatusTimes={});
+ if(map[key]!==undefined&&now-map[key]<420)return;
+ map[key]=now;unitFx(actor,label,'status');
 }
 function projectile(x1,y1,x2,y2,color='#c6f7ff'){
  const node=el('span',{class:'fx-bolt'});
  node.style.left=x1+'%';node.style.top=y1+'%';node.style.color=color;
- const rect=$('stageViewport').getBoundingClientRect();
- node.style.setProperty('--dx',(x2-x1)*rect.width/100+'px');
- node.style.setProperty('--dy',(y2-y1)*rect.height/100+'px');
+ node.style.setProperty('--dx',(x2-x1)*arenaSize.width/100+'px');
+ node.style.setProperty('--dy',(y2-y1)*arenaSize.height/100+'px');
  addTransientFx(node,360);
 }
 function ring(x,y,cloak=false){
@@ -644,7 +679,7 @@ function ring(x,y,cloak=false){
  node.style.left=x+'%';node.style.top=y+'%';
  addTransientFx(node,850);
 }
-function clearFx(){$('fxLayer').replaceChildren()}
+function clearFx(){for(const node of $('fxLayer').children?Array.from($('fxLayer').children):[])if(!node.classList.contains('fx-number'))node.remove()}
 function buildFighters(preserve=false){
  const previous=new Map(preserve?fighters.map(f=>[f.id,f]):[]);
  fighters=state.squad.filter(id=>state.owned[id]).map((id,i)=>{
@@ -676,6 +711,7 @@ function buildFighters(preserve=false){
   layer.appendChild(node);hero.node=node;hero.img=node.querySelector('img');
   hero.hpbar=node.querySelector('.mini-hp i');hero.sprite=base.images.idle;
   hero.hpbar.style.width=Math.max(0,hero.hp/hero.maxHp*100)+'%';
+  position(hero);
   if(!hero.alive)node.style.opacity='.2';
  }
 }
@@ -770,17 +806,16 @@ function targetHero(enemy){return TFT.findTarget(enemy,fighters,stageClock)}
 // TFT-style shared damage pipeline. No damage is applied to ranged targets until the bullet lands.
 function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false,pierceShield=false){
  if(!target||target.hp<=0||target.alive===false)return false;
- if(TFT.isImmortal(target,stageClock))return false;
+ if(TFT.isImmortal(target,stageClock)){statusFx(target,'immune','อมตะ · 0');return false}
  const hero=HEROES[attacker.id];
  const chance=Math.min(1,Math.max(0,(attacker.crit||0)+bonusCrit));
  const critical=forcedCrit||(chance>0&&Math.random()<chance);
  const raw=TFT.incomingDamage(power*TFT.outgoingMultiplier(attacker,stageClock)*TFT.vulnerabilityMultiplier(target,stageClock)*(critical?(attacker.critDamage||hero.critDamage||1.5):1),HEROES[target.id]);
- const absorbed=pierceShield?0:Math.min(target.shield||0,raw);
- target.shield=Math.max(0,(target.shield||0)-absorbed);
- const damage=Math.max(0,Math.round(raw-absorbed));
- target.hp=Math.max(0,target.hp-damage);
+ const {damage,absorbed}=TFT.resolveDamage(target,raw,pierceShield);
  position(target);
- spawnFx((critical?'CRIT ':'')+'-'+fmt(damage),target.x+(Math.random()-.5)*5,target.y-21,critical);
+ if(damage>0)unitFx(target,(critical?'CRIT ':'')+'−'+fmt(damage),'damage',critical);
+ if(absorbed>0)unitFx(target,'โล่ −'+fmt(absorbed),'shield',false);
+ if(!damage&&!absorbed)statusFx(target,'zero','0');
  if(critical)ring(target.x,target.y);
  const bar=target.side==='enemy'?target.bar:target.hpbar;
  if(bar)bar.style.width=Math.max(0,target.hp/target.maxHp*100)+'%';
@@ -788,7 +823,7 @@ function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false,pierceShie
   if(TFT.tryRevive(target,HEROES[target.id],stageClock,target.side==='ally'&&allyRevives.has(target.id))){
    if(target.side==='ally')allyRevives.set(target.id,{until:target.immortalUntil});
    if(bar)bar.style.width=target.hp/target.maxHp*100+'%';
-   position(target);ring(target.x,target.y,true);spawnFx('✦ คืนชีพ · อมตะ',target.x,target.y-20,true);
+   position(target);ring(target.x,target.y,true);unitFx(target,'คืนชีพ +'+fmt(target.hp),'heal');statusFx(target,'revive','อมตะ');
    log('✦ '+HEROES[target.id].name+' คืนชีพ!');return true;
   }
   target.alive=false;
@@ -807,7 +842,7 @@ function tftShot(attacker,target,mult=1,bonusCrit=0,execute=false,heavy=false,co
  }
  const palette=color||HEROES[attacker.id].col||'#c3f7ff';
  const node=el('span',{class:'tft-bullet'+(heavy?' heavy':'')});
- node.style.left=attacker.x+'%';node.style.top=attacker.y+'%';
+ setArenaPosition(node,attacker.x,attacker.y);
  node.style.setProperty('--bullet-color',palette);
  $('fxLayer').appendChild(node);
  shots.push({
@@ -819,7 +854,8 @@ function tftShot(attacker,target,mult=1,bonusCrit=0,execute=false,heavy=false,co
 function tftPiercingShot(attacker,target){
  const hero=HEROES[attacker.id],p=TFT.makePierce(attacker,target);
  const node=el('span',{class:'tft-bullet heavy piercing-bullet'});
- node.style.left=attacker.x+'%';node.style.top=attacker.y+'%';
+ setArenaPosition(node,attacker.x,attacker.y);
+ node.style.transform+=' rotate('+Math.atan2(p.dy,p.dx)+'rad)';
  node.style.setProperty('--bullet-color',hero.col||'#82d0c7');
  node.style.setProperty('--shot-angle',Math.atan2(p.dy,p.dx)+'rad');
  $('fxLayer').appendChild(node);
@@ -844,7 +880,7 @@ function advanceTftShots(t){
     if(target.hp>0)ring(target.x,target.y);
    }
    if(result.expired){finished.add(bullet);bullet.node?.remove()}
-   else if(bullet.node){bullet.node.style.left=bullet.x+'%';bullet.node.style.top=bullet.y+'%'}
+   else if(bullet.node)positionShot(bullet);
    continue;
   }
   const r=TFT.advanceShot(bullet,t);
@@ -859,7 +895,7 @@ function advanceTftShots(t){
     if(bullet.target.hp>0)ring(bullet.target.x,bullet.target.y);
    }
   }else if(bullet.node){
-   bullet.node.style.left=bullet.x+'%';bullet.node.style.top=bullet.y+'%';
+   positionShot(bullet);
   }
  }
  shots=shots.filter(x=>!finished.has(x));
@@ -869,7 +905,7 @@ function showHealing(results){
   if(healed<=0)continue;
   const bar=u.side==='enemy'?u.bar:u.hpbar;
   if(bar)bar.style.width=u.hp/u.maxHp*100+'%';
-  spawnFx('HEAL +'+fmt(healed),u.x,u.y-23);
+  unitFx(u,'+'+fmt(healed)+' HP','heal');
   if(u.node){u.node.classList.remove('healing-pulse');const node=u.node;requestAnimationFrame(()=>{if(node.isConnected)node.classList.add('healing-pulse')})}
  }
 }
@@ -881,7 +917,7 @@ function tftSkill(attacker,target){
    const allies=attacker.side==='ally'?fighters:enemies;
    const result=TFT.applySupport(allies,hero.support,stageClock);
    showHealing(result.healed);
-   for(const u of result.units){position(u);spawnFx('ATK ↑ · SPD ↑',u.x,u.y-32)}
+   for(const u of result.units){position(u);unitFx(u,'ATK +'+Math.round(TFT.debuffValue(u,'attackUp',stageClock)*100)+'% · SPD +'+Math.round(TFT.debuffValue(u,'speedUp',stageClock)*100)+'%','buff')}
    ring(attacker.x,attacker.y);return true;
   }
   case 'pierce':
@@ -892,7 +928,7 @@ function tftSkill(attacker,target){
    for(const e of nearby){
     const landed=tftDamage(attacker,e,attacker.atk*(hero.skillPower||1.8),0,false);
     if(landed&&hero.debuff&&TFT.applyDebuff(e,hero.debuff,stageClock)){
-     position(e);spawnFx('ATK ↓ · DMG ↑',e.x,e.y-28);
+     position(e);unitFx(e,'ATK −'+Math.round(TFT.debuffValue(e,'attackDown',stageClock)*100)+'% · DMG +'+Math.round(TFT.debuffValue(e,'vulnerability',stageClock)*100)+'%','debuff');
     }
    }
    return true;
@@ -911,15 +947,17 @@ function tftSkill(attacker,target){
   case 'shield':
    if(hero.guard){
     const allies=attacker.side==='ally'?fighters:enemies;
+    const before=new Map(allies.map(u=>[u,u.shield||0]));
     for(const u of TFT.applyGuard(attacker,allies,hero,stageClock)){
-     position(u);ring(u.x,u.y);spawnFx('🛡 +SHIELD',u.x,u.y-20);
+     position(u);const gained=Math.round(u.shield-(before.get(u)||0));
+     if(gained>0){ring(u.x,u.y);unitFx(u,'โล่ +'+fmt(gained),'shield')}
     }
-    spawnFx('ยั่วยุ!',attacker.x,attacker.y-30,true);
+    statusFx(attacker,'taunt','ยั่วยุ');
     return true;
    }
-   attacker.shield+=attacker.maxHp*.30;
-   ring(attacker.x,attacker.y);
-   spawnFx('🛡 +SHIELD',attacker.x,attacker.y-20);
+   const gain=Math.round(attacker.maxHp*.30);
+   attacker.shield=(attacker.shield||0)+gain;
+   ring(attacker.x,attacker.y);unitFx(attacker,'โล่ +'+fmt(gain),'shield');
    break;
   case 'blink':
    attacker.x=Math.max(5.5,Math.min(94.5,target.x+(Math.random()-.5)*5));
@@ -931,7 +969,7 @@ function tftSkill(attacker,target){
    attacker.cloakUntil=stageClock+(hero.cloakDuration||2);
    attacker.ambush=true;
    ring(attacker.x,attacker.y,true);
-   spawnFx('พรางตัว',attacker.x,attacker.y-18);
+   statusFx(attacker,'cloak','พรางตัว');
    break;
  }
  return false;
@@ -1257,5 +1295,10 @@ renderPanels();log('✨ สนาม AUTOCHEST 6×7 พร้อมสู้แ�
 beginTravel(1.8);save();
 window.__AUTOCHEST_IDLE_READY__=true;
 if(pending.minutes>0)openOffline();
+refreshArenaSize();
+if(typeof ResizeObserver==='function')new ResizeObserver(refreshArenaSize).observe($('stageViewport'));
+else window.addEventListener('resize',refreshArenaSize);
+// Decode sprites before their first attack so changing pose is not a network stall.
+for(const hero of Object.values(HEROES))for(const url of new Set([hero.images.idle,hero.images.attack])){const img=new Image();img.src=url;img.decode?.().catch(()=>{});}
 requestAnimationFrame(frame);
 })();
