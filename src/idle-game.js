@@ -640,6 +640,8 @@ function renderSummonPool(){
  const odds=CORE.summonOdds(HEROES).sort((a,b)=>HEROES[b.id].cost-HEROES[a.id].cost);
  $('summonPoolCount').textContent=odds.length;
  $('summonPool').innerHTML=odds.map(({id})=>{const h=HEROES[id];return '<button type="button" class="summon-pool-hero tier-'+h.cost+' '+rarityClass(h)+'" data-trial-hero="'+id+'" aria-label="ทดลอง '+escapeText(h.name)+'">'+rarityBadge(h)+'<img src="'+h.images.art+'" alt=""><span>'+escapeText(h.name)+'</span><small>▶ ทดลอง</small></button>'}).join('');
+ const totals=Object.create(null);for(const {id,rate} of odds){const tier=HEROES[id].rarity;totals[tier]=(totals[tier]||0)+rate}
+ $('summonTierRates').innerHTML=['UR','SSR','SR','R'].filter(t=>totals[t]>0).map(t=>'<span class="rarity-badge rarity-'+t.toLowerCase()+'">'+t+' '+(totals[t]*100).toFixed(0)+'%</span>').join('');
  $('summonRates').innerHTML=odds.map(({id,rate})=>'<div><span>'+rarityBadge(HEROES[id])+' '+escapeText(HEROES[id].name)+'</span><b>'+ (rate*100).toFixed(2)+'%</b></div>').join('');
 }
 function showSummonBanner(){
@@ -671,8 +673,11 @@ function summon(count){
  summonBusy=true;lastSummon=receipt;
  // Commit rewards before animation so closing or skipping cannot reroll the result.
  save();renderPanels();
+ const ur=receipt.rewards.some(x=>HEROES[x.id].rarity==='UR');
+ $('summonReveal').classList.toggle('ur-reveal',ur);
+ $('summonRevealTitle').textContent=ur?'✦ ULTRA RARE · UR ✦':'กำลังอัญเชิญ...';
  $('summonBanner').hidden=true;$('summonOutcome').hidden=true;$('summonReveal').hidden=false;
- clearTimeout(summonTimer);summonTimer=setTimeout(showSummonOutcome,matchMedia('(prefers-reduced-motion: reduce)').matches?0:850);
+ clearTimeout(summonTimer);summonTimer=setTimeout(showSummonOutcome,matchMedia('(prefers-reduced-motion: reduce)').matches?0:ur?2100:850);
 }
 function openOffline(){
  $('rewardModal').hidden=false;

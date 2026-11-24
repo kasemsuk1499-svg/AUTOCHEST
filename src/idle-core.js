@@ -131,18 +131,23 @@
   return {tickets,rubies:(count-tickets)*120};
  }
  function summonOdds(roster){
-  const entries=Object.entries(roster).map(([id,hero])=>({id,weight:hero.cost===1?6:hero.cost===2?3:1}));
-  const total=entries.reduce((sum,u)=>sum+u.weight,0);
-  return entries.map(u=>({...u,rate:total?u.weight/total:0}));
+  // Fixed rarity buckets. Split each bucket evenly among its current heroes.
+  // If a bucket is absent, normalize only the populated buckets.
+  const tierRates={1:.55,2:.30,3:.14,4:.01};
+  const entries=Object.entries(roster).filter(([,h])=>tierRates[h.cost]>0);
+  const counts={};for(const [,h] of entries)counts[h.cost]=(counts[h.cost]||0)+1;
+  const total=Object.keys(counts).reduce((sum,t)=>sum+tierRates[t],0);
+  return entries.map(([id,h])=>({id,rate:tierRates[h.cost]/total/counts[h.cost]}));
  }
  function drawDetailed(state,roster,count,rng=Math.random){
   if(!Number.isInteger(count)||count<=0||count>10)return null;
   const cost=summonCost(state,count),odds=summonOdds(roster);
   if(state.rubies<cost.rubies||!odds.length)return null;
-  const pool=odds.flatMap(u=>Array(u.weight).fill(u.id)),rewards=[];
+  const rewards=[];
   state.tickets-=cost.tickets;state.rubies-=cost.rubies;
   for(let i=0;i<count;i++){
-   const id=pool[Math.min(pool.length-1,Math.floor(clamp(rng(),0,.999999)*pool.length))];
+   let roll=clamp(rng(),0,.999999999999),id=odds[odds.length-1].id;
+   for(const entry of odds){if(roll<entry.rate){id=entry.id;break}roll-=entry.rate;}
    const isNew=!state.owned[id];
    if(isNew)state.owned[id]={level:1,stars:1,shards:0};
    else state.owned[id].shards++;

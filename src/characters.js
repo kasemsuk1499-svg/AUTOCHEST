@@ -24,9 +24,9 @@
   for(const key of ['hp','dmg','range','cool','move'])if(!(Number.isFinite(unit[key])&&unit[key]>0))throw Error('Invalid '+key+' for '+unit.id);
   if(!['นักรบ','เวท','ยิงไกล','ป้องกัน'].includes(unit.team)||!['slash','chain','triple','shield','blink','slam','cloakshot','pierce','heal','explosion'].includes(unit.effect)||!Number.isInteger(unit.triggerEvery)||unit.triggerEvery<=0)throw Error('Invalid hero class/skill: '+unit.id);
   if(unit.effect==='explosion'&&(!(unit.castSeconds>=1&&unit.castSeconds<=10)||!(unit.skillPower>0&&unit.skillPower<=20)))throw Error('Invalid explosion configuration');
-  // Rarity is derived from the existing summon weight tier, not upgrade stars.
-  if(![1,2,3].includes(unit.cost))throw Error('Invalid rarity tier for '+unit.id);
-  const rarity=['','R','SR','SSR'][unit.cost];
+  // Rarity tier is independent of upgrade stars and summon probability.
+  if(![1,2,3,4].includes(unit.cost))throw Error('Invalid rarity tier for '+unit.id);
+  const rarity=['','R','SR','SSR','UR'][unit.cost];
   list[unit.id]=Object.freeze({...unit,rarity,images:Object.freeze(images)});
  }
  window.AUTOCHEST_CHARACTERS={HEROES,registerHero};
