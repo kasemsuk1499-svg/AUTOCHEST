@@ -147,60 +147,121 @@ function updateResources(){
  $('farmGain').textContent='ศัตรูที่ชนะ +'+fmt(farm.gold)+' G / +'+fmt(farm.exp)+' EXP';
  $('summonOneBtn').disabled=state.tickets<1&&state.rubies<120;
  $('summonTenBtn').disabled=state.rubies<Math.max(0,10-state.tickets)*120;
+ refreshUpgradeAvailability();
 }
+function canLevel(id){
+ const p=state.owned[id];if(!p||p.level>=CORE.MAX_LEVEL)return false;
+ const need=CORE.levelCost(p.level);
+ return state.gold>=need.gold&&state.heroExp>=need.exp;
+}
+function canStar(id){
+ const p=state.owned[id];return !!p&&p.stars<CORE.MAX_STARS&&
+  p.shards>=CORE.shardsNeeded(p.stars)&&state.gold>=CORE.ascendCost(p.stars);
+}
+function readyUpgrade(id){return canLevel(id)||canStar(id)}
+function levelBatch(id,maximum=5){
+ const p=state.owned[id];if(!p)return {count:0,gold:0,exp:0};
+ let gold=state.gold,exp=state.heroExp,paidGold=0,paidExp=0,lvl=p.level,count=0;
+ while(count<maximum&&lvl<CORE.MAX_LEVEL){
+  const cost=CORE.levelCost(lvl);
+  if(gold<cost.gold||exp<cost.exp)break;
+  gold-=cost.gold;exp-=cost.exp;paidGold+=cost.gold;paidExp+=cost.exp;lvl++;count++;
+ }
+ return {count,gold:paidGold,exp:paidExp};
+}
+function neededMaterials(price,have,label){return have>=price?'✓ '+label+' พร้อม':'ขาด '+fmt(price-have)+' '+label}
 function renderTeam(){
  $('teamSlots').innerHTML=Array.from({length:CORE.maxSquad(state.stage)},(_,i)=>{
   const id=state.squad[i];
-  if(!id)return '<button type="button" class="team-slot empty" data-slot="empty" aria-label="ช่องทีมว่าง">＋</button>';
-  const hero=HEROES[id];
-  return '<button type="button" class="team-slot '+(selected===id?'active':'')+'" data-slot="'+id+'">'+
-   '<img loading="lazy" src="'+hero.images.idle+'" alt="">'+
-   '<strong>'+escapeText(hero.name)+'</strong></button>';
+  if(!id)return '<button type="button" class="team-slot empty" data-slot="empty" aria-label="ช่องทีมว่าง">＋<small>ว่าง</small></button>';
+  const t=HEROES[id],p=state.owned[id],ready=readyUpgrade(id);
+  return '<button type="button" class="team-slot '+(selected===id?'active ':'')+(ready?'is-upgrade-ready':'')+
+   '" data-slot="'+id+'" aria-label="เลือก '+escapeText(t.name)+' เลเวล '+p.level+' '+p.stars+' ดาว">'+
+   '<span class="team-level">Lv.'+p.level+'</span>'+
+   '<img loading="lazy" src="'+t.images.idle+'" alt="">'+
+   '<strong>'+escapeText(t.name)+'</strong>'+
+   '<span class="team-stars">'+'★'.repeat(p.stars)+'</span>'+
+   '<span class="team-ready" title="เสริมแกร่งได้แล้ว">⬆</span></button>';
  }).join('');
 }
 function renderHeroes(){
  $('heroList').innerHTML=IDS.map(id=>{
-  const hero=HEROES[id],owned=state.owned[id];
-  return '<div class="hero-entry"><button type="button" class="hero-card '+(!owned?'locked ':'')+(selected===id?'active':'')+'" data-hero="'+id+'">'+
-   '<img loading="lazy" src="'+hero.portrait+'" alt="">'+
-   '<strong>'+escapeText(hero.name)+'</strong><small>'+(owned?'Lv.'+owned.level:'ยังไม่พบ')+'</small>'+
-   '<div class="starline">'+(owned?'★'.repeat(owned.stars):'✦')+'</div></button>'+
-   '<button type="button" class="hero-info-btn" data-skill-hero="'+id+'" aria-label="ดูสกิล '+escapeText(hero.name)+'">ⓘ</button></div>';
+  const t=HEROES[id],p=state.owned[id],ready=readyUpgrade(id);
+  return '<div class="hero-entry"><button type="button" class="hero-card '+(!p?'locked ':'')+
+   (selected===id?'active ':'')+(ready?'is-upgrade-ready':'')+'" data-hero="'+id+'">'+
+   '<img loading="lazy" src="'+t.portrait+'" alt="">'+
+   '<strong>'+escapeText(t.name)+'</strong>'+
+   '<span class="collection-level">'+(p?'LEVEL '+p.level:'🔒 ไม่ได้ปลดล็อก')+'</span>'+
+   '<span class="collection-stars">'+(p?'★'.repeat(p.stars)+'☆'.repeat(CORE.MAX_STARS-p.stars):'☆☆☆☆☆')+'</span>'+
+   '<span class="collection-ready" title="เสริมแกร่งได้">⬆ อัปได้</span></button>'+
+   '<button type="button" class="hero-info-btn" data-skill-hero="'+id+'" aria-label="ดูสกิล '+escapeText(t.name)+'">ⓘ</button></div>';
  }).join('');
 }
 function renderSelected(){
- const id=selected,hero=HEROES[id],prog=state.owned[id];
- const box=$('heroDetails');
- if(!hero){box.textContent='เลือกฮีโร่เพื่อดูข้อมูล';return}
- if(!prog){
-  box.innerHTML='<div class="detail-hero"><img src="'+hero.portrait+'" alt=""><div><h4>'+escapeText(hero.name)+'</h4>'+
-   '<p>'+escapeText(hero.subtitle)+'</p><p>🔒 ยังไม่ได้อัญเชิญ</p><p>ใช้กาชาเพื่อปลดล็อกฮีโร่คนนี้</p></div></div>'+
-   '<button type="button" id="openSkillBtn" class="inspect-skill-btn">ⓘ ดูรายละเอียดสกิล</button>';
+ const id=selected,hero=HEROES[id],p=state.owned[id],box=$('heroDetails');
+ if(!hero){box.textContent='แตะฮีโร่ในทีมเพื่อดูข้อมูล';return}
+ if(!p){
+  box.innerHTML='<div class="upgrade-hero-header"><img src="'+hero.portrait+'" alt=""><div>'+
+   '<h4>'+escapeText(hero.name)+'</h4><span class="upgrade-lock">🔒 ยังไม่ได้อัญเชิญ</span>'+
+   '<p>'+escapeText(hero.subtitle||'')+'</p></div></div>'+
+   '<div class="upgrade-empty">ปลดล็อกโดยอัญเชิญฮีโร่จากกาชาด้านล่าง เพื่อเริ่มอัปเลเวลและดาว</div>'+
+   '<button type="button" id="openSkillBtn" class="inspect-skill-btn">ⓘ ดูสกิลฮีโร่คนนี้</button>';
   return;
  }
- const stats=CORE.stats(hero,prog),cost=CORE.levelCost(prog.level),
-  shardNeed=CORE.shardsNeeded(prog.stars),rankCost=CORE.ascendCost(prog.stars);
- const isIn=state.squad.includes(id);
- const atCap=state.squad.length>=CORE.maxSquad(state.stage);
- box.innerHTML='<div class="detail-hero"><img src="'+hero.portrait+'" alt=""><div>'+
-  '<h4>'+escapeText(hero.name)+'</h4><p>'+escapeText(hero.subtitle)+'</p>'+
-  '<p>⚔️ '+escapeText(hero.team)+' · Lv.'+prog.level+'</p>'+
-  '<div class="stars">'+'★'.repeat(prog.stars)+'☆'.repeat(CORE.MAX_STARS-prog.stars)+'</div>'+
-  '<p>ชิ้นส่วน '+prog.shards+' / '+shardNeed+'</p></div></div>'+
-  '<div class="detail-stats"><div><small>HP</small><strong>'+fmt(stats.hp)+'</strong></div>'+
-  '<div><small>ATK</small><strong>'+fmt(stats.atk)+'</strong></div>'+
-  '<div><small>CRIT</small><strong>'+Math.round(stats.crit*100)+'%</strong></div></div>'+
-  '<p class="detail-skill">✨ สกิลอัตโนมัติ: <b>'+escapeText(hero.skill)+'</b></p>'+
-  '<button type="button" id="openSkillBtn" class="inspect-skill-btn">ⓘ ดูสกิลทั้งหมด / ค่าสถานะ</button>'+
-  '<div class="detail-actions">'+
-  '<button id="levelHeroBtn" '+(prog.level>=CORE.MAX_LEVEL||state.gold<cost.gold||state.heroExp<cost.exp?'disabled':'')+'>'+
-   (prog.level>=CORE.MAX_LEVEL?'LEVEL MAX':'⬆ อัป Lv. · '+fmt(cost.gold)+' G / '+fmt(cost.exp)+' XP')+'</button>'+
-  '<button id="rankHeroBtn" '+(prog.stars>=CORE.MAX_STARS||prog.shards<shardNeed||state.gold<rankCost?'disabled':'')+'>'+
-   (prog.stars>=CORE.MAX_STARS?'★ MAX STARS':'⭐ เพิ่มดาว · '+shardNeed+' ชิ้น / '+fmt(rankCost)+' G')+'</button>'+
-  '<button id="deployHeroBtn" class="featured" '+(!isIn&&atCap?'disabled':'')+'>'+
-   (isIn?'↩ ถอนจากทีม':'⚔️ เพิ่มเข้าทีม')+'</button>'+
-  '<button id="levelFiveBtn" '+(prog.level>=CORE.MAX_LEVEL||state.gold<cost.gold||state.heroExp<cost.exp?'disabled':'')+'>'+
-   '⬆ อัปต่อเนื่อง ×5</button></div>';
+ const stats=CORE.stats(hero,p),nextLv=p.level<CORE.MAX_LEVEL?
+  CORE.stats(hero,{level:p.level+1,stars:p.stars}):stats;
+ const nextStar=p.stars<CORE.MAX_STARS?
+  CORE.stats(hero,{level:p.level,stars:p.stars+1}):stats;
+ const atMax=p.level>=CORE.MAX_LEVEL,atStarMax=p.stars>=CORE.MAX_STARS;
+ const cost=CORE.levelCost(p.level),starNeed=CORE.shardsNeeded(p.stars),starGold=CORE.ascendCost(p.stars);
+ const lvGood=canLevel(id),starGood=canStar(id),batch=levelBatch(id,5);
+ const inTeam=state.squad.includes(id),full=state.squad.length>=CORE.maxSquad(state.stage);
+ const lvPct=Math.round((p.level-1)/(CORE.MAX_LEVEL-1)*100);
+ const starPct=atStarMax?100:Math.min(100,Math.round(p.shards/starNeed*100));
+ const shardMissing=Math.max(0,starNeed-p.shards);
+ box.innerHTML='<div class="upgrade-hero-header"><img src="'+hero.portrait+'" alt=""><div class="upgrade-identity">'+
+  '<span class="upgrade-kicker">HERO PROGRESSION</span><h4>'+escapeText(hero.name)+'</h4>'+
+  '<p>'+escapeText(hero.team)+' · '+escapeText(hero.skill)+'</p>'+
+  '<div class="upgrade-badges"><span>Lv.'+p.level+' / '+CORE.MAX_LEVEL+'</span>'+
+  '<span class="gold-stars">'+'★'.repeat(p.stars)+'☆'.repeat(CORE.MAX_STARS-p.stars)+'</span>'+
+  (inTeam?'<span class="equipped-tag">⚔️ ในทีม</span>':'<span class="reserve-tag">สำรอง</span>')+'</div>'+
+  '</div></div>'+
+  '<div class="detail-stats upgrade-stat-row"><div><small>❤️ HP</small><strong>'+fmt(stats.hp)+'</strong></div>'+
+  '<div><small>⚔️ ATK</small><strong>'+fmt(stats.atk)+'</strong></div>'+
+  '<div><small>🎯 CRIT</small><strong>'+Math.round(stats.crit*100)+'%</strong></div></div>'+
+  '<section class="upgrade-step">'+
+   '<div class="upgrade-step-heading"><div><span class="step-num">1</span><strong>เพิ่มเลเวล</strong></div>'+
+   '<span class="upgrade-current">Lv.'+p.level+' / '+CORE.MAX_LEVEL+'</span></div>'+
+   '<div class="upgrade-progress"><i style="width:'+lvPct+'%"></i></div>'+
+   '<p class="upgrade-benefit">'+(atMax?'🏅 เลเวลสูงสุดแล้ว':
+     'เลเวลถัดไป: HP <b>+'+fmt(nextLv.hp-stats.hp)+'</b> · ATK <b>+'+fmt(nextLv.atk-stats.atk)+'</b>')+'</p>'+
+   (atMax?'<div class="upgrade-max-notice">✅ เลเวลสูงสุดแล้ว</div>':
+   '<div class="upgrade-materials"><span id="levelGoldStatus" class="'+(state.gold>=cost.gold?'enough':'missing')+'">🪙 Gold '+fmt(state.gold)+' / '+fmt(cost.gold)+'</span>'+
+   '<span id="levelExpStatus" class="'+(state.heroExp>=cost.exp?'enough':'missing')+'">🔹 EXP '+fmt(state.heroExp)+' / '+fmt(cost.exp)+'</span></div>'+
+   '<p id="levelResourceHint" class="upgrade-hint">'+(lvGood?'✅ วัตถุดิบครบ เพิ่มเลเวลได้เลย':
+     'ต้องการ '+neededMaterials(cost.gold,state.gold,'Gold')+' และ '+neededMaterials(cost.exp,state.heroExp,'EXP'))+'</p>')+
+   '<div class="upgrade-action-row"><button type="button" id="levelHeroBtn" class="upgrade-primary"'+(!lvGood?' disabled':'')+'>'+
+   (atMax?'LEVEL MAX':'⬆ อัปเลเวล +1')+'</button>'+
+   '<button type="button" id="levelFiveBtn" class="upgrade-secondary"'+(!batch.count?' disabled':'')+'>'+
+   (atMax?'MAX':'อัปต่อเนื่อง ×'+batch.count+'/5')+'</button></div>'+
+  '</section>'+
+  '<section class="upgrade-step star-step">'+
+   '<div class="upgrade-step-heading"><div><span class="step-num">2</span><strong>เพิ่มดาวฮีโร่</strong></div>'+
+   '<span class="upgrade-current gold-stars">'+'★'.repeat(p.stars)+'☆'.repeat(CORE.MAX_STARS-p.stars)+'</span></div>'+
+   '<div class="upgrade-progress star-progress"><i style="width:'+starPct+'%"></i></div>'+
+   '<p class="upgrade-benefit">'+(atStarMax?'🌟 ดาวสูงสุดแล้ว':
+     'ดาวถัดไป: HP <b>+'+fmt(nextStar.hp-stats.hp)+'</b> · ATK <b>+'+fmt(nextStar.atk-stats.atk)+'</b>')+'</p>'+
+   (atStarMax?'<div class="upgrade-max-notice">✅ ครบ 5 ดาวแล้ว</div>':
+    '<div class="upgrade-materials"><span id="starShardStatus" class="'+(p.shards>=starNeed?'enough':'missing')+'">🧩 ชิ้นส่วน '+fmt(p.shards)+' / '+fmt(starNeed)+'</span>'+
+    '<span id="starGoldStatus" class="'+(state.gold>=starGold?'enough':'missing')+'">🪙 Gold '+fmt(state.gold)+' / '+fmt(starGold)+'</span></div>'+
+    '<p id="rankResourceHint" class="upgrade-hint">'+(starGood?'✅ ชิ้นส่วนครบ เพิ่มดาวได้เลย':
+     shardMissing?'ยังขาดชิ้นส่วน '+shardMissing+' ชิ้น — อัญเชิญตัวซ้ำเพื่อสะสม':'ขาด Gold '+fmt(Math.max(0,starGold-state.gold)))+'</p>')+
+   '<button type="button" id="rankHeroBtn" class="star-upgrade-button"'+(!starGood?' disabled':'')+'>'+
+   (atStarMax?'★ ดาวสูงสุด':'⭐ เพิ่มเป็น '+(p.stars+1)+' ดาว')+'</button>'+
+  '</section>'+
+  '<div class="upgrade-footer-actions"><button type="button" id="deployHeroBtn" class="deploy-action"'+(!inTeam&&full?' disabled':'')+'>'+
+   (inTeam?'↩ ถอนฮีโร่ออกจากทีม':'⚔️ เพิ่มเข้าทีม')+'</button>'+
+   '<button type="button" id="openSkillBtn" class="inspect-skill-btn">ⓘ ดูสกิลทั้งหมด</button></div>';
 }
 function skillDescription(t,enemy=false){
  const n=t.triggerEvery||4;
@@ -275,15 +336,71 @@ function choose(id){
  if(!HEROES[id])return;
  selected=id;renderGrid();renderTeam();renderHeroes();renderSelected();
 }
+function refreshUpgradeAvailability(){
+ const ready=Object.keys(state.owned).filter(id=>readyUpgrade(id));
+ const summary=$('upgradeReadyCount');
+ if(summary)summary.textContent=ready.length?'พร้อมอัป '+ready.length+' ตัว':'ยังอัปไม่ได้';
+ for(const n of $('teamSlots').querySelectorAll('[data-slot]')){
+  const id=n.dataset.slot;
+  if(id!=='empty')n.classList.toggle('is-upgrade-ready',readyUpgrade(id));
+ }
+ for(const n of $('heroList').querySelectorAll('[data-hero]')){
+  n.classList.toggle('is-upgrade-ready',readyUpgrade(n.dataset.hero));
+ }
+ const p=state.owned[selected];
+ if(!p)return;
+ const c=CORE.levelCost(p.level),need=CORE.shardsNeeded(p.stars),starCost=CORE.ascendCost(p.stars);
+ const lv=canLevel(selected),star=canStar(selected),batch=levelBatch(selected,5);
+ const btn=$('levelHeroBtn'),five=$('levelFiveBtn'),rank=$('rankHeroBtn');
+ if(btn)btn.disabled=!lv;
+ if(five){five.disabled=!batch.count;five.textContent=p.level>=CORE.MAX_LEVEL?'MAX':'อัปต่อเนื่อง ×'+batch.count+'/5'}
+ if(rank)rank.disabled=!star;
+ const update=(id,good,message)=>{
+  const node=$(id);if(!node)return;
+  node.textContent=message;node.classList.toggle('enough',good);node.classList.toggle('missing',!good);
+ };
+ if(p.level<CORE.MAX_LEVEL){
+  update('levelGoldStatus',state.gold>=c.gold,'🪙 Gold '+fmt(state.gold)+' / '+fmt(c.gold));
+  update('levelExpStatus',state.heroExp>=c.exp,'🔹 EXP '+fmt(state.heroExp)+' / '+fmt(c.exp));
+  if($('levelResourceHint'))$('levelResourceHint').textContent=lv?'✅ วัตถุดิบครบ กดเพิ่มเลเวลได้เลย':
+   'ยังขาด '+[state.gold<c.gold?fmt(c.gold-state.gold)+' Gold':null,
+               state.heroExp<c.exp?fmt(c.exp-state.heroExp)+' EXP':null].filter(Boolean).join(' และ ');
+ }
+ if(p.stars<CORE.MAX_STARS){
+  update('starShardStatus',p.shards>=need,'🧩 ชิ้นส่วน '+fmt(p.shards)+' / '+fmt(need));
+  update('starGoldStatus',state.gold>=starCost,'🪙 Gold '+fmt(state.gold)+' / '+fmt(starCost));
+  if($('rankResourceHint'))$('rankResourceHint').textContent=star?'✅ ชิ้นส่วนครบ กดเพิ่มดาวได้เลย':
+   'ยังขาด '+[p.shards<need?fmt(need-p.shards)+' ชิ้นส่วน (อัญเชิญตัวซ้ำ)':null,
+              state.gold<starCost?fmt(starCost-state.gold)+' Gold':null].filter(Boolean).join(' และ ');
+ }
+}
+function applyLiveHeroStats(id){
+ const actor=fighters.find(f=>f.id===id&&f.alive);
+ if(!actor)return;
+ const stat=CORE.stats(HEROES[id],state.owned[id]),old=actor.maxHp;
+ actor.hp=Math.max(1,Math.round(actor.hp/old*stat.hp));
+ actor.maxHp=stat.hp;actor.atk=stat.atk;actor.cool=stat.cool;
+ actor.crit=stat.crit;actor.critDamage=stat.critDamage;
+ const stars=actor.node?.querySelector('.mini-stars');
+ if(stars)stars.textContent='★'.repeat(state.owned[id].stars)+' · Lv.'+state.owned[id].level;
+ if(actor.hpbar)actor.hpbar.style.width=actor.hp/actor.maxHp*100+'%';
+}
 function upgrade(count=1){
  if(!state.owned[selected])return;
+ const before=CORE.power(state,HEROES);
  let n=0;for(let i=0;i<count;i++)if(CORE.spendLevel(state,selected))n++;else break;
  if(!n){toast('🪙 Gold หรือ Hero EXP ยังไม่พอ');return}
- renderPanels();save();toast('⬆ '+HEROES[selected].name+' เพิ่ม '+n+' เลเวล!');
+ applyLiveHeroStats(selected);
+ renderPanels();save();
+ toast('⬆ '+HEROES[selected].name+' Lv.'+state.owned[selected].level+
+  ' • พลังทีม +'+fmt(Math.max(0,CORE.power(state,HEROES)-before)));
 }
 function rankUp(){
- if(!CORE.ascend(state,selected)){toast('ต้องการชิ้นส่วนและ Gold เพิ่มนะ');return}
- renderPanels();save();toast('⭐ '+HEROES[selected].name+' เพิ่มดาวแล้ว!');
+ const before=CORE.power(state,HEROES);
+ if(!CORE.ascend(state,selected)){toast('ยังขาดชิ้นส่วนหรือ Gold สำหรับเพิ่มดาว');return}
+ applyLiveHeroStats(selected);renderPanels();save();
+ toast('⭐ '+HEROES[selected].name+' '+state.owned[selected].stars+' ดาว! พลังทีม +'+
+  fmt(Math.max(0,CORE.power(state,HEROES)-before)));
 }
 function toggleHero(){
  const id=selected;if(!state.owned[id])return;
