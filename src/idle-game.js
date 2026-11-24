@@ -1198,7 +1198,7 @@ function renderTrial(){
   if(u.values.textContent!==value)u.values.textContent=value;
  }
  const scene=trialContext;
- const busy=!!scene.error||!!scene.active||scene.queue.length>0||shots.length>0||scene.clock<scene.nextAt;
+ const busy=!!scene.error||!!scene.active||scene.queue.length>0||shots.length>0||stageClock<scene.nextAt;
  $('trialNormal').disabled=busy||!scene.hero.alive;
  $('trialSkill').disabled=busy||!scene.hero.alive;
  $('trialHit').disabled=busy||!scene.hero.alive;
