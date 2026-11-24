@@ -10,9 +10,10 @@ for(const s of scripts.filter(x=>x!=='./src/game.js')){
  vm.runInContext(fs.readFileSync(file,'utf8'),context,{filename:file});
 }
 const reg=context.window.AUTOCHEST_CHARACTERS;
-const hero=Object.values(reg.HEROES),enemy=Object.values(reg.ENEMIES);
-if(hero.length!==8||enemy.length!==4)throw Error('Expected 8 heroes and 4 enemies');
-for(const c of [...hero,...enemy]){
+const hero=Object.values(reg.HEROES);
+if(hero.length!==8)throw Error('Expected 8 heroes');
+if(scripts.some(s=>s.includes('/enemies/')))throw Error('Separate enemy files must not be loaded');
+for(const c of hero){
  const picture=path.resolve(root,c.portrait);
  if(!fs.existsSync(picture))throw Error('Missing art '+picture);
  if(fs.statSync(picture).size<100)throw Error('Empty art '+picture);
@@ -27,4 +28,4 @@ for(const c of [...hero,...enemy]){
 }
 const asuna=reg.HEROES.asuna;
 if(!asuna||asuna.critChance!==.35||asuna.critDamage!==1.9||asuna.cool!==.58)throw Error('Asuna speed/crit build missing');
-console.log('✅ AUTOCHEST character registry: '+hero.length+' heroes, '+enemy.length+' enemies, all art/idle/attack assets present');
+console.log('✅ Shared roster: '+hero.length+' heroes; allies and enemies use the same art/idle/attack assets');
