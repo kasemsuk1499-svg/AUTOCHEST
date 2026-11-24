@@ -107,6 +107,16 @@
         "frames": 16,
         "size": 105,
         "ms": 550
+      },
+      "skillHit": {
+        "src": "./assets/effects/sinon/skillHit-298d7c456415.png",
+        "cols": 8,
+        "rows": 2,
+        "row": 0,
+        "col": 0,
+        "frames": 16,
+        "size": 105,
+        "ms": 550
       }
     }
   }
