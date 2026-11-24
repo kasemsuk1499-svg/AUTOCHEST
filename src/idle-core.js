@@ -10,7 +10,7 @@
    asuna:{level:1,stars:1,shards:0},
    kirito:{level:1,stars:1,shards:0},
    silica:{level:1,stars:1,shards:0}
-  },autoBoss:true,speed:1,bossWins:0,totalSummons:0,lastSaved:Date.now()
+  },autoBoss:true,speed:1,bossWins:0,totalSummons:0,offlineBank:{minutes:0,gold:0,exp:0},lastSaved:Date.now()
  });
  const maxSquad=stage=>stage>=20?7:stage>=12?6:stage>=5?5:4;
  const killsNeeded=stage=>6+Math.floor((stage-1)/5);
@@ -28,6 +28,10 @@
   state.autoBoss=raw.autoBoss!==false;
   state.speed=raw.speed===2?2:1;
   state.lastSaved=clamp(number(raw.lastSaved,Date.now()),0,Date.now());
+  if(raw.offlineBank&&typeof raw.offlineBank==='object'){
+   for(const key of ['minutes','gold','exp'])
+    state.offlineBank[key]=Math.floor(clamp(number(raw.offlineBank[key],0),0,1e12));
+  }
   state.owned={};
   if(raw.owned&&typeof raw.owned==='object')for(const id of ids){
    const hero=raw.owned[id];if(!hero||typeof hero!=='object')continue;

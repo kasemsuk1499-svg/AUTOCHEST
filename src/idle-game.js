@@ -11,7 +11,13 @@ const fmt=v=>Math.floor(v).toLocaleString('en-US');
 const escapeText=v=>String(v).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 let loaded=safe(()=>JSON.parse(localStorage.getItem(CORE.KEY)),null);
 let state=CORE.normalized(loaded,HEROES);
-let pending=loaded?CORE.offlineLoot(Number(loaded.lastSaved)||Date.now(),Date.now(),state.stage):{minutes:0,gold:0,exp:0};
+if(loaded){
+ const newLoot=CORE.offlineLoot(Number(loaded.lastSaved)||Date.now(),Date.now(),state.stage);
+ state.offlineBank.minutes+=newLoot.minutes;
+ state.offlineBank.gold+=newLoot.gold;
+ state.offlineBank.exp+=newLoot.exp;
+}
+let pending=state.offlineBank;
 let selected=state.squad[0]||Object.keys(state.owned)[0]||IDS[0];
 let combat=null,fighters=[],stageClock=0,respawn=.1,lastFrame=0,lastSave=0,lastHUD=0,toastTimer=0;
 let logLines=['✦ เริ่มการผจญภัย SAO IDLE แล้ว!'];
@@ -173,7 +179,7 @@ function summon(count){
  if(!heroes){toast('🎟️ ตั๋วหรือ Rubies ไม่พอ');return}
  $('summonResults').innerHTML=heroes.map(id=>'<span class="summon-result '+(!before.has(id)?'new':'')+'">'+
   escapeText(HEROES[id].name)+(!before.has(id)?' ✨ NEW':' +1 ชิ้น')+'</span>').join('');
- const fresh=heroes.filter(id=>!before.has(id)).length;
+ const fresh=new Set(heroes.filter(id=>!before.has(id))).size;
  renderPanels();save();toast('✨ อัญเชิญ '+count+' ครั้ง! ได้ฮีโร่ใหม่ '+fresh+' คน');
 }
 function openOffline(){
@@ -189,7 +195,8 @@ function closeOffline(){$('rewardModal').hidden=true}
 function claimOffline(){
  if(pending.minutes<=0)return;
  state.gold+=pending.gold;state.heroExp+=pending.exp;
- const earned=pending;pending={minutes:0,gold:0,exp:0};
+ const earned={...pending};
+ state.offlineBank={minutes:0,gold:0,exp:0};pending=state.offlineBank;
  closeOffline();renderPanels();save();
  toast('📦 รับรางวัลออฟไลน์ +'+fmt(earned.gold)+' G และ +'+fmt(earned.exp)+' EXP');
 }
