@@ -14,18 +14,22 @@
  });
  const maxSquad=stage=>stage>=20?7:stage>=12?6:stage>=5?5:4;
  // Same 6x7 board as the original AUTOCHEST (friendly deployment: rows 4-6).
- const defaultCells=[[2,6],[3,6],[1,5],[4,5],[2,4],[3,4],[0,6]];
+ const defaultCells=[[2,6],[3,6],[1,5],[4,5],[2,4],[3,4],[0,6]].map(([col,row])=>({col,row}));
  const allFriendlyCells=Array.from({length:3},(_,i)=>4+i)
    .flatMap(row=>Array.from({length:6},(_,col)=>({col,row})));
  function fillPlacements(state,saved){
   const placements={},occupied=new Set();
-  for(const [i,id] of state.squad.entries()){
+  // Reserve all valid saved positions first; an added or repaired unit must not displace others.
+  for(const id of state.squad){
    const pos=saved&&saved[id],key=pos&&pos.col+':'+pos.row;
    const valid=pos&&Number.isInteger(pos.col)&&pos.col>=0&&pos.col<6&&
     Number.isInteger(pos.row)&&pos.row>=4&&pos.row<=6&&!occupied.has(key);
-   let cell=valid?{col:pos.col,row:pos.row}:defaultCells[i];
-   if(occupied.has(cell.col+':'+cell.row))
-    cell=allFriendlyCells.find(p=>!occupied.has(p.col+':'+p.row));
+   if(valid){placements[id]={col:pos.col,row:pos.row};occupied.add(key)}
+  }
+  for(const [i,id] of state.squad.entries()){
+   if(placements[id])continue;
+   const preferred=defaultCells[i],cell=preferred&&!occupied.has(preferred.col+':'+preferred.row)?
+    preferred:allFriendlyCells.find(p=>!occupied.has(p.col+':'+p.row));
    if(cell){placements[id]={col:cell.col,row:cell.row};occupied.add(cell.col+':'+cell.row)}
   }
   state.placements=placements;
