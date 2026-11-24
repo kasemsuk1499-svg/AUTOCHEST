@@ -181,6 +181,16 @@
         "frames": 16,
         "size": 100,
         "ms": 600
+      },
+      "skillHit": {
+        "src": "./assets/effects/deathgun/skillHit-298d7c456415.png",
+        "cols": 8,
+        "rows": 2,
+        "row": 0,
+        "col": 0,
+        "frames": 16,
+        "size": 100,
+        "ms": 600
       }
     }
   }
