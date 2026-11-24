@@ -466,8 +466,8 @@ footer{margin:10px 0 0;font-size:9px;justify-content:center;color:#60788c}
 .stage-viewport .fighter img{filter:drop-shadow(0 3px 3px #07111a99);will-change:transform}
 .stage-viewport .fighter.walking img{animation:smooth-ally-step .38s ease-in-out infinite}
 .stage-viewport .fighter.enemy-unit.walking img{animation:smooth-enemy-step .38s ease-in-out infinite}
-.stage-viewport .fighter.party-fighter.burst img{animation:smooth-ally-strike .26s ease-out!important}
-.stage-viewport .fighter.enemy-unit.burst img{animation:smooth-enemy-strike .26s ease-out!important}
+.stage-viewport .fighter.party-fighter.burst img{animation:smooth-ally-strike var(--strike-duration,.26s) ease-out!important}
+.stage-viewport .fighter.enemy-unit.burst img{animation:smooth-enemy-strike var(--strike-duration,.26s) ease-out!important}
 @keyframes smooth-ally-step{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 @keyframes smooth-enemy-step{0%,100%{transform:translateY(0) scaleX(-1)}50%{transform:translateY(-4px) scaleX(-1)}}
 @keyframes smooth-ally-strike{0%,100%{transform:translateX(0)}35%{transform:translateX(6px) scale(1.04)}}
@@ -498,3 +498,6 @@ footer{margin:10px 0 0;font-size:9px;justify-content:center;color:#60788c}
 .stage-viewport .tft-bullet.heavy{box-shadow:0 0 9px var(--bullet-color,#a6f9f2)}
 @media(max-width:540px){.stage-viewport .fx-number{font-size:10px}.stage-viewport .fx-damage{font-size:13px}.stage-viewport .fx-damage.critical{font-size:16px}.stage-viewport .fx-buff,.stage-viewport .fx-debuff,.stage-viewport .fx-status{font-size:9px}}
 @media(prefers-reduced-motion:reduce){.stage-viewport .fighter img{animation:none!important}.stage-viewport .fx-number{animation-duration:.6s}}
+
+.stage-viewport .fx-cloak{animation:compositor-cloak .46s ease-out forwards}
+@keyframes compositor-cloak{from{transform:translate(-50%,-50%) scale(.8);opacity:.85}to{transform:translate(-50%,-50%) scale(2);opacity:0}}
