@@ -562,3 +562,40 @@ footer{margin:10px 0 0;font-size:9px;justify-content:center;color:#60788c}
 .summon-back{display:block;margin:auto;width:min(280px,100%);padding:11px 15px;background:#254858;color:#e7fff6;border:1px solid #629b9c;border-radius:8px;font-weight:600}
 @media(max-width:540px){.summon-page{padding:12px}.summon-header h2{font-size:19px}.summon-wallet{position:static;margin-top:8px}.summon-banner-art{height:168px}.summon-banner-copy{left:5%;top:17%}.summon-banner-copy h3{font-size:31px}.summon-banner-copy p{font-size:10px}.summon-pool{gap:3px}.summon-pool-hero img{height:45px}.summon-pool-hero span{font-size:8px}.summon-meta{font-size:10px}.summon-page .summon-results{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.summon-result-art{height:105px}.summon-page .summon-results.single{grid-template-columns:minmax(0,190px)}.summon-results.single .summon-result-art{height:210px}.summon-reveal{min-height:270px}.summon-result-card strong{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.summon-portal,.summon-portal>div,.summon-result-card{animation:none!important}}
+
+/* v0.19.4 — Hero Trial uses the same arena sprites, projectile and floating text styles. */
+.trial-modal{z-index:45;padding:12px}
+.trial-dialog{position:relative;z-index:1;width:min(620px,100%);max-height:94dvh;overflow:auto;padding:16px;background:#101d2f;border:1px solid #435d72;border-radius:14px;box-shadow:0 18px 65px #0008}
+.trial-dialog [hidden]{display:none!important}
+.trial-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.trial-header small{font:700 10px Rajdhani,Kanit,sans-serif;letter-spacing:1.7px;color:#9bc9c8}
+.trial-header h2{font-size:20px;margin:0}
+#trialClose{width:32px;height:32px;background:#22384a;border:1px solid #3e566c;border-radius:7px}
+.trial-entry{display:block;width:100%;padding:11px;margin-top:12px;background:#24574e;color:#d9fff1;border:1px solid #68b6a8;border-radius:8px;font-weight:600}
+.summon-pool-hero{width:100%;min-width:0;color:#d7e9f1;padding:0 0 5px}
+.summon-pool-hero:hover{border-color:#a4f1d7;background:#23455a}
+.summon-pool-hero small{font-size:9px;color:#8dd7c7}
+.trial-controls{display:grid;grid-template-columns:1.2fr 1fr auto;gap:8px;align-items:end}
+.trial-controls label{display:grid;gap:3px;font-size:10px;color:#9db6c7}
+.trial-controls select,.trial-controls button{width:100%;min-width:0;padding:7px 9px;border:1px solid #425d71;border-radius:7px;background:#1b3043;color:#e4f1f7;font:inherit;font-size:12px}
+.trial-meta{display:flex;flex-wrap:wrap;gap:5px;align-items:center;justify-content:space-between;padding:9px 0;font-size:11px;color:#a9c5d5}
+.trial-meta b{font-size:13px;color:#d8f4eb}
+.trial-arena.stage-viewport{width:min(100%,400px);margin:auto;aspect-ratio:760/775;height:auto;min-height:0;max-height:none;border:1px solid #3f5a6e;border-radius:9px;overflow:hidden;background:#162b3b}
+.trial-grid{position:absolute;inset:0;background-image:linear-gradient(#8fb6ca20 1px,transparent 1px),linear-gradient(90deg,#8fb6ca20 1px,transparent 1px);background-size:calc(100% / 6) calc(100% / 7);pointer-events:none}
+.trial-field-label{position:absolute;left:8px;bottom:5px;color:#84a7b9;font:700 9px Rajdhani,sans-serif;letter-spacing:1px}
+.trial-arena .fighter,.trial-arena .fighter.enemy-unit{width:17%;height:17%}
+.trial-arena .fighter .mini-stars{font-size:8px;left:0}
+.trial-arena .fighter .fighter-name{font-size:9px;top:82%;line-height:1.1}
+.trial-arena .fighter .mini-hp{bottom:23%;height:5px}
+.trial-arena .trial-values{position:absolute;top:98%;left:50%;transform:translateX(-50%);font-size:8px;line-height:1.2;white-space:nowrap;color:#dceaf6;text-shadow:0 1px 2px #07131d}
+.dummy-icon{position:absolute;left:13%;width:74%;height:70%;display:grid;place-items:center;font-size:29px;color:#ffb1ba;background:#67404d;border:1px solid #d77989;border-radius:40%;box-shadow:inset 0 0 0 5px #a45d6622}
+.trial-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px}
+.trial-actions button{min-height:36px;padding:6px 4px;border:1px solid #3e596e;border-radius:7px;background:#1c3346;font-size:11px;color:#d9e9f6}
+#trialSkill{background:#285f57;border-color:#7bd2bd;color:#e6fff7}
+.trial-note{padding:8px 0 4px;color:#b6d9cd;font-size:11px;min-height:24px}
+.trial-log{display:grid;grid-template-columns:1fr 1fr;gap:4px;min-height:44px}
+.trial-event{background:#182b3d;border-radius:5px;padding:5px 7px;font-size:10px;display:flex;gap:5px;justify-content:space-between;color:#a5b8c9;align-items:center}
+.trial-event b{font-weight:600;color:#ffe1ac;text-align:right}
+.trial-event.heal b,.trial-event.buff b{color:#8ff3b6}.trial-event.shield b{color:#8fd3ff}.trial-event.debuff b{color:#ffa8b3}.trial-event.status b{color:#dbccff}
+.trial-footer{font-size:10px;color:#849cae;text-align:center;margin:10px 0 0}
+@media(max-width:540px){.trial-dialog{padding:11px}.trial-header h2{font-size:17px}.trial-controls{gap:5px}.trial-actions{grid-template-columns:1fr 1fr}.trial-log{grid-template-columns:1fr}.trial-meta{font-size:10px}.trial-arena .fighter .fighter-name{font-size:8px}.trial-arena .trial-values{font-size:7px}}
