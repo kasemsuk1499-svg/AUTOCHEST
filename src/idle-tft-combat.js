@@ -130,5 +130,14 @@
   }
   return {healed,units};
  }
- window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage,applyDebuff,debuffValue,outgoingMultiplier,vulnerabilityMultiplier,attackInterval,healWeakest,applySupport});
+ // One integer damage transaction supplies both HP/shield state and combat text.
+ function resolveDamage(target,raw,pierceShield=false){
+  const total=Math.max(0,Math.round(raw)),hpBefore=Math.max(0,Math.round(target.hp||0));
+  const shieldBefore=Math.max(0,Math.round(target.shield||0));
+  const absorbed=pierceShield?0:Math.min(shieldBefore,total);
+  const damage=Math.min(hpBefore,total-absorbed);
+  target.shield=shieldBefore-absorbed;target.hp=hpBefore-damage;
+  return {damage,absorbed,total};
+ }
+ window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage,applyDebuff,debuffValue,outgoingMultiplier,vulnerabilityMultiplier,attackInterval,healWeakest,applySupport,resolveDamage});
 })();
