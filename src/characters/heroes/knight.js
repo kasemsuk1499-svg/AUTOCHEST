@@ -15,6 +15,11 @@ window.AUTOCHEST_CHARACTERS.registerHero({
   "triggerEvery": 4,
   "col": "#43b8f6",
   "portrait": "./assets/heroes/knight/character.png",
+  "images": {
+    "art": "./assets/heroes/knight/character.png",
+    "idle": "./assets/heroes/knight/character.png",
+    "attack": "./assets/heroes/knight/character.png"
+  },
   "e": "✦",
   "visual": {
     "scale": 1.0,

@@ -15,6 +15,11 @@ window.AUTOCHEST_CHARACTERS.registerHero({
   "triggerEvery": 4,
   "col": "#ffc36c",
   "portrait": "./assets/heroes/tank/character.png",
+  "images": {
+    "art": "./assets/heroes/tank/character.png",
+    "idle": "./assets/heroes/tank/character.png",
+    "attack": "./assets/heroes/tank/character.png"
+  },
   "e": "✦",
   "visual": {
     "scale": 1.08,

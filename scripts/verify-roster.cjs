@@ -16,6 +16,13 @@ for(const c of [...hero,...enemy]){
  const picture=path.resolve(root,c.portrait);
  if(!fs.existsSync(picture))throw Error('Missing art '+picture);
  if(fs.statSync(picture).size<100)throw Error('Empty art '+picture);
- if(!fs.existsSync(picture.replace(/\.png$/,'.svg')))throw Error('Missing SVG source for '+c.id);
+ for(const slot of ['art','idle','attack']){
+  const src=c.images?.[slot];
+  if(!src)throw Error('Missing '+slot+' slot for '+c.id);
+  const file=path.resolve(root,src);
+  if(!fs.existsSync(file))throw Error('Missing '+slot+' asset: '+src);
+  if(fs.statSync(file).size<100)throw Error('Empty '+slot+' asset: '+src);
+ }
+ if(c.portrait.endsWith('.png')&&!fs.existsSync(picture.replace(/\.png$/,'.svg')))throw Error('Missing SVG source for '+c.id);
 }
-console.log('✅ AUTOCHEST character registry: '+hero.length+' heroes, '+enemy.length+' enemies, all PNG/SVG assets present');
+console.log('✅ AUTOCHEST character registry: '+hero.length+' heroes, '+enemy.length+' enemies, all art/idle/attack assets present');

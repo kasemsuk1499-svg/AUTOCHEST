@@ -15,6 +15,11 @@ window.AUTOCHEST_CHARACTERS.registerHero({
   "triggerEvery": 3,
   "col": "#ff8b65",
   "portrait": "./assets/heroes/hammer/character.png",
+  "images": {
+    "art": "./assets/heroes/hammer/character.png",
+    "idle": "./assets/heroes/hammer/character.png",
+    "attack": "./assets/heroes/hammer/character.png"
+  },
   "e": "✦",
   "visual": {
     "scale": 1.08,

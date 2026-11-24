@@ -1,6 +1,30 @@
 # AUTOCHEST — CHIBI AUTO BATTLER 🎮
 
-**Playable Alpha v0.3 · Character Rebuild** — เกมออโต้เชสแบบ PvE เล่นบนเบราว์เซอร์ จัดทีม → วางตำแหน่ง → ให้ตัวละครต่อสู้เอง
+**Playable Alpha v0.4 · PNG + GIF Heroes** — เกมออโต้เชสแบบ PvE เล่นบนเบราว์เซอร์ จัดทีม → วางตำแหน่ง → ให้ตัวละครต่อสู้เอง
+
+## PNG / GIF สำหรับตัวละครทุกชนิด (v0.4) 💎
+
+ตัวละคร **ทุกตัว รวมศัตรู/บอส** มี `images.art`, `images.idle`, `images.attack` ที่ใช้ได้ทั้ง `.png` และ `.gif` แบบ **ผสมกันได้อิสระ** เหมาะสำหรับสกิน/ตัวพรีเมียม
+
+- `art`: ภาพอาร์ตบนการ์ดร้านค้าและแผงรายละเอียด (GIF เคลื่อนไหวได้)
+- `idle`: ตัวจิบิบนสนาม/ม้านั่ง ตอนยืนและเดิน (GIF เคลื่อนไหวได้)
+- `attack`: ตัวจิบิขณะโจมตีหรือใช้สกิล (GIF เคลื่อนไหวได้)
+- **PNG** วาดด้วย Canvas ตามเดิม; **GIF** บนกระดานแสดงผ่าน `<img>` overlay ที่ติดตามตำแหน่งตัวละคร (ไม่ใช้ `drawImage` ซึ่งอาจหยุดอยู่เฟรมแรก)
+- เมื่อตัวละครโจมตี ระบบสลับไปไฟล์ `attack` แล้วกลับ `idle` หลังช่วงเวลาโจมตี; `visual.attackMs` ปรับเวลาค้าง GIF โจมตีได้ 100–5000 ms (ค่าเริ่มต้นสำหรับ GIF 700 ms)
+- แค่เปลี่ยน path ในไฟล์ข้อมูลรายตัวและใส่ GIF ในโฟลเดอร์ภาพ ไม่ต้องแก้ `game.js`
+- ไฟล์เดิม `character.png` ยังใช้งานได้ทุกช่องโดยไม่ต้องสร้างภาพเพิ่ม
+
+```javascript
+// src/characters/heroes/knight.js
+images: {
+  art: './assets/heroes/knight/art.gif',
+  idle: './assets/heroes/knight/idle.gif',
+  attack: './assets/heroes/knight/attack.gif'
+},
+visual: {scale: 1, walkBob: 6, skillGlow: 1, attackMs: 900}
+```
+
+> ใช้ GIF โปร่งใสขนาดเหมาะสม และตั้งลูปสำหรับ `idle`; หาก `attack.gif` ยาวเกิน `attackMs` อาจถูกเปลี่ยนกลับเป็น `idle` ก่อนเล่นครบ
 
 ## เริ่มเล่น
 

@@ -1,4 +1,4 @@
-# AUTOCHEST — ระบบตัวละคร v0.3
+# AUTOCHEST — ระบบตัวละคร v0.4
 
 ## หลักคิดการรื้อระบบ
 
@@ -23,6 +23,31 @@
 
 `slime`, `crab`, `ghost`, `boss` มีข้อมูลและภาพแยกไฟล์ทั้งหมด
 
+## Asset Slots — PNG / GIF ทุกสถานะ
+
+ตัวละครทุกตัวมีภาพ **3 ช่องแยกกัน** ใน `images`: `art`, `idle`, `attack` (รองรับ `.png` และ `.gif` ทั้งหมด)
+
+| ช่อง | ใช้ที่ไหน | รองรับ |
+|---|---|---|
+| `images.art` | ภาพอาร์ตในร้านค้า / ข้อมูลตัวละคร | PNG / GIF |
+| `images.idle` | โมเดลจิบิบนกระดาน / ม้านั่ง / ตอนเดิน | PNG / GIF |
+| `images.attack` | โมเดลจิบิขณะโจมตีและใช้สกิล | PNG / GIF |
+
+ตัวอย่าง **Premium**:
+
+```js
+images: {
+  art: './assets/heroes/mage/art.gif',
+  idle: './assets/heroes/mage/idle.gif',
+  attack: './assets/heroes/mage/attack.gif'
+},
+visual: {scale: 1, walkBob: 6, skillGlow: 1, attackMs: 900}
+```
+
+ภาพ `.gif` ที่เป็นโมเดลถูกวางเป็น DOM `<img>` ซ้อนบน Canvas เพื่อให้ GIF เคลื่อนไหวจริง (รวมตอนเดินและโจมตี) ส่วน PNG วาดตรงใน Canvas เหมือนเดิม ภาพ art ใช้ `<img>` ใน UI อยู่แล้ว รูปในไฟล์ตัวละครตัวอย่างยังชี้ไป `character.png` ทั้ง 3 ช่อง เพื่อใช้ได้ทันทีโดยไม่ต้องเตรียมไฟล์ใหม่ เปลี่ยนเฉพาะช่องที่ต้องการได้เลย
+
+ภาพต้องเป็น path ภายใน `./assets/heroes/<id>/` หรือ `./assets/enemies/<id>/` มีชื่อไฟล์ `.png` หรือ `.gif` และอยู่ใน GitHub repo ด้วย ตรวจข้อมูลด้วย `node scripts/verify-roster.cjs` ก่อนเผยแพร่
+
 ## การแก้ไขตัวละครหนึ่งตัว
 
 1. เปิดไฟล์ `src/characters/heroes/mage.js` (ตัวอย่าง ลูนา)
@@ -41,6 +66,7 @@ window.AUTOCHEST_CHARACTERS.registerHero({
   skill: 'สายฟ้าจันทรา', effect: 'chain', triggerEvery: 3,
   col: '#ba82ff',
   portrait: './assets/heroes/mage/character.png',
+  images: {art:'./assets/heroes/mage/character.png', idle:'./assets/heroes/mage/character.png', attack:'./assets/heroes/mage/character.png'},
   visual: {scale: 1, walkBob: 6, skillGlow: 1}
 });
 ```
@@ -49,12 +75,12 @@ window.AUTOCHEST_CHARACTERS.registerHero({
 - `effect` เป็นชนิดสกิลที่ Engine รองรับ **ไม่ใช่ script ที่รันจากข้อมูลผู้เล่น**; การเพิ่มชนิดสกิลต้องเพิ่มตัวประมวลผลใน `src/game.js`
 - `triggerEvery`: จำนวนครั้งโจมตีธรรมดาก่อนใช้สกิล
 - `visual`: ตัวคูณขนาดภาพกับความสูงการกระเด้งตอนเดิน (อนิเมชันใช้ transforms ไม่ได้แยกภาพทุกเฟรม)
-- `portrait`: path ต้องมีไฟล์และโหลดได้
+- `portrait`: path ภาพสำรองเพื่อรองรับไฟล์เก่า; `images.art/idle/attack` คือภาพหลัก และเลือก PNG/GIF ได้อย่างอิสระ
 - ฮีโร่ใหม่จะถูกนำเข้าร้านค้าโดยอัตโนมัติ เมื่อเขียนไฟล์และโหลดทะเบียนถูกต้อง
 
-## สิ่งที่จะรื้อต่อใน v0.4
+## สิ่งที่จะรื้อต่อในเวอร์ชันถัดไป
 
-- Animation sprite sheets สำหรับ `idle/walk/attack/skill/hit/death` ที่แยกเฟรมจริง
+- การปรับเวลา/จำนวนลูปของ GIF ตอนใช้สกิลพรีเมียม และเพิ่ม editor สำหรับเปลี่ยนไฟล์ภาพผ่านหน้าเว็บ
 - กำหนด skill payload หลายขั้น (hit count, target rule, status) เป็นข้อมูล แทนเงื่อนไขแบบตายตัว
 - แยก combat engine ไปเป็นโมดูล ลดความยาว `src/game.js`
 - หน้า Character Lab สำหรับเพิ่มตัวละครโดยไม่ต้องเขียนโค้ด

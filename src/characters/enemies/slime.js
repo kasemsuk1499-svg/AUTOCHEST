@@ -9,5 +9,10 @@ window.AUTOCHEST_CHARACTERS.registerEnemy({
   "move": 76,
   "col": "#e48ac8",
   "portrait": "./assets/enemies/slime/character.png",
+  "images": {
+    "art": "./assets/enemies/slime/character.png",
+    "idle": "./assets/enemies/slime/character.png",
+    "attack": "./assets/enemies/slime/character.png"
+  },
   "e": "✧"
 });

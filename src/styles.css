@@ -25,3 +25,7 @@ body:before{content:'';position:fixed;inset:0;pointer-events:none;background-ima
 .ghost-face img.hero-portrait{width:78px;height:82px;object-fit:contain;filter:drop-shadow(0 7px 7px #0014)}
 .benchitem:hover .bench-face img.hero-portrait{transform:translateY(-3px)}
 @media (prefers-reduced-motion:reduce){.card-art img.hero-portrait,.bench-face img.hero-portrait{transition:none}}
+
+/* GIF sprites must remain DOM <img>s: canvas drawImage cannot reliably animate GIF frames. */
+.animated-sprites{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:1;contain:layout style paint}
+.animated-sprites .animated-sprite{position:absolute;display:block;pointer-events:none;user-select:none;object-fit:fill;transform-origin:center center;will-change:top,left;max-width:none}

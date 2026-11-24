@@ -5,15 +5,35 @@ const roster=window.AUTOCHEST_CHARACTERS;
 if(!roster)throw new Error('Character roster not loaded. Check src/characters.js');
 const TYPES=roster.HEROES, ENEMY=roster.ENEMIES;
 if(Object.keys(TYPES).length===0||Object.keys(ENEMY).length===0)throw Error('No characters loaded; check character script order');
-const portraits=new Map();
-for(const [side,record] of [['ally',TYPES],['enemy',ENEMY]]){
- for(const [id,data] of Object.entries(record)){
-  const picture=new Image();picture.decoding='async';picture.src=data.portrait;
-  portraits.set(`${side}:${id}`,picture);
- }
+// Art is rendered as <img> in the UI, PNG model images in Canvas, GIF models in a DOM overlay.
+const imageCache=new Map();
+const gifNodes=new Map(),gifLayer=$('animatedSprites');
+const gifDrawList=[];
+const isGif=src=>/\.gif(?:[?#]|$)/i.test(src||'');
+const assetFor=(data,slot='idle')=>data.images?.[slot]||data.images?.idle||data.portrait;
+function getPng(src){
+ if(!src||isGif(src))return null;
+ if(!imageCache.has(src)){const im=new Image();im.decoding='async';im.src=src;imageCache.set(src,im)}
+ return imageCache.get(src);
 }
-const portrait=(id,side='ally')=>portraits.get(`${side}:${id}`);
-const portraitTag=(data)=>`<img class="hero-portrait" src="${data.portrait}" alt="" draggable="false" loading="eager">`;
+for(const record of [TYPES,ENEMY])for(const data of Object.values(record))for(const slot of ['idle','attack'])getPng(assetFor(data,slot));
+const portraitTag=(data,slot='art')=>`<img class="hero-portrait" src="${assetFor(data,slot)}" alt="" draggable="false" loading="eager">`;
+function syncGifSprites(entries){
+ const visible=new Set();
+ for(const entry of entries){
+  visible.add(entry.key);
+  let node=gifNodes.get(entry.key);
+  if(!node){node=document.createElement('img');node.className='animated-sprite';node.alt='';node.draggable=false;node.decoding='async';gifLayer.append(node);gifNodes.set(entry.key,node)}
+  if(node.getAttribute('src')!==entry.src)node.setAttribute('src',entry.src);
+  node.style.left=(entry.x/W*100)+'%';node.style.top=(entry.y/H*100)+'%';
+  node.style.width=(entry.w/W*100)+'%';node.style.height=(entry.h/H*100)+'%';
+  node.style.transform=`translateX(-50%) scaleX(${entry.face}) rotate(${entry.rotation}rad)`;
+  node.style.opacity=String(entry.opacity);
+  node.style.filter=entry.flash?'brightness(1.55)':'';
+  node.style.zIndex=String(Math.floor(entry.y));
+ }
+ for(const [key,node] of gifNodes){if(!visible.has(key)){node.remove();gifNodes.delete(key)}}
+}
 
 let wave=1,gold=12,wins=0,units=[],shop=[],selected=null,uid=1,phase='prep',speed=1,combat=[],bullets=[],fx=[],floaters=[],timeLeft=0,roundResult='',elapsed=0,shake=0,bgtime=0,last=0,messages=[],combatCount=0;
 let gesture=null,hoverCell=null,toastTimer=null;const landings=new Map();
@@ -80,7 +100,7 @@ function renderUI(){
  const reserve=units.filter(u=>!u.board);
  $('bench').innerHTML=Array.from({length:9},(_,i)=>{
    const u=reserve[i];if(!u)return '<div class="bench-empty" aria-hidden="true"></div>';
-   return `<button class="benchitem ${selected===u.id?'active':''}" data-unit="${u.id}" aria-label="${TYPES[u.kind].name} ${u.lv} ดาว กดค้างเพื่อลาก" title="${TYPES[u.kind].name} · ลากลงสนาม"><span class="bench-face">${portraitTag(TYPES[u.kind])}</span><span class="bench-stars">${'★'.repeat(u.lv)}</span></button>`;
+   return `<button class="benchitem ${selected===u.id?'active':''}" data-unit="${u.id}" aria-label="${TYPES[u.kind].name} ${u.lv} ดาว กดค้างเพื่อลาก" title="${TYPES[u.kind].name} · ลากลงสนาม"><span class="bench-face">${portraitTag(TYPES[u.kind],'idle')}</span><span class="bench-stars">${'★'.repeat(u.lv)}</span></button>`;
  }).join('');
  const counts={};units.filter(u=>u.board).forEach(u=>counts[TYPES[u.kind].team]=(counts[TYPES[u.kind].team]||0)+1);
  const traits={นักรบ:'⚔️',เวท:'🔮',ยิงไกล:'🏹',ป้องกัน:'🛡️'};
@@ -98,7 +118,7 @@ function dmg(target,amount,x,y,crit=false){if(!target.alive)return;let shieldHit
 function burst(x,y,color,n=12){for(let i=0;i<n;i++){let a=rand(0,Math.PI*2),v=rand(25,150);fx.push({kind:'dot',x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:rand(.23,.7),total:.7,color,size:rand(2,6)})}}
 function waveFX(x,y,color,size=95){fx.push({kind:'ring',x,y,r:10,max:size,life:.45,total:.45,color})}
 function findTarget(u){let pool=combat.filter(o=>o.alive&&o.side!==u.side);if(!pool.length)return null;pool.sort((a,b)=>dist(a,u)-dist(b,u));return pool[0]}
-function attack(u,target){u.cooldown=u.cool;u.attacks++;u.hitFlash=.09;u.anim='attack';u.animUntil=bgtime+.27;let heavy=false,mul=1;
+function attack(u,target){u.cooldown=u.cool;u.attacks++;u.hitFlash=.09;u.anim='attack';const spriteData=(u.side==='ally'?TYPES:ENEMY)[u.kind];u.animUntil=bgtime+(spriteData.visual?.attackMs ? spriteData.visual.attackMs/1000 : isGif(assetFor(spriteData,'attack')) ? .7 : .27);let heavy=false,mul=1;
 const effect=(u.side==='ally'?TYPES[u.kind]:ENEMY[u.kind])?.effect||'';
 if(u.side==='ally'){
  const trigger=TYPES[u.kind].triggerEvery||4;
@@ -138,8 +158,10 @@ if(phase==='battle'){let t=Math.ceil(timeLeft);tile(W/2-48,50,96,28,14,'#071c35b
 function drawCharacter(u){
  const x=u.x,y=u.y,side=u.side||'ally',data=(side==='ally'?TYPES:ENEMY)[u.kind];
  if(!data)return;
- const im=portrait(u.kind,side),moving=phase==='battle'&&u.moving;
+ const moving=phase==='battle'&&u.moving;
  const active=bgtime<(u.animUntil||0),action=active?u.anim:'idle';
+ const source=assetFor(data,(action==='attack'||action==='skill')?'attack':'idle');
+ const animated=isGif(source), im=animated?null:getPng(source);
  const landing=phase==='prep'?(landings.get(u.id)||0)-bgtime:0;
  let hop=moving?-Math.abs(Math.sin((u.motion||0)*1.2))*(data.visual?.walkBob||7):Math.sin(bgtime*2.4+(typeof u.id==='number'?u.id:0))*(-1.6);
  if(landing>0){const p=1-landing/.52;hop-=Math.abs(Math.sin(p*Math.PI))*20}
@@ -156,7 +178,11 @@ function drawCharacter(u){
  const size=(boss?1.2:1)*(data.visual?.scale||1);ctx.scale(size*(u.face===-1?-1:1),size);
  if(moving)ctx.rotate(Math.sin((u.motion||0)*1.2)*.055);
  if(action==='attack')ctx.rotate(Math.sin(bgtime*25)*.08);
- if(im&&im.complete&&im.naturalWidth)ctx.drawImage(im,-47,-76,94,109);
+ if(animated){
+  // An actual GIF <img> sits over the board, so its frames keep playing in every browser.
+  const scale=size,offset=(u.face||1)*lunge;
+  gifDrawList.push({key:`${side}:${u.id}`,src:source,x:x+offset,y:y+hop-(casting?8:0)-76*scale,w:94*scale,h:109*scale,face:u.face===-1?-1:1,rotation:moving?Math.sin((u.motion||0)*1.2)*.055:action==='attack'?Math.sin(bgtime*25)*.08:0,opacity:ctx.globalAlpha,flash:u.hitFlash>0});
+ } else if(im&&im.complete&&im.naturalWidth)ctx.drawImage(im,-47,-76,94,109);
  else {circle(0,-9,25,col);text(data.name.substring(0,2),0,-5,'700 13px Kanit','#fff')}
  ctx.restore();
  // HUD remains anchored to the board cell, not to the animation offsets.
@@ -166,14 +192,14 @@ function drawCharacter(u){
  if(phase==='prep'&&side==='ally'){text(data.name,x,y+54,'600 13px Kanit','#e3f7ff');if(u.lv>1)text('★'.repeat(u.lv),x,y-69,'15px sans-serif','#ffe49d')}
 }
 
-function draw(){ctx.save();if(shake>0){ctx.translate(rand(-3,3)*shake*4,rand(-3,3)*shake*4)}drawBg();if(phase==='prep'){
+function draw(){gifDrawList.length=0;ctx.save();if(shake>0){ctx.translate(rand(-3,3)*shake*4,rand(-3,3)*shake*4)}drawBg();if(phase==='prep'){
 let e=genGhostEnemies();e.forEach(o=>{let p=pos(o.col,o.row);ctx.save();ctx.globalAlpha=.50;drawCharacter({...o,...p,side:'enemy',id:'preview:'+o.kind+o.col,hp:1,maxHp:1,face:1});ctx.restore()});text('✦ DEPLOY YOUR TEAM ✦',380,438,'700 16px Rajdhani','#97eee0c0');
 for(let u of units.filter(u=>u.board)){let t=TYPES[u.kind],p=pos(u.col,u.row);ctx.save();if(gesture?.dragging&&gesture.sourceId===u.id)ctx.globalAlpha=.22;drawCharacter({...u,...p,side:'ally',hp:t.hp,maxHp:t.hp,size:20,shield:0,hitFlash:0});ctx.restore()}}
 else{let all=combat.filter(u=>u.alive).sort((a,b)=>a.y-b.y);all.forEach(drawCharacter);for(let b of bullets){circle(b.x,b.y,b.size,b.color);circle(b.x,b.y,b.size+6,b.color+'33')}}
 for(let f of fx){ctx.save();ctx.globalAlpha=clamp(f.life/f.total,0,1);if(f.kind==='dot'){circle(f.x,f.y,f.size,f.color)}else if(f.kind==='ring'){ctx.beginPath();ctx.arc(f.x,f.y,f.max*(1-f.life/f.total),0,2*Math.PI);ctx.lineWidth=5;ctx.strokeStyle=f.color;ctx.stroke()}else if(f.kind==='slash'){ctx.translate(f.x,f.y);ctx.rotate(f.a);ctx.beginPath();ctx.moveTo(-31,-20);ctx.quadraticCurveTo(8,0,32,25);ctx.strokeStyle=f.color;ctx.lineWidth=8;ctx.stroke()}else if(f.kind==='lightning'){ctx.strokeStyle=f.color;ctx.lineWidth=6;ctx.shadowColor=f.color;ctx.shadowBlur=18;ctx.beginPath();ctx.moveTo(f.x1,f.y1);for(let i=1;i<6;i++){let t=i/6;ctx.lineTo(f.x1+(f.x2-f.x1)*t+Math.sin(bgtime*20+i*6)*9,f.y1+(f.y2-f.y1)*t+Math.cos(bgtime*30+i*3)*9)}ctx.lineTo(f.x2,f.y2);ctx.stroke()}else if(f.kind==='hammer'){let progress=1-f.life/f.total;ctx.save();ctx.translate(f.x,f.y-40*(1-progress));ctx.rotate(-.6*progress);tile(-62,-29,124,58,12,'#e4e7f3','#698c9e');for(let j=-40;j<=40;j+=20){ctx.strokeStyle='#586575';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(j,-29);ctx.lineTo(j,29);ctx.stroke()}tile(-6,20,12,80,3,'#ad8865');ctx.restore()}ctx.restore()}
 for(let f of floaters){ctx.globalAlpha=clamp(1-f.t/f.life,0,1);text(typeof f.v==='number'?f.v.toLocaleString():f.v,f.x,f.y,typeof f.v==='number'?'700 22px Kanit':'700 18px Kanit',f.color)}ctx.globalAlpha=1;
 if(phase==='result'){ctx.fillStyle='#061426c9';ctx.fillRect(0,270,W,210);text(roundResult.includes('ชนะ')?'🏆 VICTORY!':'💔 DEFEAT',W/2,345,'700 42px Kanit',roundResult.includes('ชนะ')?'#8ef0d5':'#ff9fa6');text(roundResult,W/2,395,'500 22px Kanit','#fff1db');text('กด “ไปเวฟต่อไป” เพื่อจัดทีมอีกครั้ง',W/2,434,'16px Kanit','#c3ddf5')}
-ctx.restore()}
+ctx.restore();syncGifSprites(gifDrawList)}
 function genGhostEnemies(){return wave%3===0?[{kind:'boss',col:2,row:0},{kind:'slime',col:1,row:1},{kind:'crab',col:4,row:1}]:[{kind:'slime',col:1,row:0},{kind:'slime',col:4,row:0},{kind:'crab',col:2,row:1}]}
 function loop(now){let dt=clamp((now-last)/1000||0,0,.04);last=now;update(dt);draw();requestAnimationFrame(loop)}
 // Pointer input: tap to select, hold/drag to place or swap. Works with mouse, pen and touch.
@@ -188,7 +214,7 @@ function startPointer(e,sourceZone,id){if(phase!=='prep'||e.button!==0||gesture)
  if(e.currentTarget.setPointerCapture)try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_e){}
 }
 function startDrag(e){const u=units.find(u=>u.id===gesture.sourceId);if(!u)return;
- gesture.dragging=true;selected=u.id;ghost.innerHTML=`<span class="ghost-face">${portraitTag(TYPES[u.kind])}</span><span class="ghost-stars">${'★'.repeat(u.lv)}</span><span class="ghost-name">${TYPES[u.kind].name}</span>`;
+ gesture.dragging=true;selected=u.id;ghost.innerHTML=`<span class="ghost-face">${portraitTag(TYPES[u.kind],'idle')}</span><span class="ghost-stars">${'★'.repeat(u.lv)}</span><span class="ghost-name">${TYPES[u.kind].name}</span>`;
  ghost.className='drag-ghost show';document.body.classList.add('dragging-game');renderUI();moveGhost(e)
 }
 function moveGhost(e){ghost.style.left=e.clientX+'px';ghost.style.top=(e.clientY-15)+'px';const p=tileAt(e);hoverCell=p?{c:p.c,r:p.r}:null;

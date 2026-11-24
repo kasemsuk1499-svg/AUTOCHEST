@@ -24,6 +24,7 @@
         <div class="arena-canvas-wrap" id="arenaDrop">
           <div class="arena-surface-label enemy-label"><span></span> ENEMY FIELD <span></span></div>
           <canvas id="battlefield" width="760" height="775" aria-label="สนามต่อสู้: คลิกเลือกหรือกดค้างเพื่อลากยูนิต" tabindex="0"></canvas>
+          <div id="animatedSprites" class="animated-sprites" aria-hidden="true"></div>
           <div class="arena-surface-label ally-label"><span></span> ALLIED FIELD <span></span></div>
           <div class="board-tooltip" id="boardTooltip">✦ ลากยูนิตลงช่องเรืองแสง หรือแตะเลือกแล้วแตะช่องที่ต้องการ</div>
         </div>
@@ -61,7 +62,7 @@
         <section class="hud-panel help-panel"><div class="tip-icon">✧</div><div id="tip" class="hint" role="status">ลากตัวละครจากม้านั่งลงบนสนามเพื่อจัดทีม</div><details class="battle-log"><summary>บันทึกการต่อสู้ <span>▾</span></summary><div class="log" id="log"></div></details></section>
       </aside>
     </main>
-    <footer class="game-footer"><span>✦ AUTOCHEST / CHARACTER REBUILD v0.3</span><span>CLICK • DRAG • DROP • AUTO BATTLE</span></footer>
+    <footer class="game-footer"><span>✦ AUTOCHEST / PNG + GIF SUPPORT v0.4</span><span>CLICK • DRAG • DROP • AUTO BATTLE</span></footer>
   </div>
   <div id="dragGhost" class="drag-ghost" aria-hidden="true"></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>

@@ -9,5 +9,10 @@ window.AUTOCHEST_CHARACTERS.registerEnemy({
   "move": 67,
   "col": "#ffae75",
   "portrait": "./assets/enemies/crab/character.png",
+  "images": {
+    "art": "./assets/enemies/crab/character.png",
+    "idle": "./assets/enemies/crab/character.png",
+    "attack": "./assets/enemies/crab/character.png"
+  },
   "e": "✧"
 });
