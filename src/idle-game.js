@@ -204,6 +204,17 @@ function refreshFormationControls(){
  form.classList.toggle('active',formationMode);
  form.setAttribute('aria-pressed',String(formationMode));
  auto.textContent=state.autoBattle?'⚔️ AUTO ON':'⏸ AUTO OFF';
+ const quickFormation=$('formationQuickBtn'),quickAuto=$('autoQuickBtn');
+ if(quickFormation){
+  quickFormation.textContent=formationMode?'✅ จัดทัพเสร็จ · สู้ต่อ':'♟️ จัดทัพ / วางตัว';
+  quickFormation.classList.toggle('editing',formationMode);
+  quickFormation.setAttribute('aria-pressed',String(formationMode));
+ }
+ if(quickAuto){
+  quickAuto.textContent=state.autoBattle?'⚔️ AUTO ON':'⏸ AUTO OFF';
+  quickAuto.classList.toggle('off',!state.autoBattle);
+  quickAuto.setAttribute('aria-pressed',String(state.autoBattle));
+ }
  auto.classList.toggle('off',!state.autoBattle);
  auto.setAttribute('aria-pressed',String(state.autoBattle));
  const reserve=state.owned[selected]&&!state.squad.includes(selected);
@@ -960,11 +971,14 @@ document.addEventListener('keydown',e=>{
 $('autoTeamBtn').addEventListener('click',autoTeam);
 $('summonOneBtn').addEventListener('click',()=>summon(1));
 $('summonTenBtn').addEventListener('click',()=>summon(10));
-$('formationBtn').addEventListener('click',()=>setFormationMode(!formationMode));
-$('autoBattleBtn').addEventListener('click',()=>{
+function toggleAutoBattle(){
  state.autoBattle=!state.autoBattle;save();refreshFormationControls();
  toast(state.autoBattle?'⚔️ TFT Auto ON · สู้ต่อเนื่อง':'⏸ AUTO OFF · หยุดต่อสู้');
-});
+}
+$('formationBtn').addEventListener('click',()=>setFormationMode(!formationMode));
+$('formationQuickBtn').addEventListener('click',()=>setFormationMode(!formationMode));
+$('autoBattleBtn').addEventListener('click',toggleAutoBattle);
+$('autoQuickBtn').addEventListener('click',toggleAutoBattle);
 $('autoBossBtn').addEventListener('click',()=>{
  state.autoBoss=!state.autoBoss;updateResources();save();
  toast(state.autoBoss?'🔄 เรียกบอสอัตโนมัติ ON':'⏸ เรียกบอสอัตโนมัติ OFF');
