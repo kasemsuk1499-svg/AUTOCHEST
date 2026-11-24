@@ -12,6 +12,18 @@
         "size": 150,
         "ms": 1000
       }
+    },
+    "megumin": {
+      "hit": {
+        "src": "./assets/effects/megumin/hit-f0945bff8573.png",
+        "cols": 8,
+        "rows": 1,
+        "row": 0,
+        "col": 0,
+        "frames": 7,
+        "size": 105,
+        "ms": 440
+      }
     }
   }
 }
