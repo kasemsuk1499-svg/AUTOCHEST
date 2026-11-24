@@ -291,6 +291,22 @@
         "rotation": 0,
         "thickness": 48,
         "orientation": "horizontal"
+      },
+      "projectile": {
+        "src": "./assets/effects/silica/projectile-ad4688543510.png",
+        "cols": 8,
+        "rows": 1,
+        "row": 0,
+        "col": 0,
+        "frames": 8,
+        "size": 30,
+        "ms": 500,
+        "mode": "point",
+        "scaleX": 4,
+        "scaleY": 1,
+        "rotation": 0,
+        "thickness": 48,
+        "orientation": "horizontal"
       }
     }
   }
