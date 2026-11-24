@@ -237,10 +237,19 @@ function renderUI(){
  renderInspector()
 }
 
+// Casual PvE curve: forgiving waves 1-6, gradual challenge, and capped stat growth.
 const ENEMY_SCALING=Object.freeze({
- hpBase:0.62,hpPerWave:0.13,atkBase:0.69,atkPerWave:0.10,
- model:0.94,bossHp:2.4,bossAtk:1.4,bossModel:1.65
+ hpBase:0.55,hpPerWave:0.07,hpMax:1.45,
+ atkBase:0.56,atkPerWave:0.05,atkMax:1.20,
+ model:0.94,bossHp:1.80,bossAtk:1.12,bossModel:1.65,
+ groupStart:2,groupEvery:3,groupMax:6
 });
+function enemyWavePower(w){
+ return {
+  hp:Math.min(ENEMY_SCALING.hpMax,ENEMY_SCALING.hpBase+(w-1)*ENEMY_SCALING.hpPerWave),
+  atk:Math.min(ENEMY_SCALING.atkMax,ENEMY_SCALING.atkBase+(w-1)*ENEMY_SCALING.atkPerWave)
+ };
+}
 let encounterWave=-1,encounterPlan=[];
 function genEnemies(){
  if(encounterWave===wave && encounterPlan.length)return encounterPlan.map(u=>({...u}));
@@ -248,7 +257,10 @@ function genEnemies(){
  const tier=Math.min(3,1+Math.floor((wave-1)/2));
  const eligible=Object.keys(TYPES).filter(k=>TYPES[k].cost<=tier);
  if(!eligible.length)throw Error('No eligible heroes for wave '+wave);
- const count=Math.min(8,bosses?2+Math.floor(wave/3):3+Math.floor(wave/2));
+ const count=Math.min(ENEMY_SCALING.groupMax,
+  ENEMY_SCALING.groupStart+Math.floor((wave-1)/ENEMY_SCALING.groupEvery));
+ // Ordinary enemies favor common heroes, while boss waves still feature the tier's best.
+ const regularPool=eligible.flatMap(id=>Array(Math.max(1,4-TYPES[id].cost)).fill(id));
  const arr=[];
  if(bosses){
   const top=eligible.filter(k=>TYPES[k].cost===tier);
@@ -256,10 +268,10 @@ function genEnemies(){
   arr.push({kind:pool[ri(pool.length)],side:'enemy',col:2,row:0,lv:1,boss:true});
  }
  const slots=[[0,1],[2,1],[4,1],[1,2],[3,2],[5,2],[0,2],[4,2]];
- const countRegular=bosses?Math.max(2,count-1):count;
+ const countRegular=bosses?count-1:count;
  for(let i=0;i<countRegular;i++){
   const [col,row]=slots[i];
-  arr.push({kind:eligible[ri(eligible.length)],side:'enemy',col,row,lv:1,boss:false});
+  arr.push({kind:regularPool[ri(regularPool.length)],side:'enemy',col,row,lv:1,boss:false});
  }
  encounterWave=wave;encounterPlan=arr;
  return arr.map(u=>({...u}));
@@ -270,10 +282,9 @@ function makeFighter(base,side,index){
  const isBoss=side==='enemy'&&!!base.boss;
  const lvscale=side==='ally'?(base.lv===3?2.8:base.lv===2?1.72:1):1;
  const allyAttack=base.lv===3?2.25:base.lv===2?1.5:1;
- const hpScale=side==='enemy'?
-  (ENEMY_SCALING.hpBase+(wave-1)*ENEMY_SCALING.hpPerWave)*(isBoss?ENEMY_SCALING.bossHp:1):lvscale;
- const atkScale=side==='enemy'?
-  (ENEMY_SCALING.atkBase+(wave-1)*ENEMY_SCALING.atkPerWave)*(isBoss?ENEMY_SCALING.bossAtk:1):allyAttack;
+ const wavePower=enemyWavePower(wave);
+ const hpScale=side==='enemy'?wavePower.hp*(isBoss?ENEMY_SCALING.bossHp:1):lvscale;
+ const atkScale=side==='enemy'?wavePower.atk*(isBoss?ENEMY_SCALING.bossAtk:1):allyAttack;
  return {
   id:base.id||'e'+index,kind:base.kind,side,lv:base.lv||1,x:p.x,y:p.y,vx:0,vy:0,
   hp:t.hp*hpScale,maxHp:t.hp*hpScale,atk:t.dmg*atkScale,

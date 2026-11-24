@@ -68,3 +68,20 @@ Old original characters were removed from active roster and repository files. Th
 - When every enemy is cloaked, heroes stop the walking animation and resume pursuing when a target becomes visible again.
 - Stealth duration now advances with combat speed (including ×2 mode).
 - Characters face the target before attacking. Verified long-range and melee units in regression scenarios.
+
+## v0.12 — Casual PvE balance (ปรับมอนให้น่าเล่นขึ้น)
+
+ลดจำนวนและความแข็งแกร่งของศัตรู โดยไม่เปลี่ยนสกิล/ระยะยิง/ภาพของฮีโร่ฝั่งเรา:
+
+| ค่า | เดิม | ใหม่ |
+|---|---:|---:|
+| HP ศัตรูเวฟ 1 | ×0.62 | ×0.55 |
+| ATK ศัตรูเวฟ 1 | ×0.69 | ×0.56 |
+| HP เพิ่มต่อเวฟ | +0.13 | +0.07 (สูงสุด ×1.45) |
+| ATK เพิ่มต่อเวฟ | +0.10 | +0.05 (สูงสุด ×1.20) |
+| HP บอส (คูณค่าศัตรูเวฟนั้น) | ×2.4 | ×1.80 |
+| ATK บอส (คูณค่าศัตรูเวฟนั้น) | ×1.40 | ×1.12 |
+| จำนวนมอนเวฟ 1 / 3 / 6 / 9 | 3 / 3 / 4 / 5 | 2 / 2 / 3 / 4 |
+| จำนวนมอนสูงสุด | 8 | 6 |
+
+บอสยังเกิดทุก 3 เวฟและตัวใหญ่เท่าเดิม แต่ลูกน้องจะสุ่มตัวระดับ Common/ราคา 1 ได้บ่อยขึ้น ไม่รุมตัวราคา 3 จำนวนมากตั้งแต่เวฟ 5 ค่าปรับทั้งหมดอยู่ที่ `ENEMY_SCALING` ใน `src/game.js` และมีสคริปต์ทดสอบ `node scripts/test-wave-balance.cjs`
