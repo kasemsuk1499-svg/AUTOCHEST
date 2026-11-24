@@ -21,7 +21,7 @@ if(loaded){
 }
 let pending=state.offlineBank;
 let selected=state.squad[0]||Object.keys(state.owned)[0]||IDS[0];
-let skillReturnFocus=null;
+let skillReturnFocus=null,managementPanel=null,managementFocus=null;
 let formationMode=false,shots=[];
 const allyRevives=new Map();
 let combat=null,enemies=[],fighters=[],stageClock=0,respawn=1.8,waveCount=0,travel=0,travelDistance=0,encounters=0,lastFrame=0,lastSave=0,lastHUD=0,toastTimer=0;
@@ -478,7 +478,7 @@ function refreshUpgradeAvailability(){
  const summary=$('upgradeReadyCount');
  if(summary)summary.textContent=ready.length?'พร้อมอัป '+ready.length+' ตัว':'ยังอัปไม่ได้';
  const mobileShortcut=$('upgradeShortcutReady');
- if(mobileShortcut)mobileShortcut.textContent=ready.length?'พร้อมอัป '+ready.length+' ตัว':'ดูเลเวล / ดาว';
+ if(mobileShortcut){mobileShortcut.textContent=ready.length?String(ready.length):'';mobileShortcut.hidden=!ready.length;}
  for(const n of $('teamSlots').querySelectorAll('[data-slot]')){
   const id=n.dataset.slot;
   if(id!=='empty')n.classList.toggle('is-upgrade-ready',readyUpgrade(id));
@@ -1060,6 +1060,32 @@ function frame(now){
  if(now-lastSave>6000){save()}
  requestAnimationFrame(frame);
 }
+function refreshUpgradePicker(){
+ const picker=$('upgradePicker');if(!picker)return;
+ picker.innerHTML=IDS.map(id=>'<option value="'+id+'"'+(id===selected?' selected':'')+'>'+escapeText(HEROES[id].name)+(state.owned[id]?' · Lv.'+state.owned[id].level:' · ล็อก')+'</option>').join('');
+}
+function closeManagement(){
+ if(!managementPanel)return;
+ managementPanel.hidden=true;managementPanel=null;
+ document.body.classList.remove('management-open');
+ if(managementFocus?.isConnected)managementFocus.focus();managementFocus=null;
+}
+function openManagement(name,button){
+ const next=$('panel-'+name);if(!next)return;
+ if(managementPanel)managementPanel.hidden=true;
+ managementPanel=next;managementFocus=button;
+ if(name==='upgrade'){renderSelected();refreshUpgradePicker()}
+ next.hidden=false;document.body.classList.add('management-open');
+ next.querySelector('.panel-close').focus();
+}
+const picker=el('select',{id:'upgradePicker','aria-label':'เลือกฮีโร่ที่จะเสริมแกร่ง'});
+$('heroDetails').before(picker);
+picker.addEventListener('change',()=>{choose(picker.value);refreshUpgradePicker()});
+document.querySelectorAll('[data-open-panel]').forEach(button=>button.addEventListener('click',()=>openManagement(button.dataset.openPanel,button)));
+document.querySelectorAll('[data-close-panel]').forEach(button=>button.addEventListener('click',closeManagement));
+document.addEventListener('keydown',e=>{
+ if(e.key==='Escape'&&managementPanel&&$('skillModal').hidden&&$('rewardModal').hidden){e.preventDefault();closeManagement()}
+});
 $('heroList').addEventListener('click',e=>{
  const info=e.target.closest('[data-skill-hero]');
  if(info){choose(info.dataset.skillHero);openSkill(info.dataset.skillHero);return}
