@@ -148,13 +148,22 @@
       },
       "skillProjectile": {
         "src": "./assets/effects/sinon/skillProjectile-6f5347f1222a.png",
-        "cols": 8,
+        "cols": 10,
         "rows": 1,
         "row": 0,
         "col": 0,
-        "frames": 8,
+        "frames": 10,
         "size": 100,
-        "ms": 500
+        "ms": 200,
+        "mode": "beam",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "thickness": 67,
+        "orientation": "horizontal",
+        "delayMs": 0,
+        "airtimeMs": 900,
+        "loopFrames": true
       }
     },
     "lisbeth": {
