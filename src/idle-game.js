@@ -379,6 +379,9 @@ function skillDescription(t,enemy=false){
   case 'blink':
    lines.push('ทุก '+n+' การโจมตี: เคลื่อนฉับไวเข้าหาเป้าหมาย ฟัน 200% ATK และตามด้วยโจมตีอีก 50% ATK');
    break;
+  case 'pierce':
+   lines.push('ทุก '+n+' การโจมตี: ยิงกระสุนทะลวงเป็นเส้นตรงจนถึงขอบสนาม ทำดาเมจ '+Math.round((t.skillPower||2.4)*100)+'% ATK ต่อศัตรูทุกตัวที่กระสุนผ่าน · ไม่สนโล่ป้องกัน แต่ไม่ทะลุอมตะ');
+   break;
   case 'triple':
    lines.push('ทุก '+n+' การโจมตี: ยิงกระสุนหลักแรง 200% ATK และกระสุนรองอีก 2 นัด นัดละ 85% ATK (เลือกเป้าหมายอื่นได้)');
    break;
@@ -400,7 +403,8 @@ function skillDescription(t,enemy=false){
  }
  if(t.passive?.focusCritStep)lines.push('พาสซีฟ — '+t.passive.name+': โจมตีเป้าหมายเดิมต่อเนื่องเพิ่มโอกาสคริติคอล '+Math.round(t.passive.focusCritStep*100)+' จุดเปอร์เซ็นต์ต่อครั้ง (สูงสุด +'+Math.round(t.passive.focusCritMax*100)+' จุดเปอร์เซ็นต์) · รีเซ็ตเมื่อเปลี่ยนเป้าหมาย');
  if(t.passive?.reviveHp)lines.push('พาสซีฟ — '+t.passive.name+': เมื่อ HP เหลือ 0 คืนชีพด้วย HP '+Math.round(t.passive.reviveHp*100)+'% และเป็นอมตะ '+t.passive.immortalSeconds+' วินาที (ไม่รับดาเมจ) · 1 ครั้งต่อเวฟหรือบอส');
- if(Number(t.range)>=1.8)lines.push('🎯 ยิงไกล: กระสุนเดินทางตามเป้าหมายและคำนวณดาเมจเมื่อกระสุนถึง; พยายามรักษาระยะเมื่อศัตรูประชิด');
+ if(t.globalRange)lines.push('🎯 ระยะยิงทั่วสนาม: ยิงได้จากทุกมุมโดยไม่ต้องเดินเข้าหาเป้าหมาย · ถอยเมื่อศัตรูประชิด');
+ else if(Number(t.range)>=1.8)lines.push('🎯 ยิงไกล: กระสุนเดินทางตามเป้าหมายและคำนวณดาเมจเมื่อกระสุนถึง; พยายามรักษาระยะเมื่อศัตรูประชิด');
  else lines.push('⚔️ ประชิด: วิ่งเข้าโจมตีตามระยะของสนาม TFT');
  return lines;
 }
@@ -412,7 +416,7 @@ function openSkill(id,source='hero',unit=null){
   ['HP',fmt(active?active.maxHp:stat.hp)],
   ['ATK',fmt(active?active.atk:stat.atk)],
   ['โจมตีทุก',Number(active?active.delay:stat.cool).toFixed(2)+' วินาที'],
-  ['ระยะโจมตี',Number(h.range).toFixed(2)+' ช่อง'],
+  ['ระยะโจมตี',h.globalRange?'ทั่วสนาม':Number(h.range).toFixed(2)+' ช่อง'],
   ['ความเร็วเดิน',String(h.move)],
   ['โอกาสคริ',Math.round((active?active.crit:stat.crit)*100)+'%'],
   ['ความแรงคริ','×'+Number(h.critDamage||1.5).toFixed(2)],
@@ -749,14 +753,14 @@ function defeatMonster(foe){
 function pickEnemy(f){return TFT.findTarget(f,enemies,stageClock)}
 function targetHero(enemy){return TFT.findTarget(enemy,fighters,stageClock)}
 // TFT-style shared damage pipeline. No damage is applied to ranged targets until the bullet lands.
-function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false){
+function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false,pierceShield=false){
  if(!target||target.hp<=0||target.alive===false)return false;
  if(TFT.isImmortal(target,stageClock))return false;
  const hero=HEROES[attacker.id];
  const chance=Math.min(1,Math.max(0,(attacker.crit||0)+bonusCrit));
  const critical=forcedCrit||(chance>0&&Math.random()<chance);
  const raw=power*(critical?(attacker.critDamage||hero.critDamage||1.5):1);
- const absorbed=Math.min(target.shield||0,raw);
+ const absorbed=pierceShield?0:Math.min(target.shield||0,raw);
  target.shield=Math.max(0,(target.shield||0)-absorbed);
  const damage=Math.max(0,Math.round(raw-absorbed));
  target.hp=Math.max(0,target.hp-damage);
@@ -792,9 +796,19 @@ function tftShot(attacker,target,mult=1,bonusCrit=0,execute=false,heavy=false,co
  $('fxLayer').appendChild(node);
  shots.push({
   owner:attacker,side:attacker.side,x:attacker.x,y:attacker.y,target,
-  life:1.8,speed:HEROES[attacker.id].effect==='triple'?450:340,
+  life:HEROES[attacker.id].globalRange?3.5:1.8,speed:HEROES[attacker.id].projectileSpeed||(HEROES[attacker.id].effect==='triple'?450:340),
   power:attacker.atk*mult,bonusCrit,execute,color:palette,node
  });
+}
+function tftPiercingShot(attacker,target){
+ const hero=HEROES[attacker.id],p=TFT.makePierce(attacker,target);
+ const node=el('span',{class:'tft-bullet heavy piercing-bullet'});
+ node.style.left=attacker.x+'%';node.style.top=attacker.y+'%';
+ node.style.setProperty('--bullet-color',hero.col||'#82d0c7');
+ node.style.setProperty('--shot-angle',Math.atan2(p.dy,p.dx)+'rad');
+ $('fxLayer').appendChild(node);
+ shots.push({owner:attacker,side:attacker.side,x:attacker.x,y:attacker.y,pierce:p,
+  speed:hero.projectileSpeed||950,radius:hero.pierceRadius||36,power:attacker.atk*(hero.skillPower||2.4),node});
 }
 function clearTftShots(){
  for(const b of shots)if(b.node)b.node.remove();
@@ -805,6 +819,18 @@ function advanceTftShots(t){
  const batch=shots.slice(),finished=new Set();
  for(const bullet of batch){
   if(!shots.includes(bullet))break; // a boss victory or full enemy clear reset the encounter
+  if(bullet.pierce){
+   const targets=bullet.side==='ally'?enemies:fighters;
+   const result=TFT.advancePierce(bullet,t,targets);
+   for(const target of result.hits){
+    if(!shots.includes(bullet))break;
+    tftDamage(bullet.owner,target,bullet.power,0,false,true);
+    if(target.hp>0)ring(target.x,target.y);
+   }
+   if(result.expired){finished.add(bullet);bullet.node?.remove()}
+   else if(bullet.node){bullet.node.style.left=bullet.x+'%';bullet.node.style.top=bullet.y+'%'}
+   continue;
+  }
   const r=TFT.advanceShot(bullet,t);
   if(r.expired){
    finished.add(bullet);bullet.node?.remove();
@@ -826,6 +852,8 @@ function tftSkill(attacker,target){
  const hero=HEROES[attacker.id],effect=hero.effect;
  const foes=()=>attacker.side==='ally'?enemies.filter(x=>x.hp>0):fighters.filter(x=>x.alive);
  switch(effect){
+  case 'pierce':
+   tftPiercingShot(attacker,target);return true;
   case 'slam':{
    const nearby=foes().filter(x=>TFT.pxDist(x,target)<140);
    ring(target.x,target.y);
