@@ -127,6 +127,16 @@
         "frames": 8,
         "size": 80,
         "ms": 500
+      },
+      "skillProjectile": {
+        "src": "./assets/effects/sinon/skillProjectile-6f5347f1222a.png",
+        "cols": 8,
+        "rows": 1,
+        "row": 0,
+        "col": 0,
+        "frames": 8,
+        "size": 100,
+        "ms": 500
       }
     }
   }
