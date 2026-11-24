@@ -112,6 +112,7 @@ function position(actor){
  actor.node.classList.toggle('taunting',actor.hp>0&&(actor.tauntUntil||0)>stageClock);
  actor.node.classList.toggle('weakened',actor.hp>0&&TFT.debuffValue(actor,'attackDown',stageClock)>0);
  actor.node.classList.toggle('vulnerable',actor.hp>0&&TFT.debuffValue(actor,'vulnerability',stageClock)>0);
+ actor.node.classList.toggle('support-buffed',actor.hp>0&&(TFT.debuffValue(actor,'attackUp',stageClock)>0||TFT.debuffValue(actor,'speedUp',stageClock)>0));
 }
 // The original AUTOCHEST board is fixed. Movement happens within its 6x7 cells.
 function travelScene(){
@@ -389,6 +390,10 @@ function skillDescription(t,enemy=false){
   case 'triple':
    lines.push('ทุก '+n+' การโจมตี: ยิงกระสุนหลักแรง 200% ATK และกระสุนรองอีก 2 นัด นัดละ 85% ATK (เลือกเป้าหมายอื่นได้)');
    break;
+  case 'heal':
+   lines.push('ทุก '+n+' การโจมตี: ฟื้น HP ให้สมาชิกที่มีเปอร์เซ็นต์ HP ต่ำสุด '+t.support.healTargets+' คน คนละ '+Math.round(t.support.healHp*100)+'% ของ HP สูงสุด · ไม่ชุบชีวิต');
+   lines.push('เพิ่ม ATK '+Math.round(t.support.attackUp*100)+'% และความเร็วโจมตี '+Math.round(t.support.speedUp*100)+'% ให้ทีมที่ยังมีชีวิตทั้งหมด '+t.support.duration+' วินาที · รีเฟรชเวลา ไม่สะสมความแรง · ไม่สร้างดาเมจ');
+   break;
   case 'chain':
    lines.push('ทุก '+n+' การโจมตี: ปล่อยกระแสพลังใส่ศัตรูสูงสุด '+(t.chainTargets||3)+' ตัว แรงนัดละ '+Math.round((t.chainPower||1.12)*100)+'% ATK');
    break;
@@ -407,6 +412,7 @@ function skillDescription(t,enemy=false){
    break;
   default:lines.push('ทุก '+n+' การโจมตี: ใช้สกิลตามข้อมูลฮีโร่');
  }
+ if(t.passive?.healOnAttack)lines.push('พาสซีฟ — '+t.passive.name+': เมื่อโจมตีปกติ ฟื้น HP ให้สมาชิกที่บาดเจ็บหนักที่สุด (ตามเปอร์เซ็นต์ HP) เท่ากับ '+Math.round(t.passive.healOnAttack*100)+'% ของ ATK พื้นฐานในการต่อสู้ของตนเอง');
  if(t.passive?.damageReduction)lines.push('พาสซีฟ — '+t.passive.name+': ลดความเสียหายที่ได้รับ '+Math.round(t.passive.damageReduction*100)+'% ตลอดการต่อสู้ ก่อนคำนวณโล่');
  if(t.passive?.focusCritStep)lines.push('พาสซีฟ — '+t.passive.name+': โจมตีเป้าหมายเดิมต่อเนื่องเพิ่มโอกาสคริติคอล '+Math.round(t.passive.focusCritStep*100)+' จุดเปอร์เซ็นต์ต่อครั้ง (สูงสุด +'+Math.round(t.passive.focusCritMax*100)+' จุดเปอร์เซ็นต์) · รีเซ็ตเมื่อเปลี่ยนเป้าหมาย');
  if(t.passive?.reviveHp)lines.push('พาสซีฟ — '+t.passive.name+': เมื่อ HP เหลือ 0 คืนชีพด้วย HP '+Math.round(t.passive.reviveHp*100)+'% และเป็นอมตะ '+t.passive.immortalSeconds+' วินาที (ไม่รับดาเมจ) · 1 ครั้งต่อเวฟหรือบอส');
@@ -651,6 +657,7 @@ function buildFighters(preserve=false){
    hp,maxHp:stat.hp,atk:stat.atk,cool:stat.cool,remaining:old?.remaining??i*.12,
    attacks:old?.attacks||0,shield:old?.shield||0,tauntUntil:old?.tauntUntil||0,
    attackDown:old?.attackDown||null,vulnerability:old?.vulnerability||null,
+   attackUp:old?.attackUp||null,speedUp:old?.speedUp||null,
    focusTarget:old?.focusTarget||null,focusHits:old?.focusHits||0,
    crit:stat.crit,critDamage:stat.critDamage,
    cloakUntil:old?.cloakUntil||0,ambush:old?.ambush||false,
@@ -857,10 +864,26 @@ function advanceTftShots(t){
  }
  shots=shots.filter(x=>!finished.has(x));
 }
+function showHealing(results){
+ for(const {unit:u,healed} of results){
+  if(healed<=0)continue;
+  const bar=u.side==='enemy'?u.bar:u.hpbar;
+  if(bar)bar.style.width=u.hp/u.maxHp*100+'%';
+  spawnFx('HEAL +'+fmt(healed),u.x,u.y-23);
+  if(u.node){u.node.classList.remove('healing-pulse');const node=u.node;requestAnimationFrame(()=>{if(node.isConnected)node.classList.add('healing-pulse')})}
+ }
+}
 function tftSkill(attacker,target){
  const hero=HEROES[attacker.id],effect=hero.effect;
  const foes=()=>attacker.side==='ally'?enemies.filter(x=>x.hp>0):fighters.filter(x=>x.alive);
  switch(effect){
+  case 'heal':{
+   const allies=attacker.side==='ally'?fighters:enemies;
+   const result=TFT.applySupport(allies,hero.support,stageClock);
+   showHealing(result.healed);
+   for(const u of result.units){position(u);spawnFx('ATK ↑ · SPD ↑',u.x,u.y-32)}
+   ring(attacker.x,attacker.y);return true;
+  }
   case 'pierce':
    tftPiercingShot(attacker,target);return true;
   case 'slam':{
@@ -939,6 +962,10 @@ function tftAttack(attacker,target){
    return;
   }
  }
+ if(!special&&hero.passive?.healOnAttack){
+  const allies=attacker.side==='ally'?fighters:enemies;
+  showHealing(TFT.healWeakest(allies,1,()=>attacker.atk*hero.passive.healOnAttack));
+ }
  const bonusCrit=(ambush?(hero.cloakCritBonus||0):0)+TFT.focusCritBonus(attacker,target,hero);
  attacker.attackUntil=stageClock+(hero.visual?.attackMs||300)/1000;
  pose(attacker,true);
@@ -992,7 +1019,7 @@ function tick(dt){
   position(f);
   if(close&&f.remaining<=0&&f.cloakUntil<=stageClock){
    heroAttack(f,target);
-   f.remaining=Math.max(.06,f.remaining+f.cool);
+   f.remaining=Math.max(.06,f.remaining+TFT.attackInterval(f,f.cool,stageClock));
    if(!combat)return;
   }
  }
@@ -1008,7 +1035,7 @@ function tick(dt){
    position(foe);
    if(close&&foe.remaining<=0&&foe.cloakUntil<=stageClock){
     enemyAttack(foe,target);
-    foe.remaining=Math.max(.06,foe.remaining+foe.delay);
+    foe.remaining=Math.max(.06,foe.remaining+TFT.attackInterval(foe,foe.delay,stageClock));
    }
   }else{foe.walking=false;position(foe)}
   foe.bar.style.width=foe.hp/foe.maxHp*100+'%';
