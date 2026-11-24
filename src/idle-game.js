@@ -7,6 +7,9 @@ const TFT=window.AUTOCHEST_TFT_COMBAT;
 if(!TFT)throw Error('TFT combat module missing: src/idle-tft-combat.js');
 if(!HEROES||!CORE)throw Error('Character and Idle Core modules must be loaded before idle-game.js');
 const IDS=Object.keys(HEROES);
+const rarityOrder=()=>[...IDS].sort((a,b)=>HEROES[b].cost-HEROES[a].cost);
+const rarityClass=h=>'rarity-'+h.rarity.toLowerCase();
+const rarityBadge=h=>'<span class="rarity-badge '+rarityClass(h)+'">'+h.rarity+'</span>';
 if(!IDS.length)throw Error('No SAO heroes registered');
 const safe=(fn,alternative)=>{try{return fn()}catch(_){return alternative}};
 const fmt=v=>Math.floor(v).toLocaleString('en-US');
@@ -303,9 +306,9 @@ function renderTeam(){
   const t=HEROES[id],p=state.owned[id],ready=readyUpgrade(id);
   return '<button type="button" class="team-slot '+(selected===id?'active ':'')+
    (ready?'is-upgrade-ready ':'')+
-   ''+
+   rarityClass(t)+
    '" data-slot="'+id+'" aria-label="เลือก '+escapeText(t.name)+' เลเวล '+p.level+' '+p.stars+' ดาว">'+
-   '<span class="team-level">Lv.'+p.level+'</span>'+
+   '<span class="team-level">Lv.'+p.level+'</span>'+rarityBadge(t)+
    '<img loading="lazy" src="'+t.images.idle+'" alt="">'+
    '<strong>'+escapeText(t.name)+'</strong>'+
    '<span class="team-stars">'+'★'.repeat(p.stars)+'</span>'+
@@ -313,10 +316,10 @@ function renderTeam(){
  }).join('');
 }
 function renderHeroes(){
- $('heroList').innerHTML=IDS.map(id=>{
+ $('heroList').innerHTML=rarityOrder().map(id=>{
   const t=HEROES[id],p=state.owned[id],ready=readyUpgrade(id);
   return '<div class="hero-entry"><button type="button" class="hero-card '+(!p?'locked ':'')+
-   (selected===id?'active ':'')+(ready?'is-upgrade-ready':'')+'" data-hero="'+id+'">'+
+   (selected===id?'active ':'')+(ready?'is-upgrade-ready ':'')+rarityClass(t)+'" data-hero="'+id+'">'+rarityBadge(t)+
    '<img loading="lazy" src="'+t.portrait+'" alt="">'+
    '<strong>'+escapeText(t.name)+'</strong>'+
    '<span class="collection-level">'+(p?'LEVEL '+p.level:'🔒 ไม่ได้ปลดล็อก')+'</span>'+
@@ -330,7 +333,7 @@ function renderSelected(){
  if(!hero){box.textContent='แตะฮีโร่ในทีมเพื่อดูข้อมูล';return}
  if(!p){
   box.innerHTML='<div class="upgrade-hero-header"><img src="'+hero.portrait+'" alt=""><div>'+
-   '<h4>'+escapeText(hero.name)+'</h4><span class="upgrade-lock">🔒 ยังไม่ได้อัญเชิญ</span>'+
+   '<h4>'+escapeText(hero.name)+' '+rarityBadge(hero)+'</h4><span class="upgrade-lock">🔒 ยังไม่ได้อัญเชิญ</span>'+
    '<p>'+escapeText(hero.subtitle||'')+'</p></div></div>'+
    '<div class="upgrade-empty">ปลดล็อกโดยอัญเชิญฮีโร่จากกาชาด้านล่าง เพื่อเริ่มอัปเลเวลและดาว</div>'+
    '<button type="button" id="openSkillBtn" class="inspect-skill-btn">ⓘ ดูสกิลฮีโร่คนนี้</button>';
@@ -348,7 +351,7 @@ function renderSelected(){
  const starPct=atStarMax?100:Math.min(100,Math.round(p.shards/starNeed*100));
  const shardMissing=Math.max(0,starNeed-p.shards);
  box.innerHTML='<div class="upgrade-hero-header"><img src="'+hero.portrait+'" alt=""><div class="upgrade-identity">'+
-  '<span class="upgrade-kicker">HERO PROGRESSION</span><h4>'+escapeText(hero.name)+'</h4>'+
+  '<span class="upgrade-kicker">HERO PROGRESSION</span><h4>'+escapeText(hero.name)+' '+rarityBadge(hero)+'</h4>'+
   '<p>'+escapeText(hero.team)+' · '+escapeText(hero.skill)+'</p>'+
   '<div class="upgrade-badges"><span>Lv.'+p.level+' / '+CORE.MAX_LEVEL+'</span>'+
   '<span class="gold-stars">'+'★'.repeat(p.stars)+'☆'.repeat(CORE.MAX_STARS-p.stars)+'</span>'+
@@ -457,7 +460,7 @@ function openSkill(id,source='hero',unit=null){
  $('skillModalContent').innerHTML=
   '<div class="skill-modal-layout"><div class="skill-portrait"><img loading="lazy" src="'+escapeText(h.images.art||h.portrait)+'" alt="'+escapeText(h.name)+'"></div>'+
   '<div class="skill-modal-main"><div class="skill-status">'+escapeText(label)+'</div><h3>'+escapeText(h.name)+'</h3>'+
-  '<p>'+escapeText(h.subtitle||'')+'</p><div class="skill-tags"><span>'+escapeText(h.role||h.team)+'</span>'+
+  '<p>'+escapeText(h.subtitle||'')+'</p><div class="skill-tags">'+rarityBadge(h)+'<span>'+escapeText(h.role||h.team)+'</span>'+
   (h.traits||[]).map(x=>'<span>'+escapeText(x)+'</span>').join('')+'</div>'+
   '<div class="skill-stats">'+stats.map(([k,v])=>'<div><small>'+escapeText(k)+'</small><strong>'+escapeText(v)+'</strong></div>').join('')+
   '</div></div></div><section class="skill-ability"><small>⚔ AUTO SKILL · IDLE MODE</small>'+
@@ -622,10 +625,10 @@ function updateSummonWallet(){
  $('summonLastBtn').hidden=!lastSummon;
 }
 function renderSummonPool(){
- const odds=CORE.summonOdds(HEROES);
+ const odds=CORE.summonOdds(HEROES).sort((a,b)=>HEROES[b.id].cost-HEROES[a.id].cost);
  $('summonPoolCount').textContent=odds.length;
- $('summonPool').innerHTML=odds.map(({id})=>{const h=HEROES[id];return '<button type="button" class="summon-pool-hero tier-'+h.cost+'" data-trial-hero="'+id+'" aria-label="ทดลอง '+escapeText(h.name)+'"><img src="'+h.images.art+'" alt=""><span>'+escapeText(h.name)+'</span><small>▶ ทดลอง</small></button>'}).join('');
- $('summonRates').innerHTML=odds.map(({id,rate})=>'<div><span>'+escapeText(HEROES[id].name)+'</span><b>'+ (rate*100).toFixed(2)+'%</b></div>').join('');
+ $('summonPool').innerHTML=odds.map(({id})=>{const h=HEROES[id];return '<button type="button" class="summon-pool-hero tier-'+h.cost+' '+rarityClass(h)+'" data-trial-hero="'+id+'" aria-label="ทดลอง '+escapeText(h.name)+'">'+rarityBadge(h)+'<img src="'+h.images.art+'" alt=""><span>'+escapeText(h.name)+'</span><small>▶ ทดลอง</small></button>'}).join('');
+ $('summonRates').innerHTML=odds.map(({id,rate})=>'<div><span>'+rarityBadge(HEROES[id])+' '+escapeText(HEROES[id].name)+'</span><b>'+ (rate*100).toFixed(2)+'%</b></div>').join('');
 }
 function showSummonBanner(){
  if(summonBusy)return;
@@ -642,8 +645,8 @@ function showSummonOutcome(){
  $('summonResults').classList.toggle('single',count===1);
  $('summonResults').innerHTML=rewards.map((reward,i)=>{
   const h=HEROES[reward.id];
-  return '<article class="summon-result-card tier-'+h.cost+(reward.isNew?' new-hero':'')+'" style="--delay:'+Math.min(i*65,550)+'ms">'+
-   '<div class="summon-result-art"><img src="'+h.images.art+'" alt="'+escapeText(h.name)+'"><span class="result-tag">'+(reward.isNew?'NEW':'+1 ชิ้นส่วน')+'</span></div>'+
+  return '<article class="summon-result-card tier-'+h.cost+' '+rarityClass(h)+(reward.isNew?' new-hero':'')+'" style="--delay:'+Math.min(i*65,550)+'ms">'+
+   '<div class="summon-result-art">'+rarityBadge(h)+'<img src="'+h.images.art+'" alt="'+escapeText(h.name)+'"><span class="result-tag">'+(reward.isNew?'NEW':'+1 ชิ้นส่วน')+'</span></div>'+
    '<strong>'+escapeText(h.name)+'</strong><small>'+escapeText(h.role||h.team)+'</small></article>';
  }).join('');
  $('summonReceipt').textContent='ใช้ '+summonCostLabel(cost)+' · อัญเชิญ '+count+' ครั้ง';
@@ -1185,7 +1188,7 @@ function resetTrial(){
  }
  const cells=h.effect==='pierce'?[[50,42],[50,25],[50,10],[24,30],[76,30]]:[[50,38],[33,32],[67,32],[18,15],[82,15]];
  for(let i=0;i<count;i++){const [x,y]=cells[i];trial.enemies.push(trialUnit('__dummy','enemy',x,y,3000,3000,'หุ่น '+(i+1)))}
- $('trialSkillName').textContent=h.skill;
+ $('trialSkillName').innerHTML=rarityBadge(h)+' '+escapeText(h.skill);
  $('trialStats').textContent='HP '+fmt(st.hp)+' · ATK '+fmt(st.atk)+' · '+(h.globalRange?'ทั่วสนาม':h.range+' ช่อง');
  $('trialPassive').disabled=!(h.passive||h.guard||h.effect==='cloakshot');
  $('trialPassive').textContent=h.passive?.reviveHp?'ทดสอบคืนชีพ':h.passive?.focusCritStep?'ทดสอบคริต่อเนื่อง':h.passive?.healOnAttack?'ทดสอบฮีลปกติ':h.guard?'ทดสอบยั่วยุ':h.effect==='cloakshot'?'ทดสอบซุ่มยิง':h.passive?.damageReduction?'ทดสอบลดดาเมจ':'ทดลองพาสซีฟ';
@@ -1275,7 +1278,7 @@ function recoverTrial(error){
 function openTrial(id){
  if(!HEROES[id]||trial)return;
  trialReturnFocus=document.activeElement;
- $('trialHero').innerHTML=IDS.map(id=>'<option value="'+id+'">'+escapeText(HEROES[id].name)+'</option>').join('');
+ $('trialHero').innerHTML=IDS.map(id=>'<option value="'+id+'">'+HEROES[id].rarity+' · '+escapeText(HEROES[id].name)+'</option>').join('');
  $('trialHero').value=id;$('trialModal').hidden=false;resetTrial();$('trialClose').focus();
 }
 function closeTrial(){
@@ -1291,7 +1294,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('trialModal').hi
 if(typeof ResizeObserver==='function')new ResizeObserver(()=>{if(trial){trial.size={width:$('trialArena').clientWidth,height:$('trialArena').clientHeight};withTrial(()=>{renderTrial();for(const shot of shots)positionShot(shot)})}}).observe($('trialArena'));
 function refreshUpgradePicker(){
  const picker=$('upgradePicker');if(!picker)return;
- picker.innerHTML=IDS.map(id=>'<option value="'+id+'"'+(id===selected?' selected':'')+'>'+escapeText(HEROES[id].name)+(state.owned[id]?' · Lv.'+state.owned[id].level:' · ล็อก')+'</option>').join('');
+ picker.innerHTML=IDS.map(id=>'<option value="'+id+'"'+(id===selected?' selected':'')+'>'+HEROES[id].rarity+' · '+escapeText(HEROES[id].name)+(state.owned[id]?' · Lv.'+state.owned[id].level:' · ล็อก')+'</option>').join('');
 }
 function closeManagement(){
  if(!managementPanel)return;
