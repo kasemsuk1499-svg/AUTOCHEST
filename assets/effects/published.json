@@ -33,6 +33,16 @@
         "frames": 14,
         "size": 105,
         "ms": 800
+      },
+      "cast": {
+        "src": "./assets/effects/megumin/cast-4e246c5ad168.png",
+        "cols": 16,
+        "rows": 1,
+        "row": 0,
+        "col": 0,
+        "frames": 16,
+        "size": 400,
+        "ms": 1500
       }
     }
   }
