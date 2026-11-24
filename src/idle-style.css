@@ -457,3 +457,44 @@ footer{margin:10px 0 0;font-size:9px;justify-content:center;color:#60788c}
 /* Keep primary controls visible even on shorter laptop screens. */
 @media(min-width:900px){.stage-header h2{line-height:1.15}.stage-sub{line-height:1.25}.monster-track{line-height:1.3}.battle-actions{padding-top:7px}.stage-foot{line-height:1.3}.main-layout{grid-template-columns:minmax(0,min(740px,max(400px,calc((100dvh - 315px)*.98)))) minmax(310px,350px)}}
 @media(max-width:540px){.resource-box span{line-height:1.1}.resource-box strong{line-height:1.3}.stage-header h2{line-height:1.2}.stage-sub{line-height:1.2}.monster-track{line-height:1.2}.team-card .auto-lineup{width:auto;margin:5px 0 0}.hero-list{gap:4px}.game-nav button{line-height:1.25}}
+
+/* v0.19.2 — compositor-driven motion and readable combat feedback. */
+.stage-viewport .fighter,.stage-viewport .tft-bullet{
+ left:0!important;top:0!important;transition:none!important;will-change:transform;
+}
+.stage-viewport .fighter{filter:none}
+.stage-viewport .fighter img{filter:drop-shadow(0 3px 3px #07111a99);will-change:transform}
+.stage-viewport .fighter.walking img{animation:smooth-ally-step .38s ease-in-out infinite}
+.stage-viewport .fighter.enemy-unit.walking img{animation:smooth-enemy-step .38s ease-in-out infinite}
+.stage-viewport .fighter.party-fighter.burst img{animation:smooth-ally-strike .26s ease-out!important}
+.stage-viewport .fighter.enemy-unit.burst img{animation:smooth-enemy-strike .26s ease-out!important}
+@keyframes smooth-ally-step{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes smooth-enemy-step{0%,100%{transform:translateY(0) scaleX(-1)}50%{transform:translateY(-4px) scaleX(-1)}}
+@keyframes smooth-ally-strike{0%,100%{transform:translateX(0)}35%{transform:translateX(6px) scale(1.04)}}
+@keyframes smooth-enemy-strike{0%,100%{transform:translateX(0) scaleX(-1)}35%{transform:translateX(-6px) scaleX(-1) scale(1.04)}}
+.stage-viewport .fighter.immortal img{filter:drop-shadow(0 0 6px #ffe5a3)}
+.stage-viewport .fx-number{
+ z-index:12;pointer-events:none;white-space:nowrap;line-height:1.15;
+ font-size:13px;font-weight:700;letter-spacing:.05px;font-variant-numeric:tabular-nums;
+ text-shadow:0 1px 2px #07111a,0 0 4px #07111a,1px 1px #07111a,-1px -1px #07111a;
+ animation:combat-number-rise 1s ease-out forwards;
+}
+.stage-viewport .fx-damage{color:#fff0c9;font-size:17px}
+.stage-viewport .fx-damage.critical{color:#ffb47a;font-size:21px}
+.stage-viewport .fx-heal{color:#8effb2}
+.stage-viewport .fx-shield{color:#91d8ff}
+.stage-viewport .fx-buff{color:#9fffd8;font-size:11px}
+.stage-viewport .fx-debuff{color:#ff9da5;font-size:11px}
+.stage-viewport .fx-status{color:#dfcbff;font-size:11px}
+@keyframes combat-number-rise{
+ 0%{transform:translate(calc(-50% + var(--fx-x,0px)),var(--fx-y,-22px)) scale(.88);opacity:0}
+ 10%{transform:translate(calc(-50% + var(--fx-x,0px)),calc(var(--fx-y,-22px) - 5px)) scale(1);opacity:1}
+ 68%{opacity:1}
+ 100%{transform:translate(calc(-50% + var(--fx-x,0px)),calc(var(--fx-y,-22px) - 42px));opacity:0}
+}
+.stage-viewport .fx-ring,.stage-viewport .fx-cloak{animation:compositor-ring .46s ease-out forwards;box-shadow:none}
+@keyframes compositor-ring{from{transform:translate(-50%,-50%) scale(.8);opacity:.85}to{transform:translate(-50%,-50%) scale(4);opacity:0}}
+.stage-viewport .tft-bullet{box-shadow:0 0 6px var(--bullet-color,#a6f9f2)}
+.stage-viewport .tft-bullet.heavy{box-shadow:0 0 9px var(--bullet-color,#a6f9f2)}
+@media(max-width:540px){.stage-viewport .fx-number{font-size:10px}.stage-viewport .fx-damage{font-size:13px}.stage-viewport .fx-damage.critical{font-size:16px}.stage-viewport .fx-buff,.stage-viewport .fx-debuff,.stage-viewport .fx-status{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.stage-viewport .fighter img{animation:none!important}.stage-viewport .fx-number{animation-duration:.6s}}
