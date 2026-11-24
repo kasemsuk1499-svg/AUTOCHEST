@@ -270,3 +270,38 @@ footer{margin:20px 0 0;display:flex;justify-content:space-between;color:#789db8;
  .upgrade-materials span{font-size:10px}
  .hero-card .collection-stars{font-size:8px}
 }
+
+/* v0.17.1 — mobile-first sizing: keep all six original board columns on screen */
+.mobile-upgrade-shortcut{display:none}
+#heroEnhance{scroll-margin-top:14px}
+@media(max-width:730px){
+ html,body{width:100%;max-width:100%;overflow-x:clip}
+ .app-shell{width:100%;min-width:0;max-width:100%;padding:10px}
+ .resource-ribbon{width:100%;min-width:0;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+ .resource-box{width:100%;min-width:0;padding:8px 9px;gap:5px}
+ .resource-box span{font-size:10px;min-width:0;white-space:nowrap}
+ .resource-box strong{font-size:18px;flex-shrink:0}
+ .resource-box.power{grid-column:span 2}
+ .main-layout{display:grid;min-width:0;width:100%;grid-template-columns:minmax(0,1fr)}
+ .stage-card,.sidebar,.side-card{min-width:0;max-width:100%;width:100%}
+ .stage-header{min-width:0}
+ .stage-header>div:first-child{min-width:0}
+ .stage-header h2{overflow-wrap:anywhere}
+ .stage-viewport{width:100%;max-width:100%;height:auto;aspect-ratio:760/775}
+ .board-grid{width:100%;grid-template-columns:repeat(6,minmax(0,1fr))}
+ .team-slots{grid-template-columns:repeat(4,minmax(0,1fr))}
+ .mobile-upgrade-shortcut{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  width:100%;margin:0 0 9px;padding:10px 12px;border-radius:10px;
+  color:#ebfff5;text-decoration:none;font-size:12px;font-weight:600;
+  background:linear-gradient(115deg,#216063,#274c68);border:1px solid #70dabb}
+ .mobile-upgrade-shortcut b{font:700 11px Rajdhani,Kanit,sans-serif;border-radius:7px;
+  background:#0c473d;color:#b6ffdb;padding:5px 8px;white-space:nowrap}
+ .mobile-upgrade-shortcut:focus-visible{outline:2px solid #b6ffe7;outline-offset:2px}
+}
+@media(max-width:370px){
+ .resource-box{padding:8px 6px}
+ .resource-box span{font-size:9px}
+ .resource-box strong{font-size:16px}
+ .stage-header h2{font-size:15px}
+ .stage-badge{min-width:70px}
+}

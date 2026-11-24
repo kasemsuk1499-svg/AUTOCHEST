@@ -76,3 +76,12 @@ This is a simplified two-dimensional field with responsive camera/parallax and a
 - Inspector descriptions reflect actual **Idle** calculations: 170% ATK on allied offensive skills vs 165% for enemy offensive skills, 30% HP allied shield vs 23% enemy shield, and the configured Death Gun stealth + ambush. Multi-target visual skill variants still deal single-target damage in Idle v0.16.
 - Gameplay pauses while the skill detail dialog is open; close with X, Escape, or outside click.
 - Live Chrome validation confirmed all 7 hero cards, Death Gun stealth description, allied and enemy hero skill panels, simultaneous rushing enemies, movement/progression to stage 2 and **zero runtime JavaScript exceptions**.
+
+## v0.17.1 — original board + discoverable progression
+
+- Restores the original **6-column × 7-row AUTOCHEST grid** as the actual Idle combat field, with editable squad placement on the **bottom 3 rows**. Click a team hero and an allied board tile to place it, or drag a deployed fighter onto a new tile. Placements persist with the existing Idle save.
+- The original auto battler layout is preserved while maintaining ongoing rush waves, stage progression, heroes, spells, summoning, and offline gold/EXP.
+- Moves the **hero enhancement dashboard directly below team formation**: level/star badges, real-time HP/ATK, stat gains at the next level/star, shard progress bars, live Gold/EXP costs, missing resource messages, and prominent +1 / up-to-5 level / Star buttons.
+- Both formation slots and collection cards show **Lv, Stars, and an upgrade-ready mark**. Buttons automatically become enabled when monster rewards make upgrades affordable. Newly leveled/starred heroes gain combat stats immediately without having to restart a run.
+- Improves narrow-screen layout with 2-column currency resources, 6 fully visible board columns (no side scrolling), and a **mobile shortcut to the upgrade panel**, including a live number of upgrade-ready heroes. All scripts and CSS share version `0.17.1`.
+- Tests: original grid 42 cells/18 allied cells, click deployment and saved coordinates, level +1 reflected on formation cards, star 1→2 with shard cost and visible output, hero inspector and no Chrome JavaScript exceptions.

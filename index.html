@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#101729">
 <meta name="description" content="AUTOCHEST IDLE — เกม SAO Idle RPG ต่อสู้และฟาร์มอัตโนมัติ">
 <title>AUTOCHEST IDLE — SAO Adventure</title>
-<link rel="stylesheet" href="./src/idle-style.css?v=0.17.0">
+<link rel="stylesheet" href="./src/idle-style.css?v=0.17.1">
 <script>
 window.__AUTOCHEST_IDLE_READY__=false;
 window.__idleBootMessage='';
@@ -29,7 +29,7 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
  <header class="app-header">
   <div class="logo-box">✦</div>
   <div class="brand"><small>SAO • HERO COLLECTION • AUTO BATTLE</small><h1>AUTO<span>CHEST</span> <em>IDLE</em></h1></div>
-  <div class="header-badge"><span class="online-dot"></span> SOLO ADVENTURE <b>v0.17.0</b></div>
+  <div class="header-badge"><span class="online-dot"></span> SOLO ADVENTURE <b>v0.17.1</b></div>
  </header>
  <div id="startupError" class="startup-error" role="alert" hidden><b>⚠️ เกมโหลดไม่สำเร็จ</b><span id="startupErrorText"></span><button type="button" onclick="idleHardReload()">🔄 โหลดเวอร์ชันใหม่</button></div>
  <div class="resource-ribbon">
@@ -39,7 +39,10 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
    <div class="resource-box"><span>🎟️ TICKETS</span><strong id="ticketValue">0</strong></div>
    <div class="resource-box power"><span>⚡ TEAM POWER</span><strong id="teamPower">0</strong></div>
  </div>
- <main class="main-layout">
+ <a class="mobile-upgrade-shortcut" href="#heroEnhance" aria-label="ข้ามไปส่วนเสริมแกร่งฮีโร่">
+    <span>⬆ เสริมแกร่งฮีโร่</span><b id="upgradeShortcutReady">พร้อมอัป 0 ตัว</b>
+  </a>
+  <main class="main-layout">
    <section class="stage-card">
      <div class="stage-header">
        <div><div class="eyebrow">WORLD 01 · MAIN ADVENTURE</div><h2 id="stageName">ทุ่งหญ้าแห่งการเริ่มต้น</h2><div class="stage-sub">STAGE <b id="stageNumber">1</b> <span id="fightLabel" class="battle-label">AUTO FARM</span></div></div>
@@ -69,7 +72,7 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
        <div class="team-note">แตะตัวในทีมเพื่อดูเลเวล ดาว และเสริมแกร่ง • กดช่องบนกระดานเพื่อวางตำแหน่ง</div>
        <div class="inline-actions"><button id="autoTeamBtn" class="soft-btn">✦ จัดทีมอัตโนมัติ</button><button id="offlineBtn" class="soft-btn">📦 รางวัลออฟไลน์</button></div>
      </section>
-     <section class="side-card upgrade-card" aria-label="เสริมแกร่งฮีโร่">
+     <section id="heroEnhance" class="side-card upgrade-card" aria-label="เสริมแกร่งฮีโร่">
        <div class="card-heading"><div><small>HERO DEVELOPMENT</small><h3>⬆ เสริมแกร่งฮีโร่</h3></div><span id="upgradeReadyCount" class="count-pill">พร้อมอัป 0 ตัว</span></div>
        <div class="upgrade-guide">① เลือกฮีโร่จากทีม/คลัง → ② กดเพิ่มเลเวลหรือดาว → ③ ค่าสถานะเพิ่มทันที</div>
        <div id="heroDetails" class="hero-details upgrade-details"><div class="no-selection">เลือกฮีโร่จากทีมด้านบนเพื่อเสริมแกร่ง</div></div>
@@ -116,14 +119,14 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
    </section>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script defer src="./src/characters.js?v=0.17.0"></script>
-<script defer src="./src/characters/heroes/asuna.js?v=0.17.0"></script>
-<script defer src="./src/characters/heroes/kirito.js?v=0.17.0"></script>
-<script defer src="./src/characters/heroes/sinon.js?v=0.17.0"></script>
-<script defer src="./src/characters/heroes/lisbeth.js?v=0.17.0"></script>
-<script defer src="./src/characters/heroes/deathgun.js?v=0.17.0"></script>
-<script defer src="./src/characters/heroes/heathcliff.js?v=0.17.0"></script>
-<script defer src="./src/characters/heroes/silica.js?v=0.17.0"></script>
-<script defer src="./src/idle-core.js?v=0.17.0"></script>
-<script defer src="./src/idle-game.js?v=0.17.0"></script>
+<script defer src="./src/characters.js?v=0.17.1"></script>
+<script defer src="./src/characters/heroes/asuna.js?v=0.17.1"></script>
+<script defer src="./src/characters/heroes/kirito.js?v=0.17.1"></script>
+<script defer src="./src/characters/heroes/sinon.js?v=0.17.1"></script>
+<script defer src="./src/characters/heroes/lisbeth.js?v=0.17.1"></script>
+<script defer src="./src/characters/heroes/deathgun.js?v=0.17.1"></script>
+<script defer src="./src/characters/heroes/heathcliff.js?v=0.17.1"></script>
+<script defer src="./src/characters/heroes/silica.js?v=0.17.1"></script>
+<script defer src="./src/idle-core.js?v=0.17.1"></script>
+<script defer src="./src/idle-game.js?v=0.17.1"></script>
 </body></html>

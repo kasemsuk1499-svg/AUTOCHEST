@@ -340,6 +340,8 @@ function refreshUpgradeAvailability(){
  const ready=Object.keys(state.owned).filter(id=>readyUpgrade(id));
  const summary=$('upgradeReadyCount');
  if(summary)summary.textContent=ready.length?'พร้อมอัป '+ready.length+' ตัว':'ยังอัปไม่ได้';
+ const mobileShortcut=$('upgradeShortcutReady');
+ if(mobileShortcut)mobileShortcut.textContent=ready.length?'พร้อมอัป '+ready.length+' ตัว':'ดูเลเวล / ดาว';
  for(const n of $('teamSlots').querySelectorAll('[data-slot]')){
   const id=n.dataset.slot;
   if(id!=='empty')n.classList.toggle('is-upgrade-ready',readyUpgrade(id));
