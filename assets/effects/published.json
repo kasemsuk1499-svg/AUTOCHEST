@@ -149,6 +149,16 @@
         "frames": 16,
         "size": 150,
         "ms": 440
+      },
+      "area": {
+        "src": "./assets/effects/lisbeth/area-d58fb6cad507.png",
+        "cols": 8,
+        "rows": 3,
+        "row": 0,
+        "col": 0,
+        "frames": 24,
+        "size": 400,
+        "ms": 1000
       }
     }
   }
