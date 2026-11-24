@@ -72,3 +72,55 @@ footer{margin:20px 0 0;display:flex;justify-content:space-between;color:#789db8;
 .walk-controls small{font:500 9px Kanit,sans-serif;color:#d3f3ea;background:#09293c9a;border-radius:6px;padding:2px 5px}
 @media(max-width:730px){.walk-controls{top:7px;left:7px}.walk-pad{grid-template-columns:repeat(3,34px);grid-template-rows:repeat(3,34px)}
  .walk-controls small{font-size:8px}.auto-walk-btn{font-size:10px;padding:5px 8px}}
+
+/* v0.16 — skill viewer, battlefield inspector and click targets */
+.hero-entry{position:relative;min-width:0}
+.hero-entry .hero-card{display:block;width:100%;height:100%}
+.hero-info-btn{position:absolute;right:3px;top:3px;z-index:3;width:26px;height:26px;
+ border-radius:50%;padding:0;border:1px solid #a8fff4;background:#113650e8;
+ color:#c3fff4;font:700 18px Rajdhani,Kanit,sans-serif;box-shadow:0 2px 6px #0008}
+.hero-info-btn:hover{background:#35877f}
+.inspect-skill-btn{width:100%;margin:10px 0 0;padding:10px 12px;background:#204e62;
+ border:1px solid #81e8d7;color:#d8fff9;border-radius:9px;font:600 12px Kanit,sans-serif}
+.inspect-skill-btn:hover{background:#307681}
+.battle-layer .fighter[data-inspect-id]{pointer-events:auto;cursor:pointer}
+.battle-layer .fighter[data-inspect-id]:focus-visible{outline:2px solid #9df9e3;outline-offset:3px;border-radius:10px}
+.skill-modal{z-index:30}
+.skill-dialog{position:relative;z-index:1;width:min(730px,96vw);max-height:88vh;overflow:auto;
+ padding:22px;border-radius:19px;border:1px solid #638caa;
+ background:linear-gradient(145deg,#173552,#121d39);box-shadow:0 24px 85px #000d}
+.skill-dialog-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;
+ border-bottom:1px solid #435d7a;padding-bottom:13px}
+.skill-dialog-heading small,.skill-ability>small{font:700 11px Rajdhani,Kanit,sans-serif;color:#89e1d8;letter-spacing:1.5px}
+.skill-dialog-heading h2{margin:3px 0;font-size:20px;line-height:1.2}
+#closeSkillBtn{width:38px;height:38px;flex-shrink:0;border-radius:10px;background:#2d415e;
+ border:1px solid #6f8ba6;font-size:18px}
+#closeSkillBtn:hover{background:#4e5c7e}
+.skill-modal-layout{display:grid;grid-template-columns:175px 1fr;gap:18px;padding:17px 0}
+.skill-portrait{min-height:236px;display:grid;place-items:center;border-radius:14px;
+ background:radial-gradient(circle at 50% 45%,#2b5b718e,#0a1d32 70%);
+ border:1px solid #49718d;overflow:hidden}
+.skill-portrait img{width:100%;height:250px;object-fit:contain}
+.skill-modal-main h3{font-size:23px;margin:9px 0 0}
+.skill-modal-main p{color:#b8d0e4;margin:4px 0 12px;font-size:12px}
+.skill-status{font-size:11px;color:#fbe2a8}
+.skill-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:11px}
+.skill-tags span{font-size:10px;padding:4px 7px;border:1px solid #527a92;
+ background:#19425a;border-radius:14px}
+.skill-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.skill-stats>div{background:#0d2a43;border:1px solid #37607d;border-radius:9px;padding:7px;min-width:0}
+.skill-stats small{display:block;color:#a5c5dc;font-size:10px}
+.skill-stats strong{font:700 18px Rajdhani,Kanit,sans-serif;overflow-wrap:anywhere}
+.skill-ability{border:1px solid #5b8f9c;border-radius:13px;background:#12405655;padding:15px}
+.skill-ability h3{margin:6px 0;font-size:17px;color:#e1fff1}
+.skill-ability ul{padding-left:22px;margin:8px 0;display:grid;gap:8px;font-size:12px;color:#d0e4f3}
+.skill-mode-note{border-top:1px solid #456d7b;padding-top:9px;margin:11px 0 0;color:#a8c1d1;font-size:11px}
+@media(max-width:570px){
+ .skill-dialog{padding:13px;max-height:92vh}
+ .skill-dialog-heading h2{font-size:16px}
+ .skill-modal-layout{grid-template-columns:95px 1fr;gap:9px}
+ .skill-portrait{min-height:155px}.skill-portrait img{height:165px}
+ .skill-modal-main h3{font-size:16px}
+ .skill-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .skill-stats strong{font-size:14px}.skill-ability{padding:11px}
+}
