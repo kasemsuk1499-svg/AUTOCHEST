@@ -810,7 +810,12 @@ function tftAttack(attacker,target){
  let mul=ambush?(hero.cloakShotMultiplier||1.7):1;
  if(special){
   if(effect!=='cloakshot')mul*=2;
-  if(tftSkill(attacker,target))return;
+  if(tftSkill(attacker,target)){
+   attacker.attackUntil=stageClock+(hero.visual?.attackMs||360)/1000;
+   pose(attacker,true);
+   if(attacker.node){attacker.node.classList.remove('burst');void attacker.node.offsetWidth;attacker.node.classList.add('burst')}
+   return;
+  }
  }
  const bonusCrit=ambush?(hero.cloakCritBonus||0):0;
  attacker.attackUntil=stageClock+(hero.visual?.attackMs||300)/1000;
