@@ -355,3 +355,17 @@ footer{margin:20px 0 0;display:flex;justify-content:space-between;color:#789db8;
 .quick-auto{background:#1a5648;border:1px solid #75dcb5;color:#b7ffdb}
 .quick-auto.off{background:#543b47;border-color:#d396a4;color:#ffdde5}
 @media(max-width:730px){.battle-quickbar{padding:2px 9px 9px;gap:6px}.battle-quickbar button{font-size:11px;padding:9px 4px}}
+
+/* v0.18.3 — direct team management */
+#formationBtn,#formationQuickBtn,.formation-toolbar{display:none}
+.battle-quickbar{grid-template-columns:1fr}
+#heroList .hero-card:not(.locked),#teamSlots .team-slot:not(.empty),#heroLayer .party-fighter{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#heroList .hero-card img,#teamSlots .team-slot img,#heroLayer .party-fighter img{-webkit-user-drag:none;user-select:none;pointer-events:none}
+.hero-dragging,.hero-dragging *{cursor:grabbing!important;user-select:none}
+.hero-drag-ghost{position:fixed;z-index:10000;pointer-events:none;width:82px;height:100px;transform:translate(-50%,-65%);display:flex;flex-direction:column;align-items:center;justify-content:center;filter:drop-shadow(0 6px 9px #000b)}
+.hero-drag-ghost img{width:76px;height:78px;object-fit:contain}
+.hero-drag-ghost span{background:#12344e;color:#fff;border:1px solid #86e8ce;border-radius:6px;font-size:11px;padding:2px 6px;white-space:nowrap}
+#benchDrop{margin-top:8px;border:1px dashed #6c9bb3;border-radius:9px;background:#12283e;color:#c0d9e5;text-align:center;padding:10px;font-size:11px}
+.hero-dragging #benchDrop{border-color:#9de6d2;background:#183b4d}
+.drag-target{outline:2px solid #a5ffe2!important;outline-offset:-2px;box-shadow:inset 0 0 0 2px #a5ffe24d!important}
+.stage-viewport .board-cell.drag-target{background:#a5ffe250!important}
