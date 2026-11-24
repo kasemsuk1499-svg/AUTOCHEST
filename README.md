@@ -1,76 +1,57 @@
-# AUTOCHEST — CHIBI AUTO BATTLER 🎮
+# AUTOCHEST — Chibi Auto Battler 🎮
 
-**Playable Alpha v0.4 · PNG + GIF Heroes** — เกมออโต้เชสแบบ PvE เล่นบนเบราว์เซอร์ จัดทีม → วางตำแหน่ง → ให้ตัวละครต่อสู้เอง
+**Playable Alpha v0.6 · Shared Hero / Enemy Models**
 
-## PNG / GIF สำหรับตัวละครทุกชนิด (v0.4) 💎
+## เล่นเกม
+ซื้อฮีโร่ จัดทีมในสามแถวล่าง กดเริ่มต่อสู้อัตโนมัติ ชนะรับ Gold และรวมฮีโร่เหมือนกัน 3 ตัวเพิ่มดาว บอสปรากฏทุก 3 เวฟ
 
-ตัวละคร **ทุกตัว รวมศัตรู/บอส** มี `images.art`, `images.idle`, `images.attack` ที่ใช้ได้ทั้ง `.png` และ `.gif` แบบ **ผสมกันได้อิสระ** เหมาะสำหรับสกิน/ตัวพรีเมียม
+## ฝ่ายศัตรูใช้ไฟล์เดียวกับฮีโร่
+- **ไฟล์ตัวละครเดียวกันทั้งสองฝ่าย:** `src/characters/heroes/*.js`
+- ภาพ Art / Idle / Attack ใช้ชุดเดียวกันที่ `assets/heroes/<id>/` เลือก PNG หรือ GIF ได้ทุกช่อง รวมภาพตัวพรีเมียม
+- ฝ่ายเราใช้สเตตัสปกติ; ฝ่ายศัตรูใช้ HP และ ATK ที่คูณตามเวฟ ทั้งสองฝ่ายใช้สกิล ความเร็วโจมตี และอัตราคริติคอลพื้นฐานเดียวกัน
+- ศัตรูจะแสดงบนสนามส่วนบนและมีแถบ HP สีแดง
+- บอสคือฮีโร่หนึ่งตัวที่ขยายขนาดและเพิ่มพลัง ไม่ต้องวาดภาพแยก
+- เพิ่มฮีโร่ใหม่เพียงครั้งเดียว ทั้งเข้าร้านค้าและสุ่มเป็นศัตรูได้ตามระดับเวฟ
 
-- `art`: ภาพอาร์ตบนการ์ดร้านค้าและแผงรายละเอียด (GIF เคลื่อนไหวได้)
-- `idle`: ตัวจิบิบนสนาม/ม้านั่ง ตอนยืนและเดิน (GIF เคลื่อนไหวได้)
-- `attack`: ตัวจิบิขณะโจมตีหรือใช้สกิล (GIF เคลื่อนไหวได้)
-- **PNG** วาดด้วย Canvas ตามเดิม; **GIF** บนกระดานแสดงผ่าน `<img>` overlay ที่ติดตามตำแหน่งตัวละคร (ไม่ใช้ `drawImage` ซึ่งอาจหยุดอยู่เฟรมแรก)
-- เมื่อตัวละครโจมตี ระบบสลับไปไฟล์ `attack` แล้วกลับ `idle` หลังช่วงเวลาโจมตี; `visual.attackMs` ปรับเวลาค้าง GIF โจมตีได้ 100–5000 ms (ค่าเริ่มต้นสำหรับ GIF 700 ms)
-- แค่เปลี่ยน path ในไฟล์ข้อมูลรายตัวและใส่ GIF ในโฟลเดอร์ภาพ ไม่ต้องแก้ `game.js`
-- ไฟล์เดิม `character.png` ยังใช้งานได้ทุกช่องโดยไม่ต้องสร้างภาพเพิ่ม
+### ตัวคูณศัตรูใน `src/game.js`
+| ค่า | ศัตรูทั่วไป | บอส |
+|---|---|---|
+| HP เวฟ 1 | ×0.62 | ×0.62 ×2.4 |
+| เพิ่ม HP ต่อเวฟ | +0.13 | +0.13 (ก่อนคูณบอส) |
+| ATK เวฟ 1 | ×0.69 | ×0.69 ×1.4 |
+| เพิ่ม ATK ต่อเวฟ | +0.10 | +0.10 (ก่อนคูณบอส) |
+| สเกลภาพ | ×0.94 | ×1.65 |
 
-```javascript
-// src/characters/heroes/knight.js
-images: {
-  art: './assets/heroes/knight/art.gif',
-  idle: './assets/heroes/knight/idle.gif',
-  attack: './assets/heroes/knight/attack.gif'
-},
-visual: {scale: 1, walkBob: 6, skillGlow: 1, attackMs: 900}
-```
+เวฟ 1–2 ใช้ฮีโร่ราคา 1, เวฟ 3–4 ใช้ราคาสูงสุด 2, เวฟ 5+ ใช้ฮีโร่ราคาสูงสุด 3; อาสึนะจึงเป็นศัตรูได้ตั้งแต่เวฟ 5 และบอสได้ตั้งแต่เวฟ 6
 
-> ใช้ GIF โปร่งใสขนาดเหมาะสม และตั้งลูปสำหรับ `idle`; หาก `attack.gif` ยาวเกิน `attackMs` อาจถูกเปลี่ยนกลับเป็น `idle` ก่อนเล่นครบ
-
-## เริ่มเล่น
-
-1. เปิด `index.html` ใน Chrome หรือ Edge หรือใช้ GitHub Pages
-2. ซื้อฮีโร่จากร้านค้า แล้วลากตัวละครจากม้านั่งไปลงสนาม 3 แถวล่าง
-3. ลากยูนิตบนสนามเพื่อย้ายตำแหน่ง/สลับ หรือกลับไปม้านั่งสำรอง
-4. กดเริ่มต่อสู้ ฮีโร่จะเดิน เลือกเป้าหมาย และใช้สกิลอัตโนมัติ
-5. รับเงินรางวัล ซื้อฮีโร่เพิ่ม และรวมตัวเหมือนกัน 3 ตัวเป็น 2 ดาว (รวมต่อเป็น 3 ดาว)
-
-## สิ่งใหม่ใน v0.3 — รื้อตัวละครทั้งชุด
-
-- ฮีโร่ **7 ตัว** เปลี่ยนเป็นฮีโร่ออริจินัลสำหรับเกมของเรา (ชื่อ/งานออกแบบชุดนี้ยังปรับได้)
-- ศัตรู **4 แบบ** มีภาพประจำตัวทั้งหมด รวมบอส
-- เปลี่ยนภาพตัวกลม/อีโมจิบนสนาม เป็นภาพ **Chibi PNG แบบโปร่งใส** พร้อมไฟล์ต้นฉบับ SVG
-- ภาพตัวเดียวกันใช้ได้ทั้งในสนาม ร้านค้า ม้านั่ง แผงรายละเอียด และตอนลาก
-- แสดงแอนิเมชันเบื้องต้น `idle / walk / attack / skill` ผ่านการขยับภาพและเอฟเฟกต์ Canvas (ยังไม่ใช่ frame-by-frame sprite sheet)
-- แยกข้อมูล **ฮีโร่รายตัว** เป็น `src/characters/heroes/<id>.js` และศัตรูรายตัวเป็น `src/characters/enemies/<id>.js`
-- ชื่อ ค่าสเตตัส อาชีพ สกิล และไฟล์ภาพอยู่ในข้อมูลฮีโร่ ไม่ต้องไปแก้ constants ขนาดใหญ่ใน `game.js`
-- ระบบสกิลใช้ `effect` ชนิด `slash`, `chain`, `triple`, `shield`, `blink`, `slam` ที่ engine รองรับแล้ว
-- รักษาระบบร้านค้า เวฟ ดาว บอส AI ต่อสู้อัตโนมัติ และ drag-and-drop ของ v0.2
-
-## ผังไฟล์
-
+## รูป Art / Idle / Attack
 ```text
-index.html                       หน้าจอเกมและลำดับโหลดสคริปต์
-src/styles.css                   UI / character cards
-src/game.js                      Auto Chess engine + animation state machine
-src/characters.js                Character registry + validation
-src/characters/heroes/*.js       ฮีโร่ 7 ตัว (แยกไฟล์)
-src/characters/enemies/*.js      ศัตรู 4 ตัว (แยกไฟล์)
-assets/heroes/<id>/character.png ไฟล์ภาพที่เกมใช้จริง
-assets/heroes/<id>/character.svg ต้นฉบับภาพแก้ไขได้
-assets/enemies/<id>/*             ภาพศัตรู
-scripts/verify-roster.cjs        ตรวจความถูกต้องของข้อมูลตัวละคร
+assets/
+  heroes/
+    asuna/
+      art.png
+      idle.png
+      attack.png
+```
+หรือแทนแต่ละไฟล์ด้วย GIF และแก้ `images.art`, `images.idle`, `images.attack` ใน `src/characters/heroes/asuna.js`
+
+## อาสึนะ — ความเร็ว + คริ
+ATK 66, โจมตีทุก 0.58 วินาที, ความเร็วเดิน 140, โอกาสคริ 35%, ดาเมจคริ ×1.9 สกิลแฟลชสไตรค์ทุก 3 การโจมตี
+
+## ไฟล์สำคัญ
+```text
+index.html
+src/game.js                     Combat / ENEMY_SCALING
+src/characters.js               ทะเบียนฮีโร่ชุดเดียว
+src/characters/heroes/*.js      ข้อมูลฮีโร่รายตัว
+src/styles.css
+assets/heroes/<id>/*            PNG/GIF ของทุกตัว
+scripts/verify-roster.cjs
+scripts/test-gif-contract.cjs
+docs/CHARACTER_SYSTEM.md
+docs/GAME_DESIGN.md
 ```
 
-## เพิ่ม/แก้ฮีโร่ในอนาคต
+ตรวจโครงสร้างด้วย `node scripts/verify-roster.cjs` และ `node scripts/test-gif-contract.cjs`
 
-อ่าน [docs/CHARACTER_SYSTEM.md](docs/CHARACTER_SYSTEM.md) — แต่ละตัวละครมี ID, stats, team, skill effect, รูป PNG/SVG และ animation visual settings แยกจากกัน
-
-> **ข้อจำกัด:** ภาพ v0.3 เป็นภาพจิบิต้นแบบที่สร้างใหม่สำหรับโปรเจกต์ ไม่ใช่งาน sprite sheet frame-by-frame, ยังไม่มี multiplayer, การบันทึกเกม และระบบ skill editor ในหน้าเว็บ
-
-## Asuna — Fast Critical Rapier (v0.5)
-
-- New `asuna` hero: cost 3, HP 470, ATK 66, attack interval 0.58s, movement 140
-- 35% critical-hit chance, 190% critical damage; actual combat damage is multiplied and a golden `CRIT!` popup appears
-- `แฟลชสไตรค์` activates every 3 normal attacks, using the existing `slash` effect and critical-hit rules
-- Source art is normalized to `assets/heroes/asuna/{art,idle,attack}.png` (same image bytes, removed duplicated `.png` filename endings)
-- UI inspector shows attack speed and critical stats; `traits` are descriptive labels only, not yet separate synergy mechanics
+> เกมยังเป็น single-player PvE alpha; ยังไม่มี PvP, ระบบเซฟ และ Character Lab
