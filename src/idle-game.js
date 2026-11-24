@@ -110,6 +110,8 @@ function position(actor){
  actor.node.classList.toggle('immortal',TFT.isImmortal(actor,stageClock));
  actor.node.classList.toggle('guard-shield',actor.hp>0&&(actor.shield||0)>0);
  actor.node.classList.toggle('taunting',actor.hp>0&&(actor.tauntUntil||0)>stageClock);
+ actor.node.classList.toggle('weakened',actor.hp>0&&TFT.debuffValue(actor,'attackDown',stageClock)>0);
+ actor.node.classList.toggle('vulnerable',actor.hp>0&&TFT.debuffValue(actor,'vulnerability',stageClock)>0);
 }
 // The original AUTOCHEST board is fixed. Movement happens within its 6x7 cells.
 function travelScene(){
@@ -391,7 +393,8 @@ function skillDescription(t,enemy=false){
    lines.push('ทุก '+n+' การโจมตี: ปล่อยกระแสพลังใส่ศัตรูสูงสุด '+(t.chainTargets||3)+' ตัว แรงนัดละ '+Math.round((t.chainPower||1.12)*100)+'% ATK');
    break;
   case 'slam':
-   lines.push('ทุก '+n+' การโจมตี: ทุบโจมตีพื้นที่รัศมี 140 พิกเซลของสนาม แรง 180% ATK ต่อเป้าหมาย');
+   lines.push('ทุก '+n+' การโจมตี: ทุบโจมตีพื้นที่รัศมี '+(t.slamRadius||140)+' พิกเซลของสนาม แรง '+Math.round((t.skillPower||1.8)*100)+'% ATK ต่อเป้าหมาย');
+   if(t.debuff)lines.push('ศัตรูที่รอดจากการโจมตีติดดีบัฟ: พลังโจมตีลด '+Math.round(t.debuff.attackDown*100)+'% และได้รับดาเมจเพิ่ม '+Math.round(t.debuff.vulnerability*100)+'% นาน '+t.debuff.duration+' วินาที · รีเฟรชเวลา ไม่สะสมความแรง');
    break;
   case 'shield':
    if(t.guard)lines.push('ทุก '+n+' การโจมตี: สร้างโล่ตนเอง '+Math.round(t.guard.selfShield*100)+'% ของ HP สูงสุด และให้พันธมิตรที่ยังมีชีวิตทุกคนโล่ '+Math.round(t.guard.allyShield*100)+'% ของ HP สูงสุดของแต่ละคน · ยั่วยุศัตรูทั่วสนาม '+t.guard.tauntSeconds+' วินาที · ไม่สร้างดาเมจ · โล่รีเฟรช ไม่สะสมทับ');
@@ -647,6 +650,7 @@ function buildFighters(preserve=false){
   return {id,side:'ally',x:point.x,y:point.y,startX:point.x,move:HEROES[id].move,
    hp,maxHp:stat.hp,atk:stat.atk,cool:stat.cool,remaining:old?.remaining??i*.12,
    attacks:old?.attacks||0,shield:old?.shield||0,tauntUntil:old?.tauntUntil||0,
+   attackDown:old?.attackDown||null,vulnerability:old?.vulnerability||null,
    focusTarget:old?.focusTarget||null,focusHits:old?.focusHits||0,
    crit:stat.crit,critDamage:stat.critDamage,
    cloakUntil:old?.cloakUntil||0,ambush:old?.ambush||false,
@@ -763,7 +767,7 @@ function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false,pierceShie
  const hero=HEROES[attacker.id];
  const chance=Math.min(1,Math.max(0,(attacker.crit||0)+bonusCrit));
  const critical=forcedCrit||(chance>0&&Math.random()<chance);
- const raw=TFT.incomingDamage(power*(critical?(attacker.critDamage||hero.critDamage||1.5):1),HEROES[target.id]);
+ const raw=TFT.incomingDamage(power*TFT.outgoingMultiplier(attacker,stageClock)*TFT.vulnerabilityMultiplier(target,stageClock)*(critical?(attacker.critDamage||hero.critDamage||1.5):1),HEROES[target.id]);
  const absorbed=pierceShield?0:Math.min(target.shield||0,raw);
  target.shield=Math.max(0,(target.shield||0)-absorbed);
  const damage=Math.max(0,Math.round(raw-absorbed));
@@ -860,9 +864,14 @@ function tftSkill(attacker,target){
   case 'pierce':
    tftPiercingShot(attacker,target);return true;
   case 'slam':{
-   const nearby=foes().filter(x=>TFT.pxDist(x,target)<140);
+   const nearby=foes().filter(x=>TFT.pxDist(x,target)<=(hero.slamRadius||140));
    ring(target.x,target.y);
-   for(const e of nearby)tftDamage(attacker,e,attacker.atk*1.8,0,false);
+   for(const e of nearby){
+    const landed=tftDamage(attacker,e,attacker.atk*(hero.skillPower||1.8),0,false);
+    if(landed&&hero.debuff&&TFT.applyDebuff(e,hero.debuff,stageClock)){
+     position(e);spawnFx('ATK ↓ · DMG ↑',e.x,e.y-28);
+    }
+   }
    return true;
   }
   case 'chain':{
