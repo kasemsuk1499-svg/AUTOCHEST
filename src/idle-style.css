@@ -377,3 +377,8 @@ footer{margin:20px 0 0;display:flex;justify-content:space-between;color:#789db8;
 
 /* Sinon: straight luminous piercing projectile. */
 .tft-bullet.piercing-bullet{width:38px;height:7px;border-radius:60% 90% 90% 60%;background:linear-gradient(90deg,transparent,#9ef8ee 55%,#fff);transform:translate(-50%,-50%) rotate(var(--shot-angle));box-shadow:0 0 12px #82d0c7,0 0 22px #b0fff0;}
+
+/* Defensive guard state and taunt marker. */
+.fighter.guard-shield::before{content:'';position:absolute;inset:3% 6% 16%;border:2px solid #88d9ffb0;border-radius:48%;box-shadow:0 0 10px #70caff80,inset 0 0 12px #70caff30;pointer-events:none}
+.fighter.taunting .mini-stars{color:#ffdb92;background:#674720e8;border:1px solid #ffce78;border-radius:8px;padding:2px 5px}
+.fighter.taunting .mini-stars::after{content:' · ยั่วยุ';color:#fff0ba}
