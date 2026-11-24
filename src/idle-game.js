@@ -1274,7 +1274,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-trial-hero
 $('trialHero').addEventListener('change',resetTrial);$('trialCount').addEventListener('change',resetTrial);
 $('trialReset').addEventListener('click',resetTrial);$('trialClose').addEventListener('click',closeTrial);$('trialOverlay').addEventListener('click',closeTrial);
 for(const [id,mode] of [['trialNormal','normal'],['trialSkill','skill'],['trialPassive','passive'],['trialHit','hit']])$(id).addEventListener('click',()=>queueTrial(mode));
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&trial){e.preventDefault();closeTrial()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&trial){e.preventDefault();e.stopImmediatePropagation();closeTrial()}});
 if(typeof ResizeObserver==='function')new ResizeObserver(()=>{if(trial){trial.size={width:$('trialArena').clientWidth,height:$('trialArena').clientHeight};withTrial(()=>{renderTrial();for(const shot of shots)positionShot(shot)})}}).observe($('trialArena'));
 function refreshUpgradePicker(){
  const picker=$('upgradePicker');if(!picker)return;
