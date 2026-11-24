@@ -110,13 +110,13 @@ function refreshArenaSize(){
  for(const actor of [...fighters,...enemies])position(actor);
  for(const shot of shots)positionShot(shot);
 }
-function setArenaPosition(node,x,y){
+function setArenaPosition(node,x,y,angle=null){
  if(!node)return;
  const px=x*arenaSize.width/100,py=y*arenaSize.height/100;
- const transform='translate3d('+px.toFixed(2)+'px,'+py.toFixed(2)+'px,0) translate(-50%,-50%)';
+ const transform='translate3d('+px.toFixed(2)+'px,'+py.toFixed(2)+'px,0) translate(-50%,-50%)'+(angle===null?'':' rotate('+angle+'rad)');
  if(node.style.transform!==transform)node.style.transform=transform;
 }
-function positionShot(shot){setArenaPosition(shot.node,shot.x,shot.y);if(shot.pierce&&shot.node)shot.node.style.transform+=' rotate('+Math.atan2(shot.pierce.dy,shot.pierce.dx)+'rad)'}
+function positionShot(shot){setArenaPosition(shot.node,shot.x,shot.y,shot.pierce?Math.atan2(shot.pierce.dy,shot.pierce.dx):null)}
 function position(actor){
  if(!actor?.node)return;
  setArenaPosition(actor.node,actor.x,actor.y);
@@ -651,7 +651,7 @@ function addTransientFx(node,duration){
 function spawnFx(label,x,y,critical=false,kind='status',lane=0){
  const fx=el('span',{class:'fx-number fx-'+kind+(critical?' critical':'')},escapeText(label));
  fx.style.left=Math.max(7,Math.min(93,x))+'%';
- fx.style.top=Math.max(10,Math.min(92,y))+'%';
+ fx.style.top=Math.max(arenaSize.height?Math.min(24,6600/arenaSize.height):12,Math.min(92,y))+'%';
  fx.style.setProperty('--fx-x',[-18,18,0,-32,32][lane%5]+'px');
  fx.style.setProperty('--fx-y',(-22-Math.floor(lane%5/2)*13)+'px');
  addTransientFx(fx,1050);
@@ -679,7 +679,7 @@ function ring(x,y,cloak=false){
  node.style.left=x+'%';node.style.top=y+'%';
  addTransientFx(node,850);
 }
-function clearFx(){for(const node of $('fxLayer').children?Array.from($('fxLayer').children):[])if(!node.classList.contains('fx-number'))node.remove()}
+function clearFx(){for(const node of Array.from($('fxLayer').children))if(!node.classList.contains('fx-number'))node.remove()}
 function buildFighters(preserve=false){
  const previous=new Map(preserve?fighters.map(f=>[f.id,f]):[]);
  fighters=state.squad.filter(id=>state.owned[id]).map((id,i)=>{
@@ -854,8 +854,7 @@ function tftShot(attacker,target,mult=1,bonusCrit=0,execute=false,heavy=false,co
 function tftPiercingShot(attacker,target){
  const hero=HEROES[attacker.id],p=TFT.makePierce(attacker,target);
  const node=el('span',{class:'tft-bullet heavy piercing-bullet'});
- setArenaPosition(node,attacker.x,attacker.y);
- node.style.transform+=' rotate('+Math.atan2(p.dy,p.dx)+'rad)';
+ setArenaPosition(node,attacker.x,attacker.y,Math.atan2(p.dy,p.dx));
  node.style.setProperty('--bullet-color',hero.col||'#82d0c7');
  node.style.setProperty('--shot-angle',Math.atan2(p.dy,p.dx)+'rad');
  $('fxLayer').appendChild(node);
@@ -978,6 +977,7 @@ function tftSkill(attacker,target){
 function playAttackAnimation(attacker){
  const node=attacker.node;
  if(!node)return;
+ node.style.setProperty('--strike-duration',Math.max(90,260/state.speed)+'ms');
  node.classList.remove('burst');
  requestAnimationFrame(()=>{
   if(node.isConnected&&attacker.attackUntil>stageClock)node.classList.add('burst');
