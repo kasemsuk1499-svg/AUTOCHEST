@@ -13,21 +13,25 @@
   deathgun:{projectile:'darkBullet',skillProjectile:'darkBullet',hit:'impact',cloak:'cloak',skillHit:'impact'}
  };
  const generic={hit:'impact',skillHit:'impact',projectile:'bullet',skillProjectile:'bullet',area:'hammer',heal:'heal',shield:'shield',revive:'revive',buff:'buff',debuff:'debuff',cloak:'cloak'};
+ let published={},draft=null;
+ const studioMode=new URLSearchParams(window.location?.search||'').has('studioTrial');
+ if(studioMode){try{draft=JSON.parse(sessionStorage.getItem('AUTOCHEST_VFX_DRAFT')||'null')}catch(_){}}
+ async function loadPublished(){try{const response=await fetch('./assets/effects/published.json',{cache:'no-cache'});if(response.ok){const data=await response.json();if(data.version===1&&data.heroes&&typeof data.heroes==='object')published=data.heroes}}catch(_){}}
  function getSpec(hero,event){
-  const key=hero?.visual?.fx?.[event]??defaults[hero?.id]?.[event]??generic[event];
+  const override=studioMode&&draft?.hero===hero?.id&&draft?.event===event?draft.spec:null;
+  const key=override??published[hero?.id]?.[event]??hero?.visual?.fx?.[event]??defaults[hero?.id]?.[event]??generic[event];
   if(key===false)return null;
   const raw=typeof key==='string'?specs[key]:key;
-  if(!raw||typeof raw.src!=='string'||!/^\.\/assets\/effects\/[a-z0-9_/-]+\.(svg|png|webp|gif)$/i.test(raw.src))return null;
+  if(!raw||typeof raw.src!=='string'||!(/^\.\/assets\/effects\/[a-z0-9_/-]+\.(svg|png|webp|gif)$/i.test(raw.src)||(override===raw&&/^data:image\/(png|gif|webp);base64,[a-z0-9+/=]+$/i.test(raw.src))))return null;
   const cols=Math.max(1,Math.min(32,Math.floor(raw.cols||1))),rows=Math.max(1,Math.min(32,Math.floor(raw.rows||1)));
-  const row=Math.max(0,Math.min(rows-1,Math.floor(raw.row||0))),frames=Math.max(1,Math.min(cols,Math.floor(raw.frames||cols)));
+  const row=Math.max(0,Math.min(rows-1,Math.floor(raw.row||0))),frames=Math.max(1,Math.min((rows-row)*cols,Math.floor(raw.frames||cols)));
   return {src:raw.src,cols,rows,row,frames,size:Math.max(16,Math.min(400,Number(raw.size)||100)),ms:Math.max(80,Math.min(3000,Number(raw.ms)||440))};
  }
  function paint(node,spec,animate=true){
   node.style.backgroundImage='url("'+spec.src+'")';
   node.style.backgroundSize=(spec.cols*100)+'% '+(spec.rows*100)+'%';
   node.style.backgroundRepeat='no-repeat';
-  const y=spec.rows>1?spec.row/(spec.rows-1)*100:0;
-  const pos=i=>(spec.cols>1?i/(spec.cols-1)*100:0)+'% '+y+'%';
+  const pos=i=>{const x=i%spec.cols,y=spec.row+Math.floor(i/spec.cols);return (spec.cols>1?x/(spec.cols-1)*100:0)+'% '+(spec.rows>1?y/(spec.rows-1)*100:0)+'%'};
   node.style.backgroundPosition=pos(0);
   if(animate&&spec.frames>1&&node.animate&&!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
    const frames=Array.from({length:spec.frames+1},(_,i)=>({backgroundPosition:pos(Math.min(i,spec.frames-1)),offset:i/spec.frames,easing:'steps(1,end)'}));
@@ -39,5 +43,5 @@
   for(const hero of Object.values(heroes))for(const event of Object.keys(generic)){const s=getSpec(hero,event);if(s)urls.add(s.src)}
   for(const url of urls){const img=new Image();img.src=url;img.decode?.().catch(()=>{});}
  }
- window.AUTOCHEST_VFX=Object.freeze({getSpec,paint,preload});
+ window.AUTOCHEST_VFX=Object.freeze({getSpec,paint,preload,loadPublished});
 })();
