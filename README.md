@@ -92,3 +92,25 @@ This is a simplified two-dimensional field with responsive camera/parallax and a
 - Enemy heroes actually **run out of the spawn lanes and approach the allied frontline**. Ranged/sniper types must reach an engagement line before camping and will **strafe between attacks**. Melee pursuers keep chasing into attack range. Both pause very briefly during their attack animation.
 - If all defenders are temporarily invisible (e.g. Death Gun cloak), attackers continue moving toward the last known front line to avoid freezing in place.
 - Bosses use the same pursuing AI. Movement and attacks still obey the ×1/×2 speed option. Existing saves, star/level progress, and manual tile deployment are unaffected.
+
+## v0.18.1 — TFT Combat × Idle Progression (current)
+
+The user-facing mode is a hybrid: **classic AUTOCHEST / TFT board combat**, with **Idle-style economy and automated progression**.
+
+- **TFT combat rules:** On the original 6×7 tactical board, units use the original TFT pixel-based range/attack movement (94 px per combat column), targeted tracking projectiles (damage on impact), melee vs ranged roles, retreat/kiting for vulnerable backline shooters, and automatic attack/skill cooldowns. Hero effects restored from the TFT version: multi-shot (Sinon), chain magic (Silica), area hammer (Lisbeth), blink slash, shield and Death Gun stealth ambush.
+- **Battle AUTO:** Toggle **⚔️ AUTO ON/OFF** under the battlefield or in Team controls. Auto defaults to ON; it handles fights, loot and boss advancement. When OFF, game combat does not advance.
+- **Edit during play:** Press **♟️ จัดทัพ / วางตัว** under the battlefield (or **จัดทัพ** on the team card) to pause battle. Click a unit in the team then choose a friendly square on the bottom three rows; drag a deployed fighter to a new tile; occupied tiles swap positions. Press **จัดทัพเสร็จ** to resume the same encounter.
+- **Bench and full-team swapping:** Summon additional heroes with the Idle ticket/ruby system. When the team is full, select an owned reserve in the collection while editing and click the team member you want to replace. The incoming reserve takes that teammate's placement. Current enemies and survivors' combat state are retained.
+- **Auto lineup:** The auto-team button selects stronger owned heroes and places defenders in the front row, melee units in the middle and ranged attackers at the rear. Individual levels, stars, hero skills and formation tiles remain visible and saved.
+- **Idle economy unchanged:** Gold and Hero EXP from kills; rubies/tickets from stage bosses; idle summons for new heroes and duplicate shards; level-up and star ranks; offline claim rewards; save key `AUTOCHEST_SAO_IDLE_V1` and previous user progress remain compatible.
+- **Skills dialog:** Describes actual TFT effects and projectile mechanics, not the former simplified single-target Idle skills.
+
+### Tests
+
+```sh
+node scripts/test-idle-core.cjs
+node scripts/test-idle-tft-combat.cjs
+node scripts/test-idle-release.cjs
+```
+
+Browser regression: Classic 42-cell board, formation pause/drag and saved placement, AUTO OFF/ON, live reserve swap (Sinon replacing Kirito on the same tile), auto lineup (Heathcliff/Lisbeth front, Death Gun back), tracked bullets and successful Idle Gold farm / stage advancement; no runtime JavaScript exceptions.
