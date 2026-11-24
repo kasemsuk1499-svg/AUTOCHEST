@@ -257,6 +257,22 @@
         "rotation": 0,
         "thickness": 48,
         "orientation": "horizontal"
+      },
+      "shield": {
+        "src": "./assets/effects/heathcliff/shield-a704f7474106.png",
+        "cols": 8,
+        "rows": 2,
+        "row": 0,
+        "col": 0,
+        "frames": 16,
+        "size": 122,
+        "ms": 440,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "thickness": 48,
+        "orientation": "horizontal"
       }
     }
   }
