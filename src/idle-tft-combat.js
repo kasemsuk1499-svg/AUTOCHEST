@@ -25,13 +25,14 @@
   return {inRange:after<=range+3,moved:actor.walking,mode,distance:after,range};
  }
  function findTarget(actor,others,clock){
-  let best=null,bestDist=Infinity;
+  let best=null,bestDist=Infinity,taunter=null,tauntDist=Infinity;
   for(const u of others){
    if(!u||u.hp<=0||u.alive===false||(u.cloakUntil||0)>clock)continue;
    const d=pxDist(actor,u);
+   if((u.tauntUntil||0)>clock&&d<tauntDist){taunter=u;tauntDist=d}
    if(d<bestDist){best=u;bestDist=d}
   }
-  return best;
+  return taunter||best;
  }
  function advanceShot(shot,dt){
   if(!shot.target||shot.target.hp<=0||shot.target.alive===false)return {hit:false,expired:true};
@@ -84,5 +85,18 @@
   shot.x=(p.x+p.dx*end)*100/W;shot.y=(p.y+p.dy*end)*100/H;
   return {hits:hits.map(h=>h.u),expired:end>=p.limit};
  }
- window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,isImmortal,focusCritBonus,makePierce,advancePierce});
+ // Shields refresh rather than stack indefinitely; all living teammates receive protection.
+ function applyGuard(actor,allies,hero,clock){
+  const g=hero?.guard;if(!g||actor.hp<=0)return [];
+  const protectedUnits=[];
+  for(const u of new Set([actor,...allies])){
+   if(!u||u.hp<=0||u.alive===false)continue;
+   const amount=Math.round(u.maxHp*(u===actor?g.selfShield:g.allyShield));
+   u.shield=Math.max(u.shield||0,amount);protectedUnits.push(u);
+  }
+  actor.tauntUntil=clock+g.tauntSeconds;
+  return protectedUnits;
+ }
+ const incomingDamage=(raw,hero)=>Math.max(0,raw*(1-clamp(hero?.passive?.damageReduction||0,0,.95)));
+ window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage});
 })();
