@@ -90,3 +90,25 @@ body:before{content:'';position:fixed;inset:0;pointer-events:none;background-ima
 .hero-roster-strip{grid-template-columns:repeat(4,minmax(0,1fr))}
 .hero-skill-panel{padding:11px}
 }
+
+/* v0.8: Codex scales to hundreds of characters without rendering all cards */
+.hero-codex-controls{display:grid;grid-template-columns:minmax(160px,2fr) minmax(90px,1fr) minmax(84px,.8fr) auto;gap:8px;align-items:end;margin:8px 0 12px}
+.hero-codex-controls label{min-width:0;display:flex;flex-direction:column;gap:4px;color:#a8cae1;font-size:11px}
+.hero-codex-controls label>span{font-size:10px}
+.hero-codex-controls input[type=search],.hero-codex-controls select{width:100%;min-width:0;min-height:38px;box-sizing:border-box;background:#0d2038;color:#f0faff;border:1px solid #456d84;border-radius:8px;font:500 12px Kanit,sans-serif;padding:7px 9px;outline:none}
+.hero-codex-controls input:focus,.hero-codex-controls select:focus{border-color:#8affdc;box-shadow:0 0 0 2px #72ffd628}
+.hero-codex-controls .hero-codex-owned{display:flex;align-items:center;flex-direction:row;gap:6px;min-height:38px;padding:0 5px;white-space:nowrap;cursor:pointer}
+.hero-codex-owned input{accent-color:#5ce9cf}
+.hero-roster-strip{grid-template-columns:repeat(6,minmax(0,1fr));min-height:84px}
+.hero-roster-pick small{color:#a1d7d4;font:500 9px Kanit,sans-serif;white-space:nowrap}
+.hero-roster-empty{grid-column:1/-1;text-align:center;padding:18px;color:#bad2e5;background:#152b43;border-radius:10px;font-size:12px}
+.hero-roster-pagination{display:flex;justify-content:space-between;align-items:center;gap:9px;margin-top:11px;color:#bad6e6;font-size:11px}
+.hero-roster-pagination button{border:1px solid #4a7288;background:#1b3a50;border-radius:8px;padding:7px 13px;color:#daffff;font:500 12px Kanit,sans-serif;cursor:pointer}
+.hero-roster-pagination button:disabled{opacity:.38;cursor:default}
+.hero-roster-pagination button:hover:not(:disabled){background:#24636a}
+@media(max-width:650px){
+ .hero-codex-controls{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .hero-codex-search{grid-column:1/-1}
+ .hero-codex-controls .hero-codex-owned{grid-column:1/-1;min-height:24px}
+ .hero-roster-strip{grid-template-columns:repeat(4,minmax(0,1fr))}
+}

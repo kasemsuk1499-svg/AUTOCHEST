@@ -16,8 +16,8 @@ function getPng(src){
  if(!imageCache.has(src)){const im=new Image();im.decoding='async';im.src=src;imageCache.set(src,im)}
  return imageCache.get(src);
 }
-for(const data of Object.values(TYPES))for(const slot of ['idle','attack'])getPng(assetFor(data,slot));
-const portraitTag=(data,slot='art')=>`<img class="hero-portrait" src="${assetFor(data,slot)}" alt="" draggable="false" loading="eager">`;
+// Load only models currently on the field, instead of eagerly decoding 100+ heroes.
+const portraitTag=(data,slot='art')=>`<img class="hero-portrait" src="${assetFor(data,slot)}" alt="" draggable="false" loading="lazy" decoding="async">`;
 function syncGifSprites(entries){
  const visible=new Set();
  for(const entry of entries){
@@ -75,6 +75,8 @@ function removeSelected(){
 
 const escapeHtml=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let inspection=null,lastModalFocus=null,holdTimer=null;
+const CODEX_PAGE_SIZE=12;
+let codexState={query:'',team:'all',cost:'all',owned:false,page:0};
 const modal=$('heroModal'), modalBody=$('heroModalContent');
 function skillDetails(t){
   const hits=t.triggerEvery||4;
@@ -88,8 +90,43 @@ function skillDetails(t){
    default: return ['โจมตีและใช้ทักษะอัตโนมัติตามระบบต่อสู้'];
   }
 }
+
+function filteredCodex(){
+ const q=codexState.query.trim().toLocaleLowerCase();
+ const owned=new Set(units.map(u=>u.kind));
+ return Object.values(TYPES).filter(h=>{
+  if(codexState.team!=='all'&&h.team!==codexState.team)return false;
+  if(codexState.cost!=='all'&&h.cost!==Number(codexState.cost))return false;
+  if(codexState.owned&&!owned.has(h.id))return false;
+  if(!q)return true;
+  return [h.id,h.name,h.subtitle,h.team,h.skill,...(h.traits||[])].join(' ').toLocaleLowerCase().includes(q);
+ }).sort((a,b)=>a.cost-b.cost||a.name.localeCompare(b.name,'th'));
+}
+function renderCodexResults(){
+ if(modal.hidden||!inspection)return;
+ const target=$('heroRosterGrid'),counter=$('heroRosterMeta'),previous=$('heroRosterPrev'),next=$('heroRosterNext');
+ if(!target||!counter||!previous||!next)return;
+ const all=filteredCodex();
+ const pages=Math.max(1,Math.ceil(all.length/CODEX_PAGE_SIZE));
+ codexState.page=Math.max(0,Math.min(codexState.page,pages-1));
+ const start=codexState.page*CODEX_PAGE_SIZE;
+ const subset=all.slice(start,start+CODEX_PAGE_SIZE);
+ const owned=new Set(units.map(u=>u.kind));
+ target.innerHTML=subset.map(h=>
+  '<button type="button" class="hero-roster-pick'+(h.id===inspection.kind?' selected':'')+'" data-modal-hero="'+escapeHtml(h.id)+'" aria-label="ดู '+escapeHtml(h.name)+'" title="'+escapeHtml(h.name)+'">'+
+    '<img src="'+escapeHtml(assetFor(h,'art'))+'" alt="" loading="lazy" decoding="async">'+
+    '<span>'+escapeHtml(h.name)+'</span>'+
+    (owned.has(h.id)?'<small>★ มีแล้ว</small>':'<small>'+escapeHtml(h.cost)+' Gold</small>')+
+  '</button>'
+ ).join('')||'<div class="hero-roster-empty">ไม่พบฮีโร่ที่ตรงกับเงื่อนไข ลองเปลี่ยนคำค้นหรือประเภทนะ</div>';
+ counter.textContent=all.length+' / '+Object.keys(TYPES).length+' ตัว · หน้า '+(codexState.page+1)+' / '+pages;
+ previous.disabled=codexState.page<=0;
+ next.disabled=codexState.page>=pages-1;
+}
+
 function openHero(kind,unitId=null,shopIndex=null,fighter=null){
  if(!TYPES[kind])return;
+ if(modal.hidden)codexState={query:'',team:'all',cost:'all',owned:false,page:0};
  lastModalFocus=modal.hidden?document.activeElement:lastModalFocus;
  inspection={kind,unitId,shopIndex,fighter};
  modal.hidden=false;
@@ -125,9 +162,10 @@ function renderHeroModal(){
  const purchaseMarkup=canShop?
   '<button class="hero-modal-buy" data-modal-buy="'+entry+'" type="button" '+(purchasable?'':'disabled')+'>✦ ซื้อ '+t.name+' — '+t.cost+' G</button>':
   '<span class="hero-modal-note">'+(u?'มีฮีโร่ตัวนี้แล้ว':'ดูข้อมูลได้ทุกเวลา')+'</span>';
- const pickers=Object.values(TYPES).map(o=>
-  '<button type="button" class="hero-roster-pick'+(o.id===kind?' selected':'')+'" data-modal-hero="'+escapeHtml(o.id)+'" aria-label="ดู '+escapeHtml(o.name)+'" title="'+escapeHtml(o.name)+'"><img src="'+escapeHtml(assetFor(o,'art'))+'" alt="" loading="lazy"><span>'+escapeHtml(o.name)+'</span></button>'
- ).join('');
+ const teamChoices=['all','นักรบ','เวท','ยิงไกล','ป้องกัน'].map(k=>
+   '<option value="'+escapeHtml(k)+'"'+(codexState.team===k?' selected':'')+'>'+(k==='all'?'ทุกสาย':escapeHtml(k))+'</option>').join('');
+ const costChoices=['all','1','2','3'].map(k=>
+   '<option value="'+k+'"'+(codexState.cost===k?' selected':'')+'>'+(k==='all'?'ทุกราคา':k+' Gold')+'</option>').join('');
  modalBody.innerHTML='<div class="hero-modal-eyebrow">✦ HERO INTELLIGENCE / '+escapeHtml((t.cost===3?'EPIC':t.cost===2?'RARE':'COMMON'))+'</div>'+
   '<div class="hero-modal-heading"><h2 id="heroModalTitle">'+escapeHtml(t.name)+'</h2><span>'+escapeHtml(t.subtitle||'')+'</span></div>'+
   '<div class="hero-modal-top">'+
@@ -142,7 +180,18 @@ function renderHeroModal(){
    '<p>ความเสียหายคำนวณจาก ATK ปัจจุบันของตัวละคร และปรับตามดาวหรือสเกลฝ่ายศัตรู</p></section>'+
    '<div class="hero-modal-footer">'+purchaseMarkup+
     '<span class="hero-modal-note">แตะตัวอื่นในแถวล่างเพื่อเปรียบเทียบได้เลย</span></div>'+
-   '<div class="hero-roster-label">เลือกดูฮีโร่ตัวอื่น</div><div class="hero-roster-strip">'+pickers+'</div>';
+   '<div class="hero-roster-label">📖 สารานุกรมฮีโร่ · ค้นหาได้ทุกตัว</div>'+
+   '<div class="hero-codex-controls">'+
+     '<label class="hero-codex-search"><span>ค้นหา</span><input type="search" data-codex-search placeholder="ชื่อฮีโร่ / สกิล / คุณสมบัติ" value="'+escapeHtml(codexState.query)+'" autocomplete="off"></label>'+
+     '<label><span>สายอาชีพ</span><select data-codex-team>'+teamChoices+'</select></label>'+
+     '<label><span>ราคา</span><select data-codex-cost>'+costChoices+'</select></label>'+
+     '<label class="hero-codex-owned"><input type="checkbox" data-codex-owned '+(codexState.owned?'checked':'')+'> เฉพาะที่มี</label>'+
+   '</div>'+
+   '<div id="heroRosterGrid" class="hero-roster-strip"></div>'+
+   '<div class="hero-roster-pagination"><button id="heroRosterPrev" type="button" data-codex-nav="-1" aria-label="หน้าก่อนหน้า">‹ ก่อนหน้า</button>'+
+     '<span id="heroRosterMeta" aria-live="polite"></span>'+
+     '<button id="heroRosterNext" type="button" data-codex-nav="1" aria-label="หน้าถัดไป">ถัดไป ›</button></div>';
+ renderCodexResults();
 }
 function clearHold(){if(holdTimer!==null){clearTimeout(holdTimer);holdTimer=null}}
 function openCodex(){openHero(inspection?.kind||'asuna')}
@@ -417,7 +466,24 @@ $('unitDetails').addEventListener('click',e=>{const b=e.target.closest('[data-in
 $('heroCodexBtn').addEventListener('click',openCodex);
 $('closeHeroModal').addEventListener('click',closeHero);
 modal.addEventListener('click',e=>{if(e.target.closest('[data-close-hero]'))closeHero()});
+modalBody.addEventListener('input',e=>{
+ if(e.target.matches('[data-codex-search]')){
+  codexState.query=e.target.value;codexState.page=0;renderCodexResults();
+ }
+});
+modalBody.addEventListener('change',e=>{
+ if(e.target.matches('[data-codex-team]'))codexState.team=e.target.value;
+ else if(e.target.matches('[data-codex-cost]'))codexState.cost=e.target.value;
+ else if(e.target.matches('[data-codex-owned]'))codexState.owned=e.target.checked;
+ else return;
+ codexState.page=0;renderCodexResults();
+});
 modalBody.addEventListener('click',e=>{
+ const direction=e.target.closest('[data-codex-nav]');
+ if(direction){
+  codexState.page+=Number(direction.dataset.codexNav);
+  renderCodexResults();return;
+ }
  const choose=e.target.closest('[data-modal-hero]');
  if(choose){const kind=choose.dataset.modalHero;const owned=units.find(u=>u.kind===kind);openHero(kind,owned?.id||null);return}
  const buy=e.target.closest('[data-modal-buy]');
