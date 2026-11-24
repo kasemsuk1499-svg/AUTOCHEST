@@ -362,25 +362,35 @@ function renderSelected(){
    '<button type="button" id="openSkillBtn" class="inspect-skill-btn">ⓘ ดูสกิลทั้งหมด</button></div>';
 }
 function skillDescription(t,enemy=false){
- const n=t.triggerEvery||4;
- const lines=['โจมตีปกติแรง 100% ATK เมื่ออยู่ในระยะและมีโอกาสติดคริติคอล'];
+ const n=t.triggerEvery||4,lines=['โจมตีปกติ 100% ATK เมื่อเป้าหมายอยู่ในระยะ TFT จริง • มีโอกาสคริติคอล'];
  switch(t.effect){
- case 'slash':case 'blink':case 'triple':case 'chain':case 'slam':
-  lines.push('ทุก '+n+' ครั้งที่โจมตี ใช้สกิลใส่เป้าหมายแรง '+(enemy?'165%':'170%')+' ATK (ก่อนคริติคอล)');
-  if(['triple','chain','slam'].includes(t.effect))
-   lines.push('เวอร์ชัน Idle ปัจจุบันโจมตีเป้าหมายเดียวต่อการใช้สกิล (ยังไม่แยกหลายเป้าหมาย)');
-  if(t.effect==='blink')lines.push('แอนิเมชันโจมตีเร็ว แต่ระยะเคลื่อนที่ยังอิงระบบเดินปกติ');
-  break;
- case 'shield':
-  lines.push('ทุก '+n+' การโจมตี ได้รับโล่ '+(enemy?'23%':'30%')+' ของ HP สูงสุด พร้อมโจมตีธรรมดา');
-  break;
- case 'cloakshot':
-  lines.push('ทุก '+n+' การโจมตี พรางตัว '+(t.cloakDuration||2).toFixed(1)+' วินาที ศัตรูจะไม่เลือกเป็นเป้าหมายใหม่');
-  lines.push('นัดแรกหลังพรางแรง '+Math.round((t.cloakShotMultiplier||1.7)*100)+'% ATK และโอกาสคริเพิ่ม '+Math.round((t.cloakCritBonus||.5)*100)+' จุดเปอร์เซ็นต์');
-  lines.push('เมื่อเป้าหมายเหลือ HP ต่ำกว่า '+Math.round((t.executeThreshold||.35)*100)+'% ดาเมจเพิ่ม '+Math.round(((t.executeMultiplier||1.2)-1)*100)+'%');
-  break;
- default: lines.push('สกิลทำงานอัตโนมัติทุก '+n+' การโจมตี');
+  case 'slash':
+   lines.push('ทุก '+n+' การโจมตี: ฟันหนัก 200% ATK พร้อมเอฟเฟกต์วงพลัง');
+   break;
+  case 'blink':
+   lines.push('ทุก '+n+' การโจมตี: เคลื่อนฉับไวเข้าหาเป้าหมาย ฟัน 200% ATK และตามด้วยโจมตีอีก 50% ATK');
+   break;
+  case 'triple':
+   lines.push('ทุก '+n+' การโจมตี: ยิงกระสุนหลักแรง 200% ATK และกระสุนรองอีก 2 นัด นัดละ 85% ATK (เลือกเป้าหมายอื่นได้)');
+   break;
+  case 'chain':
+   lines.push('ทุก '+n+' การโจมตี: ปล่อยกระแสพลังใส่ศัตรูสูงสุด '+(t.chainTargets||3)+' ตัว แรงนัดละ '+Math.round((t.chainPower||1.12)*100)+'% ATK');
+   break;
+  case 'slam':
+   lines.push('ทุก '+n+' การโจมตี: ทุบโจมตีพื้นที่รัศมี 140 พิกเซลของสนาม แรง 180% ATK ต่อเป้าหมาย');
+   break;
+  case 'shield':
+   lines.push('ทุก '+n+' การโจมตี: เพิ่มโล่ป้องกัน 30% ของ HP สูงสุด และโจมตีปกติแบบหนัก 200% ATK');
+   break;
+  case 'cloakshot':
+   lines.push('ทุก '+n+' การโจมตี: พรางตัว '+(t.cloakDuration||2).toFixed(1)+' วินาที ศัตรูจะไม่เลือกเป็นเป้าหมายใหม่');
+   lines.push('การโจมตีแรกหลังหมดพราง '+Math.round((t.cloakShotMultiplier||1.7)*100)+'% ATK และโอกาสคริเพิ่ม +'+Math.round((t.cloakCritBonus||.5)*100)+' จุดเปอร์เซ็นต์');
+   lines.push('เป้าหมาย HP ต่ำกว่า '+Math.round((t.executeThreshold||.35)*100)+'%: เพิ่มดาเมจอีก '+Math.round(((t.executeMultiplier||1.2)-1)*100)+'%');
+   break;
+  default:lines.push('ทุก '+n+' การโจมตี: ใช้สกิลตามข้อมูลฮีโร่');
  }
+ if(Number(t.range)>=1.8)lines.push('🎯 ยิงไกล: กระสุนเดินทางตามเป้าหมายและคำนวณดาเมจเมื่อกระสุนถึง; พยายามรักษาระยะเมื่อศัตรูประชิด');
+ else lines.push('⚔️ ประชิด: วิ่งเข้าโจมตีตามระยะของสนาม TFT');
  return lines;
 }
 function openSkill(id,source='hero',unit=null){
@@ -409,7 +419,7 @@ function openSkill(id,source='hero',unit=null){
   '</div></div></div><section class="skill-ability"><small>⚔ AUTO SKILL · IDLE MODE</small>'+
   '<h3>✨ '+escapeText(h.skill)+'</h3><ul>'+
   skillDescription(h,enemy).map(x=>'<li>'+escapeText(x)+'</li>').join('')+'</ul>'+
-  '<p class="skill-mode-note">ข้อมูลตามระบบ Idle ปัจจุบัน ซึ่งอาจต่างจากโหมด TFT เดิม</p></section>';
+  '<p class="skill-mode-note">ใช้กติกาต่อสู้ TFT เดิม ผสมระบบฟาร์มและกาชาแบบ Idle · เลเวลและดาวอิงค่าปัจจุบัน</p></section>';
  skillReturnFocus=modal.hidden?document.activeElement:skillReturnFocus;
  modal.hidden=false;$('closeSkillBtn').focus();
 }
