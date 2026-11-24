@@ -345,3 +345,12 @@ footer{margin:20px 0 0;display:flex;justify-content:space-between;color:#789db8;
  .formation-toolbar button{font-size:11px;padding:8px 5px}
  .tft-mode-status{padding:5px 8px 0}.tft-mode-status>span{font-size:9px}
 }
+
+/* v0.18.1 — accessible mid-battle controls on phones and desktops */
+.battle-quickbar{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:2px 16px 8px}
+.battle-quickbar button{padding:10px 12px;border-radius:10px;min-height:42px;font:700 12px Kanit,sans-serif}
+.quick-formation{background:linear-gradient(110deg,#254c6a,#1d6b72);border:1px solid #79dcbd;color:#e1fff4}
+.quick-formation.editing{background:linear-gradient(105deg,#795337,#ad854b);border-color:#f3cd8b;color:#fff5da}
+.quick-auto{background:#1a5648;border:1px solid #75dcb5;color:#b7ffdb}
+.quick-auto.off{background:#543b47;border-color:#d396a4;color:#ffdde5}
+@media(max-width:730px){.battle-quickbar{padding:2px 9px 9px;gap:6px}.battle-quickbar button{font-size:11px;padding:9px 4px}}
