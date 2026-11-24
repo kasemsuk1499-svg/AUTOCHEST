@@ -112,3 +112,23 @@ body:before{content:'';position:fixed;inset:0;pointer-events:none;background-ima
  .hero-codex-controls .hero-codex-owned{grid-column:1/-1;min-height:24px}
  .hero-roster-strip{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
+
+/* v0.13 — TFT-inspired strategy controls */
+.tft-progression{display:grid;gap:8px;margin:10px 0;padding:10px;border:1px solid #395c79;border-radius:12px;background:#0b223999}
+.tft-progress-head{display:flex;align-items:center;justify-content:space-between;gap:7px;font-size:11px;color:#dbf2ff}
+.tft-progress-head strong{font:700 13px Rajdhani,Kanit,sans-serif}
+.tft-progress-head b{color:#fff1b9}
+.tft-track{height:8px;border:1px solid #40637d;border-radius:10px;overflow:hidden;background:#0b1a30}
+.tft-track i{display:block;width:0;height:100%;transition:width .25s ease}
+.tft-track .tft-hp{background:linear-gradient(90deg,#f26d85,#ffc18c);width:100%}
+.tft-track .tft-xp{background:linear-gradient(90deg,#5dbeff,#b6a1ff)}
+.tft-economy{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px;color:#9ccce1;font-size:10px}
+.tft-buy-xp{padding:8px;border:1px solid #79e8b6a3;background:linear-gradient(110deg,#17595b,#16415a);color:#e9fff8;font-size:11px;font-weight:600;border-radius:8px;cursor:pointer}
+.tft-buy-xp:hover:not(:disabled){background:#246e6a}
+.shop-action-row{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.shop-action-row .reroll-btn{padding:7px 8px;font-size:11px}
+#lockShopBtn.is-locked{color:#ffe19d;border-color:#e5b46d;background:#483a33}
+.shop-odds{font-size:10px;color:#a8c6dd;margin:0 0 8px}
+.bench-actions{flex-wrap:wrap}
+.tft-trait-bonus{display:block;color:#a4c6d9;font-size:10px;margin:2px 0 0}
+@media(max-width:660px){.shop-action-row .reroll-btn{padding:6px;font-size:10px}}

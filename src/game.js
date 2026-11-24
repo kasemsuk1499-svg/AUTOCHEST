@@ -4,6 +4,9 @@ const W=760,H=775,COLS=6,ROWS=7,SX=94,SY=89,OX=104,OY=108;
 const roster=window.AUTOCHEST_CHARACTERS;
 if(!roster)throw new Error('Character roster not loaded. Check src/characters.js');
 const TYPES=roster.HEROES, ENEMY=TYPES; // One hero registry for both teams
+ const TFT=window.AUTOCHEST_TFT;
+ if(!TFT)throw Error('TFT strategy rules missing: src/tft-core.js');
+ let strategy=TFT.newRun();
 if(Object.keys(TYPES).length===0)throw Error('No heroes loaded; check character script order');
 // Art is rendered as <img> in the UI, PNG model images in Canvas, GIF models in a DOM overlay.
 const imageCache=new Map();
@@ -38,11 +41,27 @@ function syncGifSprites(entries){
 let wave=1,gold=12,wins=0,units=[],shop=[],selected=null,uid=1,phase='prep',speed=1,combat=[],bullets=[],fx=[],floaters=[],timeLeft=0,roundResult='',elapsed=0,shake=0,bgtime=0,combatTime=0,last=0,messages=[],combatCount=0;
 let gesture=null,hoverCell=null,toastTimer=null;const landings=new Map();
 const rand=(a,b)=>Math.random()*(b-a)+a,ri=n=>Math.floor(Math.random()*n),clamp=(v,a,b)=>Math.min(b,Math.max(a,v)),dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),pos=(c,r)=>({x:OX+c*SX,y:OY+r*SY});
-const money=n=>`${n} G`;const limit=()=>Math.min(8,4+Math.floor((wave-1)/3));
+const money=n=>`${n} G`;const limit=()=>strategy.level;
 function addLog(s){messages.unshift(s);messages=messages.slice(0,6);$('log').innerHTML=messages.map(x=>'<div>'+x+'</div>').join('')}
 function newUnit(kind,board=false,col=-1,row=-1,lv=1){return{id:uid++,kind,board,col,row,lv}}
-function roll(free=false){if(phase!=='prep')return;if(!free){if(gold<2)return;gold-=2;}let keys=Object.keys(TYPES),weights=keys.map(k=>TYPES[k].cost===1?4:TYPES[k].cost===2?3:2);let pool=keys.flatMap((k,i)=>Array(weights[i]).fill(k));shop=Array.from({length:4},()=>pool[ri(pool.length)]);renderUI()}
+function roll(free=false){if(phase!=='prep')return;if(!free){if(gold<2||strategy.shopLocked)return;gold-=2}shop=TFT.rollShop(TYPES,strategy.level);renderUI()}
 function refreshCount(){return units.filter(u=>u.board).length}
+function buyXP(){
+ if(phase!=='prep'||gold<4||strategy.level>=TFT.MAX_LEVEL)return;
+ gold-=4;const levels=TFT.addXP(strategy,4);
+ if(levels)addLog('⭐ LEVEL '+strategy.level+'! ลงสนามได้ '+strategy.level+' ตัว');
+ renderUI();toast(levels?'⭐ LEVEL '+strategy.level:'⬆ +4 XP');
+}
+function toggleShopLock(){
+ if(phase!=='prep')return;strategy.shopLocked=!strategy.shopLocked;
+ renderUI();toast(strategy.shopLocked?'🔒 ล็อกร้านแล้ว':'🔓 ปลดล็อกร้านแล้ว');
+}
+function sellSelected(){
+ if(phase!=='prep')return;const u=units.find(x=>x.id===selected);if(!u)return;
+ const price=TYPES[u.kind].cost*Math.pow(3,u.lv-1);
+ gold+=price;units=units.filter(x=>x.id!==u.id);selected=null;
+ renderUI();toast('🪙 ขายฮีโร่ +'+price+' G');
+}
 function purchase(i){if(phase!=='prep'||!shop[i])return;let kind=shop[i],t=TYPES[kind];if(gold<t.cost){setTip('🪙 เงินไม่พอสำหรับยูนิตนี้');return}if(units.filter(u=>!u.board).length>=9){setTip('ม้านั่งเต็มแล้ว ย้ายยูนิตลงสนามก่อน');return}gold-=t.cost;let u=newUnit(kind);units.push(u);selected=u.id;shop[i]=null;fuse(kind);renderUI();if(inspection?.kind===kind&&!modal.hidden){inspection.unitId=selected;inspection.shopIndex=null;renderHeroModal()}addLog('รับสมัคร '+t.e+' '+t.name+' แล้ว');toast('✦ รับสมัคร '+t.name+' แล้ว');const b=$('bench').querySelector(`[data-unit="${selected}"]`);if(b)b.classList.add('recent-purchase')}
 function fuse(kind){let changed=true;while(changed){changed=false;for(let lv=1;lv<=2;lv++){let matches=units.filter(u=>u.kind===kind&&u.lv===lv);if(matches.length>=3){let keep=matches.find(u=>u.board)||matches[0];for(let kill of matches.filter(x=>x!==keep).slice(0,2))units=units.filter(u=>u.id!==kill.id);keep.lv++;selected=keep.id;changed=true;burst(keep.board?pos(keep.col,keep.row).x:380,keep.board?pos(keep.col,keep.row).y:700,'#ffde8b',22);addLog('⭐ '+TYPES[kind].name+' อัปเกรดเป็น '+keep.lv+' ดาว!');break}}}}
 function setTip(s){$('tip').textContent=s}
@@ -209,15 +228,31 @@ function renderInspector(){
 }
 function renderUI(){
  $('gold').textContent=gold;$('wave').textContent=wave;$('record').textContent=wins;
+ $('playerHp').textContent=strategy.hp+' / 100';
+ $('hpFill').style.width=strategy.hp+'%';
+ $('levelCount').textContent=strategy.level;
+ $('boardLimitInfo').textContent=strategy.level;
+ const requiredXP=TFT.XP_NEEDED[strategy.level]||0;
+ $('xpCount').textContent=requiredXP?strategy.xp+' / '+requiredXP+' XP':'MAX';
+ $('xpFill').style.width=requiredXP?strategy.xp/requiredXP*100+'%':'100%';
+ $('economyInfo').textContent='ดอกเบี้ยรอบหน้า +'+TFT.interest(gold)+' G (สูงสุด +5)';
+ $('streakInfo').textContent=strategy.winsInRow?'🔥 ชนะติด '+strategy.winsInRow:strategy.lossesInRow?'💔 แพ้ติด '+strategy.lossesInRow:'⚔ สตรีก 0';
+ $('buyXPBtn').disabled=phase!=='prep'||gold<4||strategy.level>=TFT.MAX_LEVEL;
+ $('buyXPBtn').textContent=strategy.level>=TFT.MAX_LEVEL?'⭐ LEVEL MAX':'⬆ ซื้อ 4 XP · 4 G';
+ $('lockShopBtn').disabled=phase!=='prep';
+ $('lockShopBtn').textContent=strategy.shopLocked?'🔒 ปลดล็อกร้าน':'🔓 ล็อกร้าน';
+ $('lockShopBtn').classList.toggle('is-locked',strategy.shopLocked);
+ $('shopOdds').textContent='โอกาสเลเวล '+strategy.level+' · 1 G '+TFT.ODDS[strategy.level][0]+'% · 2 G '+TFT.ODDS[strategy.level][1]+'% · 3 G '+TFT.ODDS[strategy.level][2]+'%';
  $('battleClock').textContent=String(wave).padStart(2,'0');$('unitCount').textContent=refreshCount()+' / '+limit();
  $('speedInfo').textContent='×'+speed;$('combatInfo').textContent=phase==='prep'?'พร้อมรบ':phase==='battle'?'กำลังสู้':roundResult;
  $('squadFill').style.width=Math.min(100,refreshCount()/limit()*100)+'%';
- $('phaseLabel').textContent=phase==='prep'?'◈ เตรียมจัดทัพ':phase==='battle'?'⚔️ กำลังต่อสู้อัตโนมัติ':roundResult.includes('ชนะ')?'✦ VICTORY!':'◈ DEFEAT';
- $('phaseSub').textContent=phase==='prep'?'ลากตัวละครลงสนาม หรือแตะเลือกเพื่อวาง':phase==='battle'?'ฮีโร่ของคุณเลือกเป้าหมายและใช้สกิลเอง':roundResult;
- $('startBtn').innerHTML=phase==='prep'?'<span class="button-symbol">⚔</span><span>เริ่มการต่อสู้</span><small>▶</small>':phase==='battle'?'<span>⚔ กำลังต่อสู้…</span>':'<span class="button-symbol">◉</span><span>ไปเวฟถัดไป</span><small>▶</small>';
+ $('phaseLabel').textContent=phase==='prep'?'◈ เตรียมจัดทัพ':phase==='battle'?'⚔️ กำลังต่อสู้อัตโนมัติ':phase==='gameover'?'💀 GAME OVER':roundResult.includes('ชนะ')?'✦ VICTORY!':'◈ DEFEAT';
+ $('phaseSub').textContent=phase==='prep'?'ซื้อฮีโร่ • ซื้อ XP • บริหาร Gold และจัดทีม':phase==='battle'?'ฮีโร่ของคุณเลือกเป้าหมายและใช้สกิลเอง':roundResult;
+ $('startBtn').innerHTML=phase==='prep'?'<span class="button-symbol">⚔</span><span>เริ่มการต่อสู้</span><small>▶</small>':phase==='battle'?'<span>⚔ กำลังต่อสู้…</span>':phase==='gameover'?'<span>⟳ เริ่มเกมใหม่</span>':'<span class="button-symbol">◉</span><span>ไปเวฟถัดไป</span><small>▶</small>';
  $('startBtn').disabled=phase==='battle'||(phase==='prep'&&refreshCount()===0);
- $('speedBtn').textContent='⏩ ×'+(speed===1?'2':'1');$('rollBtn').disabled=phase!=='prep'||gold<2;
+ $('speedBtn').textContent='⏩ ×'+(speed===1?'2':'1');$('rollBtn').disabled=phase!=='prep'||gold<2||strategy.shopLocked;
  $('removeBtn').disabled=phase!=='prep'||!units.some(u=>u.id===selected&&u.board);
+ $('sellBtn').disabled=phase!=='prep'||!units.some(u=>u.id===selected);
  $('benchN').textContent=units.filter(u=>!u.board).length+' / 9';
  $('prepHint').innerHTML=phase==='prep'?'<span class="live-dot"></span> ลากฮีโร่เพื่อวาง • ลากกลับม้านั่งเพื่อเก็บ':phase==='battle'?'<span class="live-dot"></span> ระบบต่อสู้ทำงานแบบอัตโนมัติ':'<span class="live-dot"></span> รับรางวัลแล้ว • เตรียมรอบใหม่';
  $('boardTooltip').textContent=phase==='prep'?'✦ ลากยูนิตมาวางหรือแตะช่องบนสนาม':phase==='battle'?'✦ ฮีโร่กำลังต่อสู้โดยอัตโนมัติ':'✦ กดไปเวฟถัดไปเพื่อจัดทีมใหม่';
@@ -231,9 +266,10 @@ function renderUI(){
    const u=reserve[i];if(!u)return '<div class="bench-empty" aria-hidden="true"></div>';
    return `<button class="benchitem ${selected===u.id?'active':''}" data-unit="${u.id}" aria-label="${TYPES[u.kind].name} ${u.lv} ดาว กดค้างเพื่อลาก" title="${TYPES[u.kind].name} · ลากลงสนาม"><span class="bench-face">${portraitTag(TYPES[u.kind],'idle')}</span><span class="bench-stars">${'★'.repeat(u.lv)}</span></button>`;
  }).join('');
- const counts={};units.filter(u=>u.board).forEach(u=>counts[TYPES[u.kind].team]=(counts[TYPES[u.kind].team]||0)+1);
+ const counts=TFT.traitCounts(units,TYPES);
  const traits={นักรบ:'⚔️',เวท:'🔮',ยิงไกล:'🏹',ป้องกัน:'🛡️'};
- $('synergies').innerHTML=Object.keys(traits).map(n=>`<div class="trait ${(counts[n]||0)>=2?'on':''}"><span>${traits[n]} ${n}</span><b>${counts[n]||0} / 2 ${(counts[n]||0)>=2?'✦':''}</b></div>`).join('');
+ const traitBonus={นักรบ:'ATK +15%',เวท:'ATK +20%',ยิงไกล:'ตีเร็ว +18%',ป้องกัน:'HP +20%'};
+ $('synergies').innerHTML=Object.keys(traits).map(n=>`<div class="trait ${(counts[n]||0)>=2?'on':''}"><span>${traits[n]} ${n}<small class="tft-trait-bonus">${traitBonus[n]}</small></span><b>${counts[n]||0} / 2 ${(counts[n]||0)>=2?'✦':''}</b></div>`).join('');
  renderInspector()
 }
 
@@ -296,10 +332,34 @@ function makeFighter(base,side,index){
   cloakUntil:0,cloakPrimed:false
  };
 }
-function startBattle(){if(phase==='result'){wave++;phase='prep';roundResult='';roll(true);selected=null;renderUI();addLog('🌊 เวฟ '+wave+' เริ่มเตรียมทีม');return}if(phase!=='prep'||!refreshCount())return;
-let enemies=genEnemies();combat=units.filter(u=>u.board).map((u,i)=>makeFighter(u,'ally',i)).concat(enemies.map((u,i)=>makeFighter(u,'enemy',i)));bullets=[];floaters=[];fx=[];timeLeft=38;combatCount=0;combatTime=0;phase='battle';roundResult='';addLog('⚔️ เริ่มเวฟ '+wave+(wave%3===0?' • BOSS!':''));renderUI()}
-function endBattle(win){if(phase!=='battle')return;phase='result';if(win){wins++;let reward=5+Math.min(10,Math.floor(wave/2));gold+=reward;roundResult='ชนะ! รับ '+reward+' G';addLog('🏆 ชนะเวฟ '+wave+'! ได้รับ '+reward+' G');setTip('🎉 ชนะแล้ว! กดปุ่มเวฟถัดไปเพื่อซื้อยูนิตและปรับทีม')}else{gold+=3;roundResult='พ่ายแพ้ • รับชดเชย 3 G';addLog('💔 แพ้เวฟ '+wave+' • รับ 3 G');setTip('ยังมีโอกาสแก้มือ! กดปุ่มด้านบนเพื่อไปเวฟถัดไป (หรือปรับทีม)')}
-selected=null;renderUI()}
+function startBattle(){
+ if(phase==='gameover'){reset();return}
+ if(phase==='result'){
+  wave++;phase='prep';roundResult='';
+  if(!strategy.shopLocked)roll(true);
+  selected=null;renderUI();addLog('🌊 เวฟ '+wave+' เริ่มเตรียมทีม');return;
+ }
+ if(phase!=='prep'||!refreshCount())return;
+ const enemies=genEnemies();
+ combat=units.filter(u=>u.board).map((u,i)=>makeFighter(u,'ally',i))
+   .concat(enemies.map((u,i)=>makeFighter(u,'enemy',i)));
+ TFT.applyTraits(combat,units,TYPES);
+ bullets=[];floaters=[];fx=[];timeLeft=38;combatCount=0;combatTime=0;phase='battle';roundResult='';
+ addLog('⚔️ เริ่มเวฟ '+wave+(wave%3===0?' • BOSS!':''));renderUI();
+}
+function endBattle(win){
+ if(phase!=='battle')return;
+ const survivors=combat.filter(u=>u.alive&&u.side==='enemy').length;
+ const out=TFT.settleRound(strategy,{win,wave,gold,survivors});
+ gold+=out.income;if(win)wins++;
+ if(out.levels)addLog('⭐ LEVEL '+strategy.level+'! ลงสนามได้ '+strategy.level+' ตัว');
+ phase=out.gameover?'gameover':'result';
+ roundResult=out.gameover?'พลังชีวิตหมด! ผ่านถึงเวฟ '+wave:
+  win?'ชนะ! +'+out.income+' G • +2 XP':'แพ้! -'+out.lostHP+' HP • +'+out.income+' G • +2 XP';
+ addLog((win?'🏆 ชนะเวฟ ':'💔 แพ้เวฟ ')+wave+' — +'+out.income+' G (ดอกเบี้ย '+out.bank+')'+(win?'':' / -'+out.lostHP+' HP'));
+ setTip(out.gameover?'💀 GAME OVER • กดเริ่มเกมใหม่':'จบรอบแล้ว! จัดทีมและซื้อ XP ก่อนเวฟถัดไป');
+ selected=null;renderUI();
+}
 function dmg(target,amount,x,y,crit=false){if(!target.alive)return;let shieldHit=Math.min(target.shield||0,amount);target.shield-=shieldHit;let dealt=amount-shieldHit;target.hp-=dealt;target.hitFlash=.17;floaters.push({x:x??target.x,y:(y??target.y)-30,v:Math.round(amount),color:crit?'#ffe083':target.side==='ally'?'#ff8d98':'#fff4c8',t:0,life:.9});burst(target.x,target.y,target.side==='ally'?'#ff8d98':'#9bf4ff',5);if(target.hp<=0){target.alive=false;burst(target.x,target.y,ENEMY[target.kind]?.col||TYPES[target.kind]?.col||'#ffc475',24);shake=Math.max(shake,.1)}}
 // Resolve critical hits when damage is dealt. Existing heroes retain their original damage.
 function damageWithCrit(attacker,target,baseDamage,bonusCrit=0){
@@ -438,7 +498,7 @@ for(let u of units.filter(u=>u.board)){let t=TYPES[u.kind],p=pos(u.col,u.row);ct
 else{let all=combat.filter(u=>u.alive).sort((a,b)=>a.y-b.y);all.forEach(drawCharacter);for(let b of bullets){circle(b.x,b.y,b.size,b.color);circle(b.x,b.y,b.size+6,b.color+'33')}}
 for(let f of fx){ctx.save();ctx.globalAlpha=clamp(f.life/f.total,0,1);if(f.kind==='dot'){circle(f.x,f.y,f.size,f.color)}else if(f.kind==='ring'){ctx.beginPath();ctx.arc(f.x,f.y,f.max*(1-f.life/f.total),0,2*Math.PI);ctx.lineWidth=5;ctx.strokeStyle=f.color;ctx.stroke()}else if(f.kind==='slash'){ctx.translate(f.x,f.y);ctx.rotate(f.a);ctx.beginPath();ctx.moveTo(-31,-20);ctx.quadraticCurveTo(8,0,32,25);ctx.strokeStyle=f.color;ctx.lineWidth=8;ctx.stroke()}else if(f.kind==='lightning'){ctx.strokeStyle=f.color;ctx.lineWidth=6;ctx.shadowColor=f.color;ctx.shadowBlur=18;ctx.beginPath();ctx.moveTo(f.x1,f.y1);for(let i=1;i<6;i++){let t=i/6;ctx.lineTo(f.x1+(f.x2-f.x1)*t+Math.sin(bgtime*20+i*6)*9,f.y1+(f.y2-f.y1)*t+Math.cos(bgtime*30+i*3)*9)}ctx.lineTo(f.x2,f.y2);ctx.stroke()}else if(f.kind==='hammer'){let progress=1-f.life/f.total;ctx.save();ctx.translate(f.x,f.y-40*(1-progress));ctx.rotate(-.6*progress);tile(-62,-29,124,58,12,'#e4e7f3','#698c9e');for(let j=-40;j<=40;j+=20){ctx.strokeStyle='#586575';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(j,-29);ctx.lineTo(j,29);ctx.stroke()}tile(-6,20,12,80,3,'#ad8865');ctx.restore()}ctx.restore()}
 for(let f of floaters){ctx.globalAlpha=clamp(1-f.t/f.life,0,1);text(typeof f.v==='number'?f.v.toLocaleString():f.v,f.x,f.y,typeof f.v==='number'?'700 22px Kanit':'700 18px Kanit',f.color)}ctx.globalAlpha=1;
-if(phase==='result'){ctx.fillStyle='#061426c9';ctx.fillRect(0,270,W,210);text(roundResult.includes('ชนะ')?'🏆 VICTORY!':'💔 DEFEAT',W/2,345,'700 42px Kanit',roundResult.includes('ชนะ')?'#8ef0d5':'#ff9fa6');text(roundResult,W/2,395,'500 22px Kanit','#fff1db');text('กด “ไปเวฟต่อไป” เพื่อจัดทีมอีกครั้ง',W/2,434,'16px Kanit','#c3ddf5')}
+if(phase==='result'||phase==='gameover'){ctx.fillStyle='#061426c9';ctx.fillRect(0,270,W,210);text(phase==='gameover'?'💀 GAME OVER':roundResult.includes('ชนะ')?'🏆 VICTORY!':'💔 DEFEAT',W/2,345,'700 42px Kanit',roundResult.includes('ชนะ')?'#8ef0d5':'#ff9fa6');text(roundResult,W/2,395,'500 22px Kanit','#fff1db');text(phase==='gameover'?'กด “เริ่มเกมใหม่” เพื่อลองอีกครั้ง':'กด “ไปเวฟต่อไป” เพื่อจัดทีมอีกครั้ง',W/2,434,'16px Kanit','#c3ddf5')}
 ctx.restore();syncGifSprites(gifDrawList)}
 function genGhostEnemies(){return genEnemies().filter((u,i)=>u.boss||i<3).slice(0,4)}
 function loop(now){let dt=clamp((now-last)/1000||0,0,.04);last=now;update(dt);draw();requestAnimationFrame(loop)}
@@ -555,9 +615,12 @@ canvas.addEventListener('contextmenu',e=>e.preventDefault());
 $('bench').addEventListener('contextmenu',e=>e.preventDefault());
 $('startBtn').addEventListener('click',()=>{finishGesture();startBattle()});
 $('speedBtn').addEventListener('click',()=>{speed=speed===1?2:1;renderUI();toast('⏩ ความเร็ว ×'+speed)});
-$('rollBtn').addEventListener('click',()=>{roll(false);toast('⟳ เปลี่ยนฮีโร่ในร้านแล้ว')});
+$('rollBtn').addEventListener('click',()=>{if(phase==='prep'&&!strategy.shopLocked&&gold>=2){roll(false);toast('⟳ เปลี่ยนฮีโร่ในร้านแล้ว')}});
+$('buyXPBtn').addEventListener('click',buyXP);
+$('lockShopBtn').addEventListener('click',toggleShopLock);
+$('sellBtn').addEventListener('click',sellSelected);
 $('removeBtn').addEventListener('click',removeSelected);
 $('restartBtn').addEventListener('click',()=>{if(!confirm('เริ่มเกมใหม่ทั้งหมดหรือไม่?'))return;reset()});
-function reset(){closeHero();finishGesture();landings.clear();encounterWave=-1;encounterPlan=[];combatTime=0;wave=1;gold=12;wins=0;units=[newUnit('lisbeth',true,2,5),newUnit('silica',true,3,5),newUnit('kirito')];selected=units[2].id;phase='prep';roundResult='';speed=1;combat=[];fx=[];bullets=[];floaters=[];messages=[];roll(true);addLog('✨ ยินดีต้อนรับสู่ AUTOCHEST');setTip('💡 มีคิริโตะบนม้านั่งให้แล้ว! เลือกและวางลงสนามสีฟ้าได้เลย');renderUI()}
+function reset(){closeHero();finishGesture();landings.clear();encounterWave=-1;encounterPlan=[];combatTime=0;wave=1;gold=12;wins=0;strategy=TFT.newRun();units=[newUnit('lisbeth',true,2,5),newUnit('silica',true,3,5),newUnit('kirito')];selected=units[2].id;phase='prep';roundResult='';speed=1;combat=[];fx=[];bullets=[];floaters=[];messages=[];roll(true);addLog('✨ ยินดีต้อนรับสู่ AUTOCHEST');setTip('💡 มีคิริโตะบนม้านั่งให้แล้ว! เลือกและวางลงสนามสีฟ้าได้เลย');renderUI()}
 reset();requestAnimationFrame(loop)
 })();

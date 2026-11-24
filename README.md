@@ -85,3 +85,14 @@ Old original characters were removed from active roster and repository files. Th
 | จำนวนมอนสูงสุด | 8 | 6 |
 
 บอสยังเกิดทุก 3 เวฟและตัวใหญ่เท่าเดิม แต่ลูกน้องจะสุ่มตัวระดับ Common/ราคา 1 ได้บ่อยขึ้น ไม่รุมตัวราคา 3 จำนวนมากตั้งแต่เวฟ 5 ค่าปรับทั้งหมดอยู่ที่ `ENEMY_SCALING` ใน `src/game.js` และมีสคริปต์ทดสอบ `node scripts/test-wave-balance.cjs`
+
+## v0.13 — TFT-inspired SOLO systems (Phase 1)
+
+- 100 HP player health, losing rounds subtract HP; run ends at 0 HP (restart available)
+- Level 3 start / max 8, team size = level. Passive +2 XP per round, buy +4 XP for 4 G. XP thresholds 3→4=6, 4→5=10, 5→6=18, 6→7=26, 7→8=38
+- 5-card shop, level-weighted rarity for cost 1/2/3, reroll 2 G, shop lock between rounds
+- End-of-round Gold: +5 base, +1 interest per saved 10 Gold (max +5), +1 on win, streak bonus +1 from 2 consecutive results / +2 from 4+
+- Sell heroes at cost ×3^(stars−1) when preparing; keep 3-copy automatic star combining
+- Real class synergy from 2 **distinct** deployed champions: Warrior ATK +15%, Mage ATK +20%, Ranged attack cooldown ×0.85, Defender HP +20%. Only one mage exists yet, so its tier is future-ready
+- Keep SAO art, battle effects, boss every third wave, previous enemy balance, inspector and GIF support
+- **Not implemented yet:** timed planning, hex board, loot/item crafting, augments, carousel or PvP. This is our own single-player strategy mode, not a one-to-one TFT reproduction

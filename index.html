@@ -39,12 +39,18 @@
         <section class="hud-panel economy-panel" aria-label="สถานะเกม">
           <div class="panel-title"><span>COMMAND DECK</span><span class="round-small">BATTLE PASS / 01</span></div>
           <div class="resource-strip"><div class="resource gold-resource"><span>✦ GOLD</span><b id="gold">12</b></div><div class="resource"><span>◉ ROUND</span><b id="wave">1</b></div><div class="resource"><span>★ WINS</span><b id="record">0</b></div></div>
+          <div class="tft-progression">
+            <div class="tft-progress-head"><span>❤️ HP ผู้เล่น</span><strong id="playerHp">100 / 100</strong></div><div class="tft-track"><i id="hpFill" class="tft-hp"></i></div>
+            <div class="tft-progress-head"><span>⭐ เลเวล <b id="levelCount">3</b> · ลงสนามได้ <b id="boardLimitInfo">3</b> ตัว</span><strong id="xpCount">0 / 6 XP</strong></div><div class="tft-track"><i id="xpFill" class="tft-xp"></i></div>
+            <div class="tft-economy"><span id="economyInfo">ดอกเบี้ย +1 G</span><span id="streakInfo">สตรีก 0</span></div>
+            <button id="buyXPBtn" type="button" class="tft-buy-xp">⬆ ซื้อ 4 XP · 4 G</button>
+          </div>
           <div class="combat-buttons"><button id="startBtn" class="action-btn start-btn"><span class="button-symbol">⚔</span><span>เริ่มการต่อสู้</span><small>▶</small></button><button id="speedBtn" class="action-btn speed-btn">⏩ ×2</button></div>
           <div class="status-line" id="prepHint"><span class="live-dot"></span> จัดตำแหน่งฮีโร่ให้พร้อมก่อนเริ่ม</div>
         </section>
 
         <section class="hud-panel store-panel" aria-label="ร้านค้าฮีโร่">
-          <div class="section-title-row"><div><span class="eyebrow">RECRUITMENT</span><h2>ร้านค้าฮีโร่ <span class="tiny-glyph">✦</span></h2></div><button id="rollBtn" class="reroll-btn">⟳ รีโรล <b>2 G</b></button></div>
+          <div class="section-title-row"><div><span class="eyebrow">RECRUITMENT</span><h2>ร้านค้าฮีโร่ <span class="tiny-glyph">✦</span></h2></div><div class="shop-action-row"><button id="lockShopBtn" type="button" class="reroll-btn">🔓 ล็อกร้าน</button><button id="rollBtn" class="reroll-btn">⟳ รีโรล <b>2 G</b></button></div></div><div id="shopOdds" class="shop-odds"></div>
           <div class="shop" id="shop"></div>
           <p class="shop-note"><span>ⓘ</span> แตะการ์ดเพื่อดูรายละเอียดก่อนซื้อ • ซื้อจากปุ่มใต้การ์ด</p>
           <button id="heroCodexBtn" class="light-btn codex-btn" type="button">📖 สารานุกรมฮีโร่ทั้งหมด</button>
@@ -53,7 +59,7 @@
         <section class="hud-panel bench-panel" aria-label="ม้านั่งสำรอง">
           <div class="section-title-row"><div><span class="eyebrow">YOUR RESERVE</span><h2>ม้านั่งสำรอง</h2></div><span class="count-chip" id="benchN">0 / 9</span></div>
           <div class="bench-drop" id="benchDrop"><div class="bench" id="bench"></div><div class="bench-drop-hint">↩ ลากยูนิตจากสนามมาวางที่นี่เพื่อเก็บ</div></div>
-          <div class="bench-actions"><button id="removeBtn" class="light-btn">↩ เก็บตัวที่เลือก</button><button id="restartBtn" class="light-btn">⟳ เริ่มใหม่</button></div>
+          <div class="bench-actions"><button id="removeBtn" class="light-btn">↩ เก็บตัวที่เลือก</button><button id="sellBtn" class="light-btn">🪙 ขายตัวที่เลือก</button><button id="restartBtn" class="light-btn">⟳ เริ่มใหม่</button></div>
         </section>
 
         <section class="hud-panel details-panel" aria-label="ข้อมูลฮีโร่ที่เลือก"><div class="section-title-row"><div><span class="eyebrow">UNIT INSPECTOR</span><h2>ข้อมูลฮีโร่</h2></div><span class="eyebrow">✦ UNIT CARD</span></div><div id="unitDetails" class="unit-details"><div class="no-selection">แตะหรือคลิกฮีโร่เพื่อดูรายละเอียด</div></div></section>
@@ -63,7 +69,7 @@
         <section class="hud-panel help-panel"><div class="tip-icon">✧</div><div id="tip" class="hint" role="status">ลากตัวละครจากม้านั่งลงบนสนามเพื่อจัดทีม</div><details class="battle-log"><summary>บันทึกการต่อสู้ <span>▾</span></summary><div class="log" id="log"></div></details></section>
       </aside>
     </main>
-    <footer class="game-footer"><span>✦ AUTOCHEST / SAO ROSTER v0.9</span><span>CLICK • DRAG • DROP • AUTO BATTLE</span></footer>
+    <footer class="game-footer"><span>✦ AUTOCHEST / TFT SOLO STRATEGY v0.13</span><span>CLICK • DRAG • DROP • AUTO BATTLE</span></footer>
   </div>
   <div id="heroModal" class="hero-modal" role="dialog" aria-modal="true" aria-labelledby="heroModalTitle" hidden>
     <div class="hero-modal-backdrop" data-close-hero></div>
@@ -82,6 +88,7 @@
   <script defer src="./src/characters/heroes/deathgun.js"></script>
   <script defer src="./src/characters/heroes/heathcliff.js"></script>
   <script defer src="./src/characters/heroes/silica.js"></script>
+  <script defer src="./src/tft-core.js"></script>
   <script defer src="./src/game.js"></script>
 </body>
 </html>
