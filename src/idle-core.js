@@ -5,7 +5,7 @@
  const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
  const number=(n,fallback=0)=>Number.isFinite(Number(n))?Number(n):fallback;
  const initial=()=>({
-  version:1,stage:1,kills:0,gold:3000,heroExp:1800,rubies:1200,tickets:10,
+  version:1,stage:1,kills:0,bossRetryWaves:0,gold:3000,heroExp:1800,rubies:1200,tickets:10,
   squad:['asuna','kirito','silica'],owned:{
    asuna:{level:1,stars:1,shards:0},
    kirito:{level:1,stars:1,shards:0},
@@ -43,6 +43,7 @@
    state[key]=Math.floor(clamp(number(raw[key],state[key]),0,1e12));
   state.stage=Math.max(1,state.stage);
   state.kills=clamp(state.kills,0,killsNeeded(state.stage));
+  state.bossRetryWaves=Math.floor(clamp(number(raw.bossRetryWaves,0),0,3));
   state.autoBoss=raw.autoBoss!==false;
   state.autoWalk=raw.autoWalk!==false;
   state.autoBattle=raw.autoBattle!==false;
