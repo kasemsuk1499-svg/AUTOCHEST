@@ -360,6 +360,25 @@
         "delayMs": 0,
         "airtimeMs": 0,
         "loopFrames": false
+      },
+      "skillHit": {
+        "src": "./assets/effects/artoria/skillHit-224bafc49ae5.png",
+        "cols": 8,
+        "rows": 1,
+        "row": 0,
+        "col": 0,
+        "frames": 7,
+        "size": 125,
+        "ms": 500,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "thickness": 48,
+        "orientation": "horizontal",
+        "delayMs": 0,
+        "airtimeMs": 0,
+        "loopFrames": false
       }
     }
   }
