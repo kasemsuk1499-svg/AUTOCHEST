@@ -63,7 +63,7 @@ footer{margin:20px 0 0;display:flex;justify-content:space-between;color:#789db8;
 .auto-walk-btn{border:1px solid #c4e5ff91;background:#102c45c9;color:#d9f4ff;border-radius:10px;padding:6px 10px;font:700 11px Rajdhani,Kanit,sans-serif;backdrop-filter:blur(6px)}
 .auto-walk-btn.selected{border-color:#a6ffe7;color:#aeffe8}
 .walk-pad{display:grid;grid-template-columns:repeat(3,31px);grid-template-rows:repeat(3,31px);
- gap:2px;grid-template-areas:'. up .' 'left down right';opacity:.7;transition:opacity .2s}
+ gap:2px;grid-template-areas:'. up .' 'left . right' '. down .';opacity:.7;transition:opacity .2s}
 .walk-pad:hover,.walk-pad:focus-within{opacity:1}
 .walk-pad button{display:grid;place-items:center;background:#133752b8;color:#b8f3e9;border:1px solid #70b0b9ab;
  border-radius:9px;font:700 13px Kanit,sans-serif;padding:0;box-shadow:0 2px 9px #050c1930}
