@@ -7,7 +7,7 @@
   if(list[unit.id])throw Error('Duplicate character id '+unit.id);
   if(!unit.name||!unit.portrait)throw Error('Missing character art/name: '+unit.id);
   // Every asset slot accepts PNG or animated GIF. Allow local project paths only.
-  const validAsset=p=>typeof p==='string'&&/^\.\/assets\/heroes\/[a-z0-9_-]+\/[a-zA-Z0-9_-]+\.(?:png|gif)$/i.test(p)||p==='./assets/heroes/megumin/placeholder.svg';
+  const validAsset=p=>typeof p==='string'&&/^\.\/assets\/heroes\/[a-z0-9_-]+\/[a-zA-Z0-9_-]+\.(?:png|gif)$/i.test(p);
   const images={art:unit.images?.art||unit.portrait,idle:unit.images?.idle||unit.portrait,attack:unit.images?.attack||unit.images?.idle||unit.portrait};
   if(!validAsset(unit.portrait)||Object.values(images).some(p=>!validAsset(p)))throw Error('Use local PNG/GIF images for '+unit.id);
   if(unit.visual?.attackMs!==undefined && !(Number.isFinite(unit.visual.attackMs)&&unit.visual.attackMs>=100&&unit.visual.attackMs<=5000))throw Error('attackMs must be 100-5000ms');
