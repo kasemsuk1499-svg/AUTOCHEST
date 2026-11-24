@@ -23,8 +23,9 @@ let pending=state.offlineBank;
 let selected=state.squad[0]||Object.keys(state.owned)[0]||IDS[0];
 let skillReturnFocus=null,managementPanel=null,managementFocus=null;
 let summonBusy=false,summonTimer=0,lastSummon=null;
+let trial=null,trialContext=null,trialReturnFocus=null;
 let formationMode=false,shots=[];
-const allyRevives=new Map();
+let allyRevives=new Map();
 let combat=null,enemies=[],fighters=[],stageClock=0,respawn=1.8,waveCount=0,travel=0,travelDistance=0,encounters=0,lastFrame=0,lastSave=0,lastHUD=0,toastTimer=0;
 let logLines=['✦ เริ่มการผจญภัย SAO IDLE แล้ว!'];
 const GRID_COLS=6,GRID_ROWS=7,ALLY_START_ROW=4;
@@ -463,6 +464,7 @@ function openSkill(id,source='hero',unit=null){
   '<h3>✨ '+escapeText(h.skill)+'</h3><ul>'+
   skillDescription(h,enemy).map(x=>'<li>'+escapeText(x)+'</li>').join('')+'</ul>'+
   '<p class="skill-mode-note">ใช้กติกาต่อสู้ TFT เดิม ผสมระบบฟาร์มและกาชาแบบ Idle · เลเวลและดาวอิงค่าปัจจุบัน</p></section>';
+ $('skillModalContent').insertAdjacentHTML('beforeend','<button type="button" class="trial-entry" data-trial-hero="'+id+'">▶ ทดลองฮีโร่ฟรี</button>');
  skillReturnFocus=modal.hidden?document.activeElement:skillReturnFocus;
  modal.hidden=false;$('closeSkillBtn').focus();
 }
@@ -622,7 +624,7 @@ function updateSummonWallet(){
 function renderSummonPool(){
  const odds=CORE.summonOdds(HEROES);
  $('summonPoolCount').textContent=odds.length;
- $('summonPool').innerHTML=odds.map(({id})=>{const h=HEROES[id];return '<div class="summon-pool-hero tier-'+h.cost+'"><img src="'+h.images.art+'" alt=""><span>'+escapeText(h.name)+'</span></div>'}).join('');
+ $('summonPool').innerHTML=odds.map(({id})=>{const h=HEROES[id];return '<button type="button" class="summon-pool-hero tier-'+h.cost+'" data-trial-hero="'+id+'" aria-label="ทดลอง '+escapeText(h.name)+'"><img src="'+h.images.art+'" alt=""><span>'+escapeText(h.name)+'</span><small>▶ ทดลอง</small></button>'}).join('');
  $('summonRates').innerHTML=odds.map(({id,rate})=>'<div><span>'+escapeText(HEROES[id].name)+'</span><b>'+ (rate*100).toFixed(2)+'%</b></div>').join('');
 }
 function showSummonBanner(){
@@ -678,8 +680,9 @@ function claimOffline(){
 // Keep the effect layer bounded during long idle farming sessions.
 const MAX_VISUAL_EFFECTS=70,MAX_ACTIVE_SHOTS=36;
 const fxLanes=new WeakMap();
+function effectLayer(){return $(trialContext?'trialFx':'fxLayer')}
 function addTransientFx(node,duration){
- const layer=$('fxLayer');
+ const layer=effectLayer();
  if(layer.childElementCount>=MAX_VISUAL_EFFECTS){
   // Prioritize actual combat numbers; remove the oldest decorative effect first.
   const old=layer.querySelector('.fx-ring,.fx-cloak,.fx-bolt');
@@ -698,6 +701,7 @@ function spawnFx(label,x,y,critical=false,kind='status',lane=0){
  addTransientFx(fx,1050);
 }
 function unitFx(actor,label,kind='status',critical=false){
+ if(trialContext){const name=HEROES[actor.id]?.name||actor.label||'หุ่นฝึก';trialContext.events.unshift({name,label,kind});trialContext.events.length=Math.min(6,trialContext.events.length)}
  const now=performance.now(),prev=fxLanes.get(actor);
  const lane=prev&&now-prev.at<360?(prev.lane+1)%5:0;
  fxLanes.set(actor,{at:now,lane});
@@ -848,7 +852,7 @@ function targetHero(enemy){return TFT.findTarget(enemy,fighters,stageClock)}
 function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false,pierceShield=false){
  if(!target||target.hp<=0||target.alive===false)return false;
  if(TFT.isImmortal(target,stageClock)){statusFx(target,'immune','อมตะ · 0');return false}
- const hero=HEROES[attacker.id];
+ const hero=HEROES[attacker.id]||{};
  const chance=Math.min(1,Math.max(0,(attacker.crit||0)+bonusCrit));
  const critical=forcedCrit||(chance>0&&Math.random()<chance);
  const raw=TFT.incomingDamage(power*TFT.outgoingMultiplier(attacker,stageClock)*TFT.vulnerabilityMultiplier(target,stageClock)*(critical?(attacker.critDamage||hero.critDamage||1.5):1),HEROES[target.id]);
@@ -865,10 +869,11 @@ function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false,pierceShie
    if(target.side==='ally')allyRevives.set(target.id,{until:target.immortalUntil});
    if(bar)bar.style.width=target.hp/target.maxHp*100+'%';
    position(target);ring(target.x,target.y,true);unitFx(target,'คืนชีพ +'+fmt(target.hp),'heal');statusFx(target,'revive','อมตะ');
-   log('✦ '+HEROES[target.id].name+' คืนชีพ!');return true;
+   if(!trialContext)log('✦ '+HEROES[target.id].name+' คืนชีพ!');return true;
   }
   target.alive=false;
-  if(target.side==='enemy')defeatMonster(target);
+  if(trialContext){if(target.node)target.node.style.opacity='.22'}
+  else if(target.side==='enemy')defeatMonster(target);
   else if(target.node)target.node.style.opacity='.2';
  }
  return true;
@@ -885,7 +890,7 @@ function tftShot(attacker,target,mult=1,bonusCrit=0,execute=false,heavy=false,co
  const node=el('span',{class:'tft-bullet'+(heavy?' heavy':'')});
  setArenaPosition(node,attacker.x,attacker.y);
  node.style.setProperty('--bullet-color',palette);
- $('fxLayer').appendChild(node);
+ effectLayer().appendChild(node);
  shots.push({
   owner:attacker,side:attacker.side,x:attacker.x,y:attacker.y,target,
   life:HEROES[attacker.id].globalRange?3.5:1.8,speed:HEROES[attacker.id].projectileSpeed||(HEROES[attacker.id].effect==='triple'?450:340),
@@ -898,7 +903,7 @@ function tftPiercingShot(attacker,target){
  setArenaPosition(node,attacker.x,attacker.y,Math.atan2(p.dy,p.dx));
  node.style.setProperty('--bullet-color',hero.col||'#82d0c7');
  node.style.setProperty('--shot-angle',Math.atan2(p.dy,p.dx)+'rad');
- $('fxLayer').appendChild(node);
+ effectLayer().appendChild(node);
  shots.push({owner:attacker,side:attacker.side,x:attacker.x,y:attacker.y,pierce:p,
   speed:hero.projectileSpeed||950,radius:hero.pierceRadius||36,power:attacker.atk*(hero.skillPower||2.4),node});
 }
@@ -1018,10 +1023,11 @@ function tftSkill(attacker,target){
 function playAttackAnimation(attacker){
  const node=attacker.node;
  if(!node)return;
- node.style.setProperty('--strike-duration',Math.max(90,260/state.speed)+'ms');
+ const scene=trialContext;
+ node.style.setProperty('--strike-duration',Math.max(90,260/(scene?1:state.speed))+'ms');
  node.classList.remove('burst');
  requestAnimationFrame(()=>{
-  if(node.isConnected&&attacker.attackUntil>stageClock)node.classList.add('burst');
+  if(node.isConnected&&attacker.attackUntil>(scene?scene.clock:stageClock))node.classList.add('burst');
  });
 }
 function tftAttack(attacker,target){
@@ -1071,7 +1077,7 @@ function tftAttack(attacker,target){
 function enemyAttack(enemy,target){tftAttack(enemy,target)}
 function heroAttack(hero,target){tftAttack(hero,target)}
 function tick(dt){
- if(!$('rewardModal').hidden||!$('skillModal').hidden||formationMode||boardGesture?.active||!state.autoBattle)return;
+ if(trial||!$('rewardModal').hidden||!$('skillModal').hidden||formationMode||boardGesture?.active||!state.autoBattle)return;
  const t=Math.max(0,Math.min(.08,dt))*state.speed;
  stageClock+=t;
  if(!combat){
@@ -1134,11 +1140,142 @@ function tick(dt){
 }
 function frame(now){
  if(!lastFrame)lastFrame=now;
- tick((now-lastFrame)/1000);lastFrame=now;
+ const dt=(now-lastFrame)/1000;
+ if(trial)tickTrial(dt);else tick(dt);lastFrame=now;
  if(now-lastHUD>340){updateResources();lastHUD=now}
  if(now-lastSave>6000){save()}
  requestAnimationFrame(frame);
 }
+// Trial shares the real attack/skill/shot code, but every mutable battle variable
+// used by it is scoped to a disposable scene and restored synchronously.
+function withTrial(fn){
+ const scene=trial;if(!scene)return;
+ const live={fighters,enemies,shots,stageClock,arenaSize,allyRevives};
+ trialContext=scene;fighters=scene.fighters;enemies=scene.enemies;shots=scene.shots;
+ stageClock=scene.clock;arenaSize=scene.size;allyRevives=scene.revives;
+ try{return fn()}finally{
+  scene.clock=stageClock;scene.shots=shots;
+  ({fighters,enemies,shots,stageClock,arenaSize,allyRevives}=live);trialContext=null;
+ }
+}
+function trialUnit(id,side,x,y,hp,maxHp,label){
+ const h=HEROES[id],st=h?CORE.stats(h,{level:1,stars:1}):{atk:100,cool:1,crit:0,critDamage:1};
+ const actor={id,side,x,y,hp,maxHp,atk:st.atk,cool:st.cool,crit:st.crit,critDamage:st.critDamage,alive:true,shield:0,attacks:0,attackUntil:0,cloakUntil:0,ambush:false,walking:false,label};
+ const node=el('div',{class:'fighter '+(side==='enemy'?'enemy-unit trial-dummy':'party-fighter')});
+ node.innerHTML='<span class="mini-stars">'+(side==='enemy'?'DUMMY':'Lv.1 ★')+'</span>'+
+ (h?'<img src="'+h.images.idle+'" alt="">':'<div class="dummy-icon">◎</div>')+
+ '<div class="mini-hp"><i></i></div><span class="fighter-name">'+escapeText(label||h.name)+'</span><span class="trial-values"></span>';
+ $('trialUnits').appendChild(node);actor.node=node;actor.img=node.querySelector('img');actor.sprite=h?.images.idle;
+ actor.hpbar=actor.bar=node.querySelector('.mini-hp i');actor.values=node.querySelector('.trial-values');
+ return actor;
+}
+function resetTrial(){
+ if(!trial)return;
+ const id=$('trialHero').value,h=HEROES[id],count=Number($('trialCount').value),st=CORE.stats(h,{level:1,stars:1}),arena=$('trialArena');
+ $('trialUnits').replaceChildren();$('trialFx').replaceChildren();$('trialLog').replaceChildren();
+ trial={id,clock:0,size:{width:arena.clientWidth,height:arena.clientHeight},fighters:[],enemies:[],shots:[],revives:new Map(),events:[],queue:[],active:null,nextAt:0,lastLog:'',note:'พร้อมทดลอง'};
+ trial.hero=trialUnit(id,'ally',50,78,st.hp,st.hp);
+ trial.fighters.push(trial.hero);
+ // Support targets start wounded; tanks can demonstrate ally shields.
+ if(h.support||h.guard){
+  for(const [other,x,ratio] of [['kirito',22,.33],['asuna',78,.55]]){
+   const max=CORE.stats(HEROES[other],{level:1,stars:1}).hp;
+   trial.fighters.push(trialUnit(other,'ally',x,82,Math.round(max*(h.support?ratio:1)),max,HEROES[other].name));
+  }
+ }
+ const cells=h.effect==='pierce'?[[50,42],[50,25],[50,10],[24,30],[76,30]]:[[50,38],[33,32],[67,32],[18,15],[82,15]];
+ for(let i=0;i<count;i++){const [x,y]=cells[i];trial.enemies.push(trialUnit('__dummy','enemy',x,y,3000,3000,'หุ่น '+(i+1)))}
+ $('trialSkillName').textContent=h.skill;
+ $('trialStats').textContent='HP '+fmt(st.hp)+' · ATK '+fmt(st.atk)+' · '+(h.globalRange?'ทั่วสนาม':h.range+' ช่อง');
+ $('trialPassive').disabled=!(h.passive||h.guard||h.effect==='cloakshot');
+ $('trialPassive').textContent=h.passive?.reviveHp?'ทดสอบคืนชีพ':h.passive?.focusCritStep?'ทดสอบคริต่อเนื่อง':h.passive?.healOnAttack?'ทดสอบฮีลปกติ':h.guard?'ทดสอบยั่วยุ':h.effect==='cloakshot'?'ทดสอบซุ่มยิง':h.passive?.damageReduction?'ทดสอบลดดาเมจ':'ทดลองพาสซีฟ';
+ withTrial(renderTrial);
+}
+function renderTrial(){
+ for(const u of [...fighters,...enemies]){
+  position(u);u.hpbar.style.width=u.hp/u.maxHp*100+'%';
+  const value=fmt(u.hp)+' / '+fmt(u.maxHp)+(u.shield?' · โล่ '+fmt(u.shield):'');
+  if(u.values.textContent!==value)u.values.textContent=value;
+ }
+ const scene=trialContext;
+ const busy=!!scene.active||scene.queue.length>0||shots.length>0||scene.clock<scene.nextAt;
+ $('trialNormal').disabled=busy||!scene.hero.alive;
+ $('trialSkill').disabled=busy||!scene.hero.alive;
+ $('trialHit').disabled=busy||!scene.hero.alive;
+ const h=HEROES[scene.id];
+ $('trialPassive').disabled=busy||!scene.hero.alive||!(h.passive||h.guard||h.effect==='cloakshot');
+ $('trialNote').textContent=scene.note;
+ const key=JSON.stringify(scene.events);
+ if(scene.lastLog!==key){
+  scene.lastLog=key;$('trialLog').innerHTML=scene.events.map(e=>'<div class="trial-event '+e.kind+'"><span>'+escapeText(e.name)+'</span><b>'+escapeText(e.label)+'</b></div>').join('');
+ }
+}
+function queueTrial(mode){
+ if(!trial||trial.active||trial.queue.length||trial.shots.length||trial.clock<trial.nextAt)return;
+ const h=HEROES[trial.id];
+ if(mode==='passive'){
+  if(h.passive?.reviveHp)trial.queue=['lethal','hit'];
+  else if(h.passive?.focusCritStep)trial.queue=Array(5).fill('normal');
+  else if(h.guard)trial.queue=['skill','taunt'];
+  else if(h.effect==='cloakshot')trial.queue=['skill','ambush'];
+  else if(h.passive?.healOnAttack)trial.queue=['normal'];
+  else trial.queue=['hit'];
+ }else trial.queue=[mode];
+ trial.note='กำลังทดลอง...';
+}
+function tickTrial(dt){
+ withTrial(()=>{
+  const scene=trialContext,actor=scene.hero,h=HEROES[actor.id],t=Math.max(0,Math.min(.08,dt));
+  stageClock+=t;
+  if(actor.attackUntil<=stageClock){pose(actor,false);actor.node.classList.remove('burst')}
+  advanceTftShots(t);
+  if(!scene.active&&scene.queue.length&&stageClock>=scene.nextAt&&!shots.length)scene.active=scene.queue.shift();
+  if(scene.active){
+   const cmd=scene.active,target=enemies.find(u=>u.hp>0);
+   if(['hit','lethal','taunt'].includes(cmd)){
+    const dummy=target||enemies[0],victim=cmd==='taunt'?TFT.findTarget(dummy,fighters,stageClock):actor;
+    if(victim&&victim.alive){
+     if(cmd==='taunt')scene.note='AI เลือกเป้าหมาย: '+HEROES[victim.id].name;
+     const power=cmd==='lethal'?Math.ceil((victim.hp+victim.shield+1)/(1-(HEROES[victim.id].passive?.damageReduction||0))):100;
+     tftDamage(dummy,victim,power);
+     if(cmd!=='taunt')scene.note=cmd==='lethal'?'ทดลองรับดาเมจจน HP เหลือ 0':'รับการโจมตีพื้นฐาน 100 หน่วย';
+    }
+    scene.active=null;scene.nextAt=stageClock+.55;
+   }else if(!target||!actor.alive){
+    scene.active=null;scene.queue=[];scene.note='รีเซ็ตสนามเพื่อทดลองใหม่';
+   }else if(actor.cloakUntil<=stageClock){
+    const close=TFT.pursue(actor,target,h,t,'ally').inRange;
+    if(close){
+     actor.walking=false;
+     actor.attacks=cmd==='skill'?(h.triggerEvery||4)-1:0;
+     tftAttack(actor,target);
+     if(h.passive?.focusCritStep)scene.note='โอกาสคริติคอลปกติ '+Math.round((actor.crit+Math.min(h.passive.focusCritMax,(actor.focusHits||0)*h.passive.focusCritStep))*100)+'%';
+     else scene.note=cmd==='skill'?'ใช้ '+h.skill:cmd==='ambush'?'โจมตีหลังหมดพรางตัว':'โจมตีปกติ';
+     scene.active=null;scene.nextAt=stageClock+Math.max(.3,h.cool);
+     if(h.effect==='cloakshot'&&cmd==='skill'&&scene.queue[0]==='ambush')scene.nextAt=Math.max(scene.nextAt,actor.cloakUntil);
+    }
+   }
+  }
+  renderTrial();
+ });
+}
+function openTrial(id){
+ if(!HEROES[id])return;
+ trialReturnFocus=document.activeElement;
+ $('trialHero').innerHTML=IDS.map(id=>'<option value="'+id+'">'+escapeText(HEROES[id].name)+'</option>').join('');
+ $('trialHero').value=id;$('trialModal').hidden=false;resetTrial();$('trialClose').focus();
+}
+function closeTrial(){
+ if(!trial)return;
+ trial=null;$('trialModal').hidden=true;$('trialUnits').replaceChildren();$('trialFx').replaceChildren();
+ if(trialReturnFocus?.isConnected)trialReturnFocus.focus();trialReturnFocus=null;
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-trial-hero]');if(b){e.preventDefault();openTrial(b.dataset.trialHero)}});
+$('trialHero').addEventListener('change',resetTrial);$('trialCount').addEventListener('change',resetTrial);
+$('trialReset').addEventListener('click',resetTrial);$('trialClose').addEventListener('click',closeTrial);$('trialOverlay').addEventListener('click',closeTrial);
+for(const [id,mode] of [['trialNormal','normal'],['trialSkill','skill'],['trialPassive','passive'],['trialHit','hit']])$(id).addEventListener('click',()=>queueTrial(mode));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&trial){e.preventDefault();closeTrial()}});
+if(typeof ResizeObserver==='function')new ResizeObserver(()=>{if(trial){trial.size={width:$('trialArena').clientWidth,height:$('trialArena').clientHeight};withTrial(()=>{renderTrial();for(const shot of shots)positionShot(shot)})}}).observe($('trialArena'));
 function refreshUpgradePicker(){
  const picker=$('upgradePicker');if(!picker)return;
  picker.innerHTML=IDS.map(id=>'<option value="'+id+'"'+(id===selected?' selected':'')+'>'+escapeText(HEROES[id].name)+(state.owned[id]?' · Lv.'+state.owned[id].level:' · ล็อก')+'</option>').join('');
@@ -1164,7 +1301,7 @@ picker.addEventListener('change',()=>{choose(picker.value);refreshUpgradePicker(
 document.querySelectorAll('[data-open-panel]').forEach(button=>button.addEventListener('click',()=>openManagement(button.dataset.openPanel,button)));
 document.querySelectorAll('[data-close-panel]').forEach(button=>button.addEventListener('click',closeManagement));
 document.addEventListener('keydown',e=>{
- if(e.key==='Escape'&&managementPanel&&$('skillModal').hidden&&$('rewardModal').hidden){e.preventDefault();closeManagement()}
+ if(e.key==='Escape'&&!trial&&managementPanel&&$('skillModal').hidden&&$('rewardModal').hidden){e.preventDefault();closeManagement()}
 });
 $('heroList').addEventListener('click',e=>{
  const info=e.target.closest('[data-skill-hero]');
@@ -1206,7 +1343,7 @@ for(const layerId of ['heroLayer','monsterLayer']){
 $('closeSkillBtn').addEventListener('click',closeSkill);
 $('skillModal').querySelector('.modal-overlay').addEventListener('click',closeSkill);
 document.addEventListener('keydown',e=>{
- if(e.key==='Escape'&&!$('skillModal').hidden){e.preventDefault();closeSkill()}
+ if(e.key==='Escape'&&!trial&&!$('skillModal').hidden){e.preventDefault();closeSkill()}
 });
 $('autoTeamBtn').addEventListener('click',autoTeam);
 $('summonOneBtn').addEventListener('click',()=>summon(1));
