@@ -1141,7 +1141,7 @@ function tick(dt){
 function frame(now){
  if(!lastFrame)lastFrame=now;
  const dt=(now-lastFrame)/1000;
- if(trial)tickTrial(dt);else tick(dt);lastFrame=now;
+ if(trial){try{tickTrial(dt)}catch(error){console.error('Hero Trial:',error);recoverTrial(error)}}else tick(dt);lastFrame=now;
  if(now-lastHUD>340){updateResources();lastHUD=now}
  if(now-lastSave>6000){save()}
  requestAnimationFrame(frame);
@@ -1170,7 +1170,7 @@ function trialUnit(id,side,x,y,hp,maxHp,label){
  return actor;
 }
 function resetTrial(){
- if(!trial)return;
+ if($('trialModal').hidden)return;
  const id=$('trialHero').value,h=HEROES[id],count=Number($('trialCount').value),st=CORE.stats(h,{level:1,stars:1}),arena=$('trialArena');
  $('trialUnits').replaceChildren();$('trialFx').replaceChildren();$('trialLog').replaceChildren();
  trial={id,clock:0,size:{width:arena.clientWidth,height:arena.clientHeight},fighters:[],enemies:[],shots:[],revives:new Map(),events:[],queue:[],active:null,nextAt:0,lastLog:'',note:'พร้อมทดลอง'};
@@ -1221,12 +1221,17 @@ function queueTrial(mode){
   else if(h.passive?.healOnAttack)trial.queue=['normal'];
   else trial.queue=['hit'];
  }else trial.queue=[mode];
- trial.note='กำลังทดลอง...';
+ trial.note='กำลังทดลอง...';trial.deadline=trial.clock+12;
+ withTrial(renderTrial);
 }
 function tickTrial(dt){
  withTrial(()=>{
   const scene=trialContext,actor=scene.hero,h=HEROES[actor.id],t=Math.max(0,Math.min(.08,dt));
   stageClock+=t;
+  if(scene.deadline&&stageClock>scene.deadline&&(scene.active||scene.queue.length||shots.length)){
+   scene.active=null;scene.queue=[];clearTftShots();scene.nextAt=stageClock;scene.deadline=0;
+   scene.note='การทดลองใช้เวลานานเกินไป · กดลองใหม่หรือรีเซ็ตสนาม';actor.walking=false;renderTrial();return;
+  }
   if(actor.attackUntil<=stageClock){pose(actor,false);actor.node.classList.remove('burst')}
   advanceTftShots(t);
   if(!scene.active&&scene.queue.length&&stageClock>=scene.nextAt&&!shots.length)scene.active=scene.queue.shift();
@@ -1259,14 +1264,22 @@ function tickTrial(dt){
   renderTrial();
  });
 }
+function recoverTrial(error){
+ if(!trial)return;
+ trial.active=null;trial.queue=[];trial.shots=[];trial.nextAt=trial.clock;trial.deadline=0;
+ $('trialFx').replaceChildren();
+ trial.note='เกิดข้อผิดพลาดในการทดลอง · กดรีเซ็ตสนามเพื่อเริ่มใหม่';
+ $('trialNote').textContent=trial.note;
+ for(const id of ['trialNormal','trialSkill','trialPassive','trialHit'])$(id).disabled=true;
+}
 function openTrial(id){
- if(!HEROES[id])return;
+ if(!HEROES[id]||trial)return;
  trialReturnFocus=document.activeElement;
  $('trialHero').innerHTML=IDS.map(id=>'<option value="'+id+'">'+escapeText(HEROES[id].name)+'</option>').join('');
  $('trialHero').value=id;$('trialModal').hidden=false;resetTrial();$('trialClose').focus();
 }
 function closeTrial(){
- if(!trial)return;
+ if($('trialModal').hidden)return;
  trial=null;$('trialModal').hidden=true;$('trialUnits').replaceChildren();$('trialFx').replaceChildren();
  if(trialReturnFocus?.isConnected)trialReturnFocus.focus();trialReturnFocus=null;
 }
@@ -1274,7 +1287,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-trial-hero
 $('trialHero').addEventListener('change',resetTrial);$('trialCount').addEventListener('change',resetTrial);
 $('trialReset').addEventListener('click',resetTrial);$('trialClose').addEventListener('click',closeTrial);$('trialOverlay').addEventListener('click',closeTrial);
 for(const [id,mode] of [['trialNormal','normal'],['trialSkill','skill'],['trialPassive','passive'],['trialHit','hit']])$(id).addEventListener('click',()=>queueTrial(mode));
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&trial){e.preventDefault();e.stopImmediatePropagation();closeTrial()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('trialModal').hidden){e.preventDefault();e.stopImmediatePropagation();closeTrial()}});
 if(typeof ResizeObserver==='function')new ResizeObserver(()=>{if(trial){trial.size={width:$('trialArena').clientWidth,height:$('trialArena').clientHeight};withTrial(()=>{renderTrial();for(const shot of shots)positionShot(shot)})}}).observe($('trialArena'));
 function refreshUpgradePicker(){
  const picker=$('upgradePicker');if(!picker)return;
