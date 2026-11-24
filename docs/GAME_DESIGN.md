@@ -44,3 +44,6 @@
 - [ ] M3: ระบบไอเทม, XP, class traits, UI แสดงข้อมูลฮีโร่
 - [ ] M4: Save / Load + round balancing + automation tests
 - [ ] M5: เผยแพร่ GitHub Pages และทดสอบบนอุปกรณ์จริง
+
+## v0.6 — Shared hero and enemy roster
+Enemy waves now select from the hero registry and use identical Art/Idle/Attack PNG/GIF files, ability effects and critical chances. Only wave-scaled HP, ATK and visual size differ. Every third wave enlarges and empowers an existing hero as a boss; no separate enemy models are required. Earlier design notes describing slime/crab/ghost/boss files are historical.
