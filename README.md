@@ -67,3 +67,12 @@ The field now has an animated traveling phase and moving SAO enemies. Instead of
 **Verified in live headless Chrome:** v0.15.1 boots with all 7 heroes; MANUAL stops auto walking, KeyD moves the party visibly (31% → 54% battlefield X), AUTO resumes, and the enemy Kirito uses `assets/heroes/kirito/idle.png` and moves toward the party. Zero JavaScript runtime exceptions.
 
 This is a simplified two-dimensional field with responsive camera/parallax and auto fights, not the original Seven Knights Idle source or maps.
+
+## v0.16.0 — Rush battles and the Hero Inspector
+
+- The idle field now spawns **overlapping groups of SAO hero shadows** rather than isolated one-by-one targets. Every shadow independently chases and attacks using its own registered hero sprites and class range. Normal enemy cap is **3** at stages 1–5, **4** at stages 6–10, and **5** from stage 11 onward.
+- Each defeat grants Gold and Hero EXP immediately and advances the kill counter (up to the boss unlock requirement). New enemies approach while previous ones remain alive. When ready, the auto-boss starts after the current pack has been cleared; manual boss activation interrupts the pack. The boss is fought alone.
+- **Skill Inspector restored:** Tap the **ⓘ** overlay on any hero card, use the **ดูสกิลทั้งหมด** button in character details, or click/tap any allied or enemy hero in the arena. Locked heroes can also be inspected. Current HP/ATK, attack speed, range, crit, skill trigger and effect are shown.
+- Inspector descriptions reflect actual **Idle** calculations: 170% ATK on allied offensive skills vs 165% for enemy offensive skills, 30% HP allied shield vs 23% enemy shield, and the configured Death Gun stealth + ambush. Multi-target visual skill variants still deal single-target damage in Idle v0.16.
+- Gameplay pauses while the skill detail dialog is open; close with X, Escape, or outside click.
+- Live Chrome validation confirmed all 7 hero cards, Death Gun stealth description, allied and enemy hero skill panels, simultaneous rushing enemies, movement/progression to stage 2 and **zero runtime JavaScript exceptions**.
