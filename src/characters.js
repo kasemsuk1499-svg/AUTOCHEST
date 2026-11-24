@@ -22,7 +22,7 @@
        unit.executeMultiplier<1||unit.executeMultiplier>3)throw Error('Invalid cloakshot effect configuration for '+unit.id);
   }
   for(const key of ['hp','dmg','range','cool','move'])if(!(Number.isFinite(unit[key])&&unit[key]>0))throw Error('Invalid '+key+' for '+unit.id);
-  if(!['นักรบ','เวท','ยิงไกล','ป้องกัน'].includes(unit.team)||!['slash','chain','triple','shield','blink','slam','cloakshot'].includes(unit.effect)||!Number.isInteger(unit.triggerEvery)||unit.triggerEvery<=0)throw Error('Invalid hero class/skill: '+unit.id);
+  if(!['นักรบ','เวท','ยิงไกล','ป้องกัน'].includes(unit.team)||!['slash','chain','triple','shield','blink','slam','cloakshot','pierce'].includes(unit.effect)||!Number.isInteger(unit.triggerEvery)||unit.triggerEvery<=0)throw Error('Invalid hero class/skill: '+unit.id);
   list[unit.id]=Object.freeze({...unit,images:Object.freeze(images)});
  }
  window.AUTOCHEST_CHARACTERS={HEROES,registerHero};
