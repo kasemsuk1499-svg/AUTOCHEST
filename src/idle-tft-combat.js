@@ -22,7 +22,7 @@
    actor.x=x;actor.y=y;
   }else actor.walking=false;
   const after=pxDist(actor,target);
-  return {inRange:after<=range+3,moved:actor.walking,mode,distance:after,range};
+  return {inRange:after<=range+3.05,moved:actor.walking,mode,distance:after,range};
  }
  function findTarget(actor,others,clock){
   let best=null,bestDist=Infinity,taunter=null,tauntDist=Infinity;
