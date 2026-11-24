@@ -743,8 +743,8 @@ function renderVfxRegion(spec,from,to=null,scale=1){
  if(!spec)return;
  const node=el('span',{class:'image-vfx'+(spec.mode==='beam'?' beam-vfx':'')});
  const region=VFX.geometry(spec,arenaSize,from,to,scale);
- node.style.setProperty('--vfx-duration',spec.ms+'ms');
- VFX.placeRegion(node,spec,region);addTransientFx(node,spec.ms);
+ const time=VFX.lifetime(spec);node.style.setProperty('--vfx-duration',time.visible+'ms');node.style.setProperty('--vfx-delay',time.delayMs+'ms');
+ VFX.placeRegion(node,spec,region);VFX.animateLifetime(node,spec);addTransientFx(node,time.total);
 }
 function visualEffect(event,actor,x=actor.x,y=actor.y,scale=1){
  const spec=VFX?.getSpec(HEROES[actor.id],event);if(!spec)return;
@@ -759,7 +759,7 @@ function imageProjectile(node,actor,special=false){
  const spec=VFX?.getSpec(HEROES[actor.id],special?'skillProjectile':'projectile');if(!spec)return false;
  node.classList.add('image-projectile');
  const size=(spec.src.endsWith('/combat-atlas.svg')?(special?58:36):spec.size)*Math.min(1,arenaSize.width/540);
- node.style.width=size*spec.scaleX+'px';node.style.height=size*spec.scaleY+'px';node.dataset.fxRotation=String(spec.rotation);VFX.paint(node,spec,spec.frames>1&&!spec.src.endsWith('/combat-atlas.svg'));return true;
+ node.style.width=size*spec.scaleX+'px';node.style.height=size*spec.scaleY+'px';node.dataset.fxRotation=String(spec.rotation);VFX.paint(node,spec,spec.frames>1&&!spec.src.endsWith('/combat-atlas.svg'));VFX.animateLifetime(node,spec,true);return true;
 }
 function ring(x,y,cloak=false){
  const node=el('span',{class:cloak?'fx-cloak':'fx-ring'});

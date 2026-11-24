@@ -10,13 +10,15 @@
 .sheet-controls{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.sheet-controls>div{display:flex;align-items:center;gap:8px}.sheet-controls button{padding:5px 10px}.sheet-controls b{min-width:16px;text-align:center}
 #sheetChoices button{flex:0 1 auto;font-size:12px}button[aria-pressed=true]{border-color:#7ce4cf;background:#245d56}
  #previewFx{position:absolute;transform:translate(-50%,-50%) rotate(var(--vfx-angle,0deg))} #previewTarget{position:absolute;left:72%;top:30%;transform:translate(-50%,-50%);color:#ffc4af;font-size:36px;z-index:0} .preview-unit.beam-preview{left:20%;top:76%;bottom:auto;height:65px;transform:translate(-50%,-50%)} #slotMode{margin-top:10px;font-weight:bold;color:#a5e6d5}
+.timing-box{border:1px solid #496378;background:#102032;border-radius:8px;padding:10px;margin:12px 0}.timing-box strong{color:#a5e6d5;font-size:12px}.timing-check{display:flex;align-items:center;gap:7px}.timing-check input{width:auto}.timing-box small{display:block;margin-top:6px;line-height:1.5}
 </style></head><body>
-<header><div><small>AUTOCHEST / DEVELOPER TOOLS</small><h1>VFX Studio <small>v0.20.3</small></h1><div class="muted">แก้เอฟเฟกต์ภาพ • ทดลอง • เผยแพร่ให้ผู้เล่นทุกคน</div></div><a href="./index.html">← กลับเกม</a></header>
+<header><div><small>AUTOCHEST / DEVELOPER TOOLS</small><h1>VFX Studio <small>v0.20.4</small></h1><div class="muted">แก้เอฟเฟกต์ภาพ • ทดลอง • เผยแพร่ให้ผู้เล่นทุกคน</div></div><a href="./index.html">← กลับเกม</a></header>
 <main>
 <section class="panel"><h2>1. เลือกฮีโร่และภาพ</h2><label>ตัวละคร<select id="hero"></select></label><div class="hero-info"><img id="portrait" alt=""><div><strong id="heroName"></strong><small id="heroSkill"></small></div></div>
 <label>จังหวะแสดงเอฟเฟกต์<select id="event"></select></label><div id="eventHint" class="muted"></div>
 <label>นำเข้าภาพ PNG, GIF หรือ WebP (สูงสุด 1.5 MB)<input type="file" id="asset" accept="image/png,image/gif,image/webp,.png,.gif,.webp"></label><div id="fileInfo" class="muted"></div>
-<div class="pair"><label>ขนาดภาพ (px)<input id="size" type="number" min="16" max="400" value="140"></label><label>ระยะเวลา (ms)<input id="ms" type="number" min="80" max="3000" value="550"></label></div>
+<div class="pair"><label>ขนาดภาพ (px)<input id="size" type="number" min="16" max="400" value="140"></label><label>เวลาเล่นเฟรม 1 รอบ (ms)<input id="ms" type="number" min="80" max="3000" value="550"></label></div>
+<div class="timing-box"><strong>VFX AIRTIME · เวลาบนสนาม</strong><div class="pair"><label>หน่วงก่อนแสดง (ms)<input id="delayMs" type="number" min="0" max="5000" step="50" value="0"></label><label>เวลาที่แสดง (ms)<input id="airtimeMs" type="number" min="0" max="10000" step="50" value="0"></label></div><label class="timing-check"><input id="loopFrames" type="checkbox"> เล่นเฟรมวนจนหมดเวลา</label><div class="muted" id="timingSummary"></div><small>0 = อัตโนมัติ: ตามเวลาเล่นเฟรม / กระสุนตามเวลาบินจริง · ไม่เปลี่ยนดาเมจหรือเวลาร่าย · GIF/WebP เคลื่อนไหวใช้ความเร็วของไฟล์</small></div>
 <div class="muted" id="slotMode"></div>
 <div id="pointSettings"><div class="triple"><label>ยืดกว้าง (×)<input id="scaleX" type="number" min=".1" max="5" step=".1" value="1"></label><label>ยืดสูง (×)<input id="scaleY" type="number" min=".1" max="5" step=".1" value="1"></label><label>หมุน (°)<input id="rotation" type="number" min="-180" max="180" step="5" value="0"></label></div></div>
 <div id="beamSettings" hidden><div class="pair"><label>ความหนาลำแสง (px)<input id="thickness" type="number" min="4" max="300" step="2" value="48"></label><label>ทิศทางไฟล์ภาพ<select id="orientation"><option value="horizontal">แนวนอน →</option><option value="vertical">แนวตั้ง ↓</option></select></label></div><small>ความยาวและมุมอิงแนวยิงในสนามอัตโนมัติ</small></div>
@@ -36,16 +38,16 @@
 <button id="publishBtn" class="primary" type="button" disabled>เผยแพร่ให้ผู้เล่นทุกคน</button><div class="status" id="publishStatus" role="status"></div><a id="commitLink" target="_blank" rel="noopener noreferrer" hidden>เปิด commit ที่เผยแพร่</a>
 <details><summary>วิธีสำรอง / ย้อนกลับ</summary><p>ภาพเดิมยังอยู่ในประวัติ GitHub สามารถ revert commit ที่เผยแพร่ได้ หากต้องการเก็บภาพและค่าตั้งต้นไว้ใช้เอง ให้กดส่งออกด้านล่าง</p><div class="actions"><button id="exportBtn" type="button">ส่งออกค่าตั้งต้น JSON</button></div></details></section>
 </main>
-<script defer src="./src/characters.js?v=0.20.3"></script>
-<script defer src="./src/characters/heroes/asuna.js?v=0.20.3"></script>
-<script defer src="./src/characters/heroes/kirito.js?v=0.20.3"></script>
-<script defer src="./src/characters/heroes/sinon.js?v=0.20.3"></script>
-<script defer src="./src/characters/heroes/lisbeth.js?v=0.20.3"></script>
-<script defer src="./src/characters/heroes/deathgun.js?v=0.20.3"></script>
-<script defer src="./src/characters/heroes/heathcliff.js?v=0.20.3"></script>
-<script defer src="./src/characters/heroes/silica.js?v=0.20.3"></script>
-<script defer src="./src/characters/heroes/megumin.js?v=0.20.3"></script>
-<script defer src="./src/idle-vfx.js?v=0.20.3"></script>
-<script defer src="./src/vfx-sheet.js?v=0.20.3"></script>
-<script defer src="./src/vfx-studio.js?v=0.20.3"></script>
+<script defer src="./src/characters.js?v=0.20.4"></script>
+<script defer src="./src/characters/heroes/asuna.js?v=0.20.4"></script>
+<script defer src="./src/characters/heroes/kirito.js?v=0.20.4"></script>
+<script defer src="./src/characters/heroes/sinon.js?v=0.20.4"></script>
+<script defer src="./src/characters/heroes/lisbeth.js?v=0.20.4"></script>
+<script defer src="./src/characters/heroes/deathgun.js?v=0.20.4"></script>
+<script defer src="./src/characters/heroes/heathcliff.js?v=0.20.4"></script>
+<script defer src="./src/characters/heroes/silica.js?v=0.20.4"></script>
+<script defer src="./src/characters/heroes/megumin.js?v=0.20.4"></script>
+<script defer src="./src/idle-vfx.js?v=0.20.4"></script>
+<script defer src="./src/vfx-sheet.js?v=0.20.4"></script>
+<script defer src="./src/vfx-studio.js?v=0.20.4"></script>
 </body></html>

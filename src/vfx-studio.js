@@ -30,7 +30,7 @@ function selectEvent(){
  const hero=H[$('hero').value],mode=V.slotLayout(hero,event),spec=V.getSpec(hero,event);
  $('eventHint').textContent=mode==='beam'?'ลำแสงยืดตามแนวโจมตีจริงอัตโนมัติ · ไม่ต้องสร้างภาพยาวเท่าสนาม':mode==='field'?'ภาพยืดตามพื้นที่สนามโดยอัตโนมัติ':notes[event]||'แสดงเมื่อกลไกนี้ทำงานจริงในสนาม';
  $('beamSettings').hidden=mode!=='beam';$('pointSettings').hidden=mode==='beam';$('slotMode').textContent=mode==='beam'?'BEAM · ยืดตามแนวยิง':mode==='field'?'FIELD · พื้นที่สนาม':'POINT · จุดแสดงผล';
- if(spec){for(const key of ['scaleX','scaleY','rotation','thickness','orientation'])$(key).value=spec[key];if(!dataURL)for(const key of ['size','ms','cols','rows','frames','row','col'])$(key).value=spec[key]}
+ if(spec){for(const key of ['scaleX','scaleY','rotation','thickness','orientation','delayMs','airtimeMs'])$(key).value=spec[key];$('loopFrames').checked=spec.loopFrames;if(!dataURL)for(const key of ['size','ms','cols','rows','frames','row','col'])$(key).value=spec[key]}
  invalidate();play();
 }
 function num(id,min,max){const n=Number($(id).value);if(!Number.isInteger(n)||n<min||n>max)throw Error(id+' ต้องอยู่ระหว่าง '+min+'–'+max);return n}
@@ -39,7 +39,7 @@ function settings(src){
  if(dataURL&&(ext==='gif'||ext==='webp')&&(cols!==1||rows!==1||frames!==1))throw Error('GIF / WebP ให้ใช้ 1 คอลัมน์ 1 แถว 1 เฟรม');
  const mode=V.slotLayout(H[$('hero').value],$('event').value);
  const raw={scaleX:Number($('scaleX').value),scaleY:Number($('scaleY').value),rotation:Number($('rotation').value),thickness:Number($('thickness').value),orientation:$('orientation').value};
- return {src,cols,rows,row,col,frames,size:num('size',16,400),ms:num('ms',80,3000),...V.appearance(raw,mode)};
+ return {src,cols,rows,row,col,frames,size:num('size',16,400),ms:num('ms',80,3000),...V.appearance(raw,mode),...V.timing({delayMs:num('delayMs',0,5000),airtimeMs:num('airtimeMs',0,10000),loopFrames:$('loopFrames').checked})};
 }
 function validDraft(){return !!(file&&dataURL&&!busy)}
 function sync(){let v=validDraft();for(const id of ['trialBtn','exportBtn'])$(id).disabled=!v;$('publishBtn').disabled=!v||!$('token').value.trim();}
@@ -48,15 +48,17 @@ function play(){
  clearTimeout(loopTimer);
  const node=$('previewFx');node.getAnimations?.().forEach(a=>a.cancel());
  try{
-  const spec=dataURL?settings(dataURL):V.getSpec(H[$('hero').value],$('event').value);
+  const current=V.getSpec(H[$('hero').value],$('event').value);
+  const spec=dataURL?settings(dataURL):current?settings(current.src):null;
   if(!spec)return;
   const stage=node.parentElement,area={width:stage.clientWidth,height:stage.clientHeight},beam=spec.mode==='beam',from=beam?{x:20,y:76}:{x:50,y:50},target={x:72,y:30};
   const h=H[$('hero').value],to=beam?(h.effect==='pierce'&&$('event').value==='skillProjectile'?V.rayEnd(from,target):target):null;
   $('previewTarget').hidden=!beam;$('previewUnit').classList.toggle('beam-preview',beam);
   const region=V.geometry(spec,area,from,to);node.style.opacity='1';V.placeRegion(node,spec,region);
-  if(node.animate)node.animate([{opacity:1},{opacity:1,offset:.8},{opacity:.35}],{duration:spec.ms,fill:'forwards'});
-  status('previewStatus',dataURL?'ภาพร่าง • '+spec.frames+' ช่องภาพ · '+spec.ms+' ms':'เอฟเฟกต์ที่ใช้งานอยู่');
-  if(loop)loopTimer=setTimeout(play,spec.ms+120);
+  const time=V.animateLifetime(node,spec);
+  $('timingSummary').textContent='เริ่ม '+(time.delayMs/1000).toFixed(2)+'s · อยู่ '+(time.visible/1000).toFixed(2)+'s · จบ '+(time.total/1000).toFixed(2)+'s';
+  status('previewStatus',(dataURL?'ภาพร่าง':'เอฟเฟกต์ที่ใช้งานอยู่')+' • '+spec.frames+' เฟรม · เล่นหนึ่งรอบ '+spec.ms+' ms');
+  if(loop)loopTimer=setTimeout(play,time.total+120);
  }catch(e){status('previewStatus',e.message,true)}
 }
 function readData(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result));r.onerror=()=>rej(Error('อ่านไฟล์ไม่สำเร็จ'));r.readAsDataURL(f)})}
@@ -111,7 +113,7 @@ async function loadFile(){
  }catch(e){if(seq!==sequence)return;status('fileInfo',e.message,true);sync()}
 }
 function draft(){if(!validDraft())throw Error('เลือกภาพก่อน');return {hero:$('hero').value,event:$('event').value,spec:settings(dataURL)}}
-function openTrial(){try{const d=draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&v=0.20.3';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
+function openTrial(){try{const d=draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&v=0.20.4';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
 function closeTrial(){$('trialFrame').src='about:blank';$('trialPanel').hidden=true;try{sessionStorage.removeItem(draftKey)}catch(_){}}
 function exportDraft(){try{const d=draft(),url=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='vfx-'+d.hero+'-'+d.event+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){status('publishStatus',e.message,true)}}
 async function api(token,path,method='GET',body){
@@ -143,7 +145,7 @@ async function publish(){
 }
 $('hero').replaceChildren(...Object.values(H).map(h=>new Option(h.rarity+' · '+h.name,h.id)));
 $('hero').addEventListener('change',selectHero);$('event').addEventListener('change',selectEvent);$('asset').addEventListener('change',loadFile);
-for(const id of ['size','ms','cols','rows','frames','row','col','scaleX','scaleY','rotation','thickness','orientation'])$(id).addEventListener('change',()=>{drawGrid();invalidate();play()});
+for(const id of ['size','ms','cols','rows','frames','row','col','scaleX','scaleY','rotation','thickness','orientation','delayMs','airtimeMs','loopFrames'])$(id).addEventListener('change',()=>{drawGrid();invalidate();play()});
 for(const [id,dc,dr] of [['lessCols',-1,0],['moreCols',1,0],['lessRows',0,-1],['moreRows',0,1]])$(id).onclick=()=>applyGrid(Math.max(1,Math.min(32,Number($('cols').value)+dc)),Math.max(1,Math.min(32,Number($('rows').value)+dr)));
 $('pickStart').onclick=()=>{pick='start';drawGrid()};$('pickEnd').onclick=()=>{pick='end';drawGrid()};$('allFrames').onclick=()=>applyGrid(Number($('cols').value),Number($('rows').value));
 $('loopBtn').onclick=()=>{loop=!loop;$('loopBtn').setAttribute('aria-pressed',String(loop));$('loopBtn').textContent=loop?'⏸ หยุดวน':'↻ เล่นวน';play()};

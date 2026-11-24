@@ -28,6 +28,30 @@
   return {mode,scaleX:bounded(raw.scaleX,1,.1,5),scaleY:bounded(raw.scaleY,1,.1,5),rotation:bounded(raw.rotation,0,-180,180),
    thickness:bounded(raw.thickness,48,4,300),orientation:raw.orientation==='vertical'?'vertical':'horizontal'};
  }
+ // Backward compatible: zero airtime means playback duration for regions,
+ // and natural flight lifetime for travelling projectiles.
+ function timing(raw){
+  return {delayMs:Math.round(bounded(raw.delayMs,0,0,5000)),airtimeMs:Math.round(bounded(raw.airtimeMs,0,0,10000)),loopFrames:raw.loopFrames===true};
+ }
+ function lifetime(spec,moving=false){
+  const t=timing(spec),visible=t.airtimeMs||(moving?0:spec.ms);
+  return {...t,visible,total:t.delayMs+visible};
+ }
+ function animateLifetime(node,spec,moving=false){
+  const t=lifetime(spec,moving);
+  if(!node.animate){
+   if(t.delayMs){node.style.opacity='0';setTimeout(()=>{if(node.isConnected)node.style.opacity='1'},t.delayMs)}
+   if(t.visible)setTimeout(()=>{if(node.isConnected)node.style.opacity='0'},t.total);
+   return t;
+  }
+  if(!t.visible){
+   if(t.delayMs)node.animate([{opacity:0},{opacity:1}],{duration:1,delay:t.delayMs,fill:'both'});
+   return t;
+  }
+  node.animate([{opacity:0,offset:0},{opacity:1,offset:.001},{opacity:1,offset:.85},{opacity:0,offset:1}],
+   {duration:t.visible,delay:t.delayMs,fill:'both'});
+  return t;
+ }
  function rayEnd(from,to){
   const dx=to.x-from.x,dy=to.y-from.y;
   if(Math.hypot(dx,dy)<.0001)return {x:from.x,y:from.y};
@@ -63,7 +87,7 @@
   if(!raw||typeof raw.src!=='string'||!(/^\.\/assets\/effects\/[a-z0-9_/-]+\.(svg|png|webp|gif)$/i.test(raw.src)||(override===raw&&/^data:image\/(png|gif|webp);base64,[a-z0-9+/=]+$/i.test(raw.src))))return null;
   const cols=Math.max(1,Math.min(32,Math.floor(raw.cols||1))),rows=Math.max(1,Math.min(32,Math.floor(raw.rows||1)));
   const row=Math.max(0,Math.min(rows-1,Math.floor(raw.row||0))),col=Math.max(0,Math.min(cols-1,Math.floor(raw.col||0))),frames=Math.max(1,Math.min((rows-row)*cols-col,Math.floor(raw.frames||cols)));
-  return {src:raw.src,cols,rows,row,col,frames,size:Math.max(16,Math.min(400,Number(raw.size)||100)),ms:Math.max(80,Math.min(3000,Number(raw.ms)||440)),...appearance(raw,slotLayout(hero,event))};
+  return {src:raw.src,cols,rows,row,col,frames,size:Math.max(16,Math.min(400,Number(raw.size)||100)),ms:Math.max(80,Math.min(3000,Number(raw.ms)||440)),...appearance(raw,slotLayout(hero,event)),...timing(raw)};
  }
  function paint(node,spec,animate=true){
   node.style.backgroundImage='url("'+spec.src+'")';
@@ -73,7 +97,7 @@
   node.style.backgroundPosition=pos(0);
   if(animate&&spec.frames>1&&node.animate&&!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
    const frames=Array.from({length:spec.frames+1},(_,i)=>({backgroundPosition:pos(Math.min(i,spec.frames-1)),offset:i/spec.frames,easing:'steps(1,end)'}));
-   node.animate(frames,{duration:spec.ms,fill:'forwards'});
+   const t=timing(spec);node.animate(frames,{duration:spec.ms,delay:t.delayMs,iterations:t.loopFrames?Infinity:1,fill:'both'});
   }
  }
  function preload(heroes){
@@ -81,5 +105,5 @@
   for(const hero of Object.values(heroes))for(const event of Object.keys(generic)){const s=getSpec(hero,event);if(s)urls.add(s.src)}
   for(const url of urls){const img=new Image();img.src=url;img.decode?.().catch(()=>{});}
  }
- window.AUTOCHEST_VFX=Object.freeze({getSpec,paint,preload,loadPublished,slotLayout,appearance,rayEnd,geometry,placeRegion});
+ window.AUTOCHEST_VFX=Object.freeze({getSpec,paint,preload,loadPublished,slotLayout,appearance,rayEnd,geometry,placeRegion,timing,lifetime,animateLifetime});
 })();
