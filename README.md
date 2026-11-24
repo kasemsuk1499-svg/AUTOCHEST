@@ -96,3 +96,5 @@ Old original characters were removed from active roster and repository files. Th
 - Real class synergy from 2 **distinct** deployed champions: Warrior ATK +15%, Mage ATK +20%, Ranged attack cooldown ×0.85, Defender HP +20%. Only one mage exists yet, so its tier is future-ready
 - Keep SAO art, battle effects, boss every third wave, previous enemy balance, inspector and GIF support
 - **Not implemented yet:** timed planning, hex board, loot/item crafting, augments, carousel or PvP. This is our own single-player strategy mode, not a one-to-one TFT reproduction
+
+Test solo strategy rules: `node scripts/test-tft-core.cjs`
