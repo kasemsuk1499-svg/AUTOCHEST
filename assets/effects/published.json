@@ -43,6 +43,16 @@
         "frames": 16,
         "size": 400,
         "ms": 1500
+      },
+      "area": {
+        "src": "./assets/effects/megumin/area-16fcf93e258f.png",
+        "cols": 8,
+        "rows": 1,
+        "row": 0,
+        "col": 0,
+        "frames": 8,
+        "size": 400,
+        "ms": 1000
       }
     }
   }
