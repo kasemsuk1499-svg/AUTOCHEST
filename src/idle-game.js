@@ -23,6 +23,7 @@ let pending=state.offlineBank;
 let selected=state.squad[0]||Object.keys(state.owned)[0]||IDS[0];
 let skillReturnFocus=null;
 let formationMode=false,shots=[];
+const allyRevives=new Map();
 let combat=null,enemies=[],fighters=[],stageClock=0,respawn=1.8,waveCount=0,travel=0,travelDistance=0,encounters=0,lastFrame=0,lastSave=0,lastHUD=0,toastTimer=0;
 let logLines=['✦ เริ่มการผจญภัย SAO IDLE แล้ว!'];
 const GRID_COLS=6,GRID_ROWS=7,ALLY_START_ROW=4;
@@ -106,6 +107,7 @@ function position(actor){
  actor.node.style.left=actor.x+'%';actor.node.style.top=actor.y+'%';
  actor.node.classList.toggle('walking',!!actor.walking);
  actor.node.classList.toggle('cloaked',actor.cloakUntil>stageClock);
+ actor.node.classList.toggle('immortal',TFT.isImmortal(actor,stageClock));
 }
 // The original AUTOCHEST board is fixed. Movement happens within its 6x7 cells.
 function travelScene(){
@@ -396,6 +398,7 @@ function skillDescription(t,enemy=false){
    break;
   default:lines.push('ทุก '+n+' การโจมตี: ใช้สกิลตามข้อมูลฮีโร่');
  }
+ if(t.passive?.reviveHp)lines.push('พาสซีฟ — '+t.passive.name+': เมื่อ HP เหลือ 0 คืนชีพด้วย HP '+Math.round(t.passive.reviveHp*100)+'% และเป็นอมตะ '+t.passive.immortalSeconds+' วินาที (ไม่รับดาเมจ) · 1 ครั้งต่อเวฟหรือบอส');
  if(Number(t.range)>=1.8)lines.push('🎯 ยิงไกล: กระสุนเดินทางตามเป้าหมายและคำนวณดาเมจเมื่อกระสุนถึง; พยายามรักษาระยะเมื่อศัตรูประชิด');
  else lines.push('⚔️ ประชิด: วิ่งเข้าโจมตีตามระยะของสนาม TFT');
  return lines;
@@ -630,12 +633,14 @@ function buildFighters(preserve=false){
   const stat=CORE.stats(HEROES[id],state.owned[id]);
   const place=state.placements?.[id]||CORE.defaultCells[i],point=boardPoint(place.col,place.row);
   const old=previous.get(id);
+  const revive=allyRevives.get(id);
   const hp=old?Math.max(0,Math.min(stat.hp,Math.round(old.hp/Math.max(1,old.maxHp)*stat.hp))):stat.hp;
   return {id,side:'ally',x:point.x,y:point.y,startX:point.x,move:HEROES[id].move,
    hp,maxHp:stat.hp,atk:stat.atk,cool:stat.cool,remaining:old?.remaining??i*.12,
    attacks:old?.attacks||0,shield:old?.shield||0,
    crit:stat.crit,critDamage:stat.critDamage,
    cloakUntil:old?.cloakUntil||0,ambush:old?.ambush||false,
+   reviveUsed:!!revive,immortalUntil:revive?.until||0,
    attackUntil:0,alive:old?old.alive&&hp>0:true,walking:false,progress:state.owned[id]};
  });
  const layer=$('heroLayer');layer.replaceChildren();
@@ -654,7 +659,7 @@ function buildFighters(preserve=false){
  }
 }
 function beginTravel(seconds=1.6){
- combat=null;enemies=[];respawn=seconds;travel=0;
+ combat=null;enemies=[];respawn=seconds;travel=0;allyRevives.clear();
  clearTftShots();
  $('monsterLayer').replaceChildren();clearFx();buildFighters();travelScene();
  $('battleMessage').textContent=state.bossRetryWaves?
@@ -744,6 +749,7 @@ function targetHero(enemy){return TFT.findTarget(enemy,fighters,stageClock)}
 // TFT-style shared damage pipeline. No damage is applied to ranged targets until the bullet lands.
 function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false){
  if(!target||target.hp<=0||target.alive===false)return false;
+ if(TFT.isImmortal(target,stageClock))return false;
  const hero=HEROES[attacker.id];
  const chance=Math.min(1,Math.max(0,(attacker.crit||0)+bonusCrit));
  const critical=forcedCrit||(chance>0&&Math.random()<chance);
@@ -757,6 +763,12 @@ function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false){
  const bar=target.side==='enemy'?target.bar:target.hpbar;
  if(bar)bar.style.width=Math.max(0,target.hp/target.maxHp*100)+'%';
  if(target.hp===0){
+  if(TFT.tryRevive(target,HEROES[target.id],stageClock,target.side==='ally'&&allyRevives.has(target.id))){
+   if(target.side==='ally')allyRevives.set(target.id,{until:target.immortalUntil});
+   if(bar)bar.style.width=target.hp/target.maxHp*100+'%';
+   position(target);ring(target.x,target.y,true);spawnFx('✦ คืนชีพ · อมตะ',target.x,target.y-20,true);
+   log('✦ '+HEROES[target.id].name+' คืนชีพ!');return true;
+  }
   target.alive=false;
   if(target.side==='enemy')defeatMonster(target);
   else if(target.node)target.node.style.opacity='.2';
