@@ -22,6 +22,7 @@ if(loaded){
 let pending=state.offlineBank;
 let selected=state.squad[0]||Object.keys(state.owned)[0]||IDS[0];
 let skillReturnFocus=null,managementPanel=null,managementFocus=null;
+let summonBusy=false,summonTimer=0,lastSummon=null;
 let formationMode=false,shots=[];
 const allyRevives=new Map();
 let combat=null,enemies=[],fighters=[],stageClock=0,respawn=1.8,waveCount=0,travel=0,travelDistance=0,encounters=0,lastFrame=0,lastSave=0,lastHUD=0,toastTimer=0;
@@ -215,8 +216,7 @@ function updateResources(){
  if(combat?.boss){$('bossCountdown').textContent=Math.max(0,Math.ceil(combat.timeout))}
  const farm=CORE.farmReward(state.stage);
  $('farmGain').textContent='ศัตรูที่ชนะ +'+fmt(farm.gold)+' G / +'+fmt(farm.exp)+' EXP';
- $('summonOneBtn').disabled=state.tickets<1&&state.rubies<120;
- $('summonTenBtn').disabled=state.rubies<Math.max(0,10-state.tickets)*120;
+ updateSummonWallet();
  refreshUpgradeAvailability();
 }
 function refreshFormationControls(){
@@ -607,14 +607,55 @@ function autoTeam(){
  CORE.fillPlacements(state,state.placements);
  syncFormationRoster();toast('♟️ จัดทีม TFT · แทงก์หน้า / ตัวประชิดกลาง / สไนเปอร์หลัง!');
 }
+function summonCostLabel(cost){
+ return [cost.tickets?'🎟 '+fmt(cost.tickets):'',cost.rubies?'💎 '+fmt(cost.rubies):''].filter(Boolean).join(' + ');
+}
+function updateSummonWallet(){
+ $('summonTickets').textContent=fmt(state.tickets);$('summonRubies').textContent=fmt(state.rubies);
+ for(const [count,button,costId] of [[1,'summonOneBtn','summonOneCost'],[10,'summonTenBtn','summonTenCost']]){
+  const cost=CORE.summonCost(state,count);
+  $(costId).textContent=summonCostLabel(cost);
+  $(button).disabled=summonBusy||state.rubies<cost.rubies;
+ }
+ $('summonLastBtn').hidden=!lastSummon;
+}
+function renderSummonPool(){
+ const odds=CORE.summonOdds(HEROES);
+ $('summonPoolCount').textContent=odds.length;
+ $('summonPool').innerHTML=odds.map(({id})=>{const h=HEROES[id];return '<div class="summon-pool-hero tier-'+h.cost+'"><img src="'+h.images.art+'" alt=""><span>'+escapeText(h.name)+'</span></div>'}).join('');
+ $('summonRates').innerHTML=odds.map(({id,rate})=>'<div><span>'+escapeText(HEROES[id].name)+'</span><b>'+ (rate*100).toFixed(2)+'%</b></div>').join('');
+}
+function showSummonBanner(){
+ if(summonBusy)return;
+ $('summonBanner').hidden=false;$('summonReveal').hidden=true;$('summonOutcome').hidden=true;
+ updateSummonWallet();
+}
+function showSummonOutcome(){
+ if(!lastSummon)return;
+ clearTimeout(summonTimer);summonBusy=false;
+ const {count,cost,rewards}=lastSummon;
+ const fresh=rewards.filter(x=>x.isNew).length,shards=rewards.reduce((sum,x)=>sum+x.shards,0);
+ $('summonBanner').hidden=true;$('summonReveal').hidden=true;$('summonOutcome').hidden=false;
+ $('summonSummary').textContent='ฮีโร่ใหม่ '+fresh+' คน · ชิ้นส่วน '+shards+' ชิ้น';
+ $('summonResults').classList.toggle('single',count===1);
+ $('summonResults').innerHTML=rewards.map((reward,i)=>{
+  const h=HEROES[reward.id];
+  return '<article class="summon-result-card tier-'+h.cost+(reward.isNew?' new-hero':'')+'" style="--delay:'+Math.min(i*65,550)+'ms">'+
+   '<div class="summon-result-art"><img src="'+h.images.art+'" alt="'+escapeText(h.name)+'"><span class="result-tag">'+(reward.isNew?'NEW':'+1 ชิ้นส่วน')+'</span></div>'+
+   '<strong>'+escapeText(h.name)+'</strong><small>'+escapeText(h.role||h.team)+'</small></article>';
+ }).join('');
+ $('summonReceipt').textContent='ใช้ '+summonCostLabel(cost)+' · อัญเชิญ '+count+' ครั้ง';
+ updateSummonWallet();
+}
 function summon(count){
- const before=new Set(Object.keys(state.owned));
- const heroes=CORE.draw(state,HEROES,count);
- if(!heroes){toast('🎟️ ตั๋วหรือ Rubies ไม่พอ');return}
- $('summonResults').innerHTML=heroes.map(id=>'<span class="summon-result '+(!before.has(id)?'new':'')+'">'+
-  escapeText(HEROES[id].name)+(!before.has(id)?' ✨ NEW':' +1 ชิ้น')+'</span>').join('');
- const fresh=new Set(heroes.filter(id=>!before.has(id))).size;
- renderPanels();save();toast('✨ อัญเชิญ '+count+' ครั้ง! ได้ฮีโร่ใหม่ '+fresh+' คน');
+ if(summonBusy||$('summonBanner').hidden)return;
+ const receipt=CORE.drawDetailed(state,HEROES,count);
+ if(!receipt){toast('ตั๋วหรือ Rubies ไม่พอ');return}
+ summonBusy=true;lastSummon=receipt;
+ // Commit rewards before animation so closing or skipping cannot reroll the result.
+ save();renderPanels();
+ $('summonBanner').hidden=true;$('summonOutcome').hidden=true;$('summonReveal').hidden=false;
+ clearTimeout(summonTimer);summonTimer=setTimeout(showSummonOutcome,matchMedia('(prefers-reduced-motion: reduce)').matches?0:850);
 }
 function openOffline(){
  $('rewardModal').hidden=false;
@@ -1113,6 +1154,7 @@ function openManagement(name,button){
  if(managementPanel)managementPanel.hidden=true;
  managementPanel=next;managementFocus=button;
  if(name==='upgrade'){renderSelected();refreshUpgradePicker()}
+ if(name==='summon'){renderSummonPool();if(!summonBusy)showSummonBanner();updateSummonWallet()}
  next.hidden=false;document.body.classList.add('management-open');
  next.querySelector('.panel-close').focus();
 }
@@ -1169,6 +1211,9 @@ document.addEventListener('keydown',e=>{
 $('autoTeamBtn').addEventListener('click',autoTeam);
 $('summonOneBtn').addEventListener('click',()=>summon(1));
 $('summonTenBtn').addEventListener('click',()=>summon(10));
+$('summonSkipBtn').addEventListener('click',showSummonOutcome);
+$('summonBackBtn').addEventListener('click',showSummonBanner);
+$('summonLastBtn').addEventListener('click',showSummonOutcome);
 function toggleAutoBattle(){
  state.autoBattle=!state.autoBattle;save();refreshFormationControls();
  toast(state.autoBattle?'⚔️ TFT Auto ON · สู้ต่อเนื่อง':'⏸ AUTO OFF · หยุดต่อสู้');
