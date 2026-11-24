@@ -325,17 +325,43 @@ function defeatMonster(){
  }
  updateResources();
 }
-function hitHero(enemy,target){
- const shield=Math.min(target.shield,enemy.atk);
- target.shield-=shield;
- const damage=Math.max(0,enemy.atk-shield);
- target.hp=Math.max(0,target.hp-damage);
- if(target.hp<=0)target.alive=false;
- spawnFx('-'+fmt(damage),target.x,target.y-23);
- projectile(enemy.x,enemy.y,target.x,target.y,'#ffc2a5');
+function targetHero(enemy){
+ const targets=fighters.filter(f=>f.alive&&f.cloakUntil<=stageClock);
+ if(!targets.length)return null;
+ targets.sort((a,b)=>near(a,enemy)-near(b,enemy));
+ return targets.find(f=>HEROES[f.id].team==='ป้องกัน'&&near(f,enemy)<34)||targets[0];
+}
+function enemyAttack(enemy,target){
+ const base=HEROES[enemy.id],effect=base.effect;
+ const ambush=enemy.ambush&&stageClock>=enemy.cloakUntil;
+ if(ambush)enemy.ambush=false;
+ enemy.attacks++;
+ const special=enemy.attacks%(base.triggerEvery||4)===0;
+ let mult=ambush?(base.cloakShotMultiplier||1.7):1;
+ if(special){
+  if(['slash','blink','triple','chain','slam'].includes(effect))mult*=1.65;
+  else if(effect==='shield'){enemy.shield+=Math.round(enemy.maxHp*.23);ring(enemy.x,enemy.y)}
+  else if(effect==='cloakshot'){
+   enemy.cloakUntil=stageClock+(base.cloakDuration||2);
+   enemy.ambush=true;ring(enemy.x,enemy.y,true);
+  }
+ }
+ const critical=Math.random()<Math.min(1,enemy.crit+(ambush?(base.cloakCritBonus||0):0));
+ let raw=enemy.atk*mult*(critical?enemy.critDamage:1);
+ if(ambush&&target.hp/target.maxHp<(base.executeThreshold||.35))raw*=base.executeMultiplier||1.2;
+ const blocked=Math.min(target.shield,raw);target.shield-=blocked;
+ const dmg=Math.max(0,Math.round(raw-blocked));
+ target.hp=Math.max(0,target.hp-dmg);
+ if(target.hp===0)target.alive=false;
+ spawnFx((critical?'CRIT ':'')+'-'+fmt(dmg),target.x,target.y-20,critical);
+ if(base.range>=1.8)projectile(enemy.x,enemy.y,target.x,target.y,base.col);
+ else ring(target.x,target.y);
+ target.hpbar.style.width=target.hp/target.maxHp*100+'%';
+ enemy.attackUntil=stageClock+.32;pose(enemy,true);
+ enemy.node.classList.remove('burst');void enemy.node.offsetWidth;enemy.node.classList.add('burst');
 }
 function heroAttack(hero){
- if(!combat||combat.hp<=0)return;
+ if(!combat||combat.hp<=0||combat.cloakUntil>stageClock)return;
  const base=HEROES[hero.id],effect=base.effect;
  const wasAmbush=hero.ambush&&stageClock>=hero.cloakUntil;
  if(wasAmbush)hero.ambush=false;
@@ -343,41 +369,37 @@ function heroAttack(hero){
  let mult=wasAmbush?(base.cloakShotMultiplier||1.7):1;
  const special=hero.attacks%(base.triggerEvery||4)===0;
  if(special){
-  if(effect==='slash'||effect==='blink')mult*=1.75;
-  else if(effect==='triple')mult*=1.8;
-  else if(effect==='chain')mult*=1.7;
-  else if(effect==='slam')mult*=1.8;
-  else if(effect==='shield'){
-   hero.shield+=Math.round(hero.maxHp*.3);
-   ring(hero.x,hero.y);spawnFx('🛡 SHIELD',hero.x,hero.y-20);
-  }else if(effect==='cloakshot'){
-   hero.cloakUntil=stageClock+(base.cloakDuration||2);
-   hero.ambush=true;ring(hero.x,hero.y,true);
-  }
+  if(['slash','blink','triple','chain','slam'].includes(effect))mult*=1.7;
+  else if(effect==='shield'){hero.shield+=Math.round(hero.maxHp*.3);ring(hero.x,hero.y);spawnFx('🛡',hero.x,hero.y-20)}
+  else if(effect==='cloakshot'){hero.cloakUntil=stageClock+(base.cloakDuration||2);hero.ambush=true;ring(hero.x,hero.y,true)}
  }
- const bonusCrit=wasAmbush?(base.cloakCritBonus||0):0;
- const crit=Math.random()<Math.min(1,hero.crit+bonusCrit);
- let damage=hero.atk*mult*(crit?hero.critDamage:1);
- if(wasAmbush&&combat.hp/combat.maxHp<(base.executeThreshold||.35))damage*=base.executeMultiplier||1.2;
- damage=Math.round(damage);
+ const critical=Math.random()<Math.min(1,hero.crit+(wasAmbush?(base.cloakCritBonus||0):0));
+ let raw=hero.atk*mult*(critical?hero.critDamage:1);
+ if(wasAmbush&&combat.hp/combat.maxHp<(base.executeThreshold||.35))raw*=base.executeMultiplier||1.2;
+ const blocked=Math.min(combat.shield,raw);combat.shield-=blocked;
+ const damage=Math.max(0,Math.round(raw-blocked));
  combat.hp=Math.max(0,combat.hp-damage);
- hero.attackUntil=stageClock+.27;
- if(hero.img){hero.img.src=base.images.attack;hero.sprite=base.images.attack;
-  hero.node.classList.remove('burst');void hero.node.offsetWidth;hero.node.classList.add('burst');}
- spawnFx((crit?'CRIT ':'')+fmt(damage),combat.x+(Math.random()-.5)*9,combat.y-30,crit);
- if(base.range>=1.8)projectile(hero.x,hero.y,combat.x,combat.y,base.col||'#c6f7ff');
+ hero.attackUntil=stageClock+.3;pose(hero,true);
+ hero.node.classList.remove('burst');void hero.node.offsetWidth;hero.node.classList.add('burst');
+ spawnFx((critical?'CRIT ':'')+fmt(damage),combat.x+(Math.random()-.5)*9,combat.y-30,critical);
+ if(base.range>=1.8)projectile(hero.x,hero.y,combat.x,combat.y,base.col);
  else if(special)ring(combat.x,combat.y);
+ combat.bar.style.width=combat.hp/combat.maxHp*100+'%';
 }
 function tick(dt){
- if($('rewardModal').hidden===false)return; // No fighting while offline claim is onscreen
- const t=Math.min(.08,dt)*state.speed;
+ if(!$('rewardModal').hidden)return;
+ const t=Math.max(0,Math.min(.08,dt))*state.speed;
  stageClock+=t;
  if(!combat){
+  travel+=t;travelDistance+=t*54;travelScene();
+  for(const f of fighters){
+   f.walking=true;f.x=Math.min(f.startX+9,f.x+f.move*t*.18);
+   position(f);
+  }
   respawn-=t;
   if(respawn<=0){
    const ready=state.kills>=CORE.killsNeeded(state.stage);
    spawnMonster(ready&&state.autoBoss);
-   if(!state.squad.length){resetCombat();respawn=2}
   }
   return;
  }
@@ -385,33 +407,39 @@ function tick(dt){
   combat.timeout-=t;
   if(combat.timeout<=0){failBoss();return}
  }
+ // Each allied hero approaches its own attack reach, then performs the normal skill cycle.
  for(const f of fighters){
   if(!f.alive)continue;
   f.remaining-=t;
-  if(f.attackUntil<stageClock&&f.img&&f.sprite!==HEROES[f.id].images.idle){
-   f.sprite=HEROES[f.id].images.idle;f.img.src=f.sprite;f.node.classList.remove('burst');
+  if(f.attackUntil<stageClock&&f.sprite!==HEROES[f.id].images.idle){
+   pose(f,false);f.node.classList.remove('burst');
   }
-  f.node.classList.toggle('cloaked',f.cloakUntil>stageClock);
-  if(f.remaining<=0&&combat.hp>0&&f.cloakUntil<=stageClock){
+  const close=moveTo(f,combat,reach(f.id),t);position(f);
+  if(close&&f.remaining<=0&&combat.hp>0&&f.cloakUntil<=stageClock&&combat.cloakUntil<=stageClock){
    heroAttack(f);
-   f.remaining+=f.cool;
-   if(f.remaining<-.5)f.remaining=0;
+   f.remaining=Math.max(.06,f.remaining+f.cool);
   }
  }
  if(combat.hp<=0){defeatMonster();return}
- combat.remaining-=t;
- if(combat.remaining<=0){
-  const targets=fighters.filter(f=>f.alive&&f.cloakUntil<=stageClock);
-  const first=targets.find(x=>HEROES[x.id].team==='ป้องกัน')||targets[0];
-  if(first)hitHero(combat,first);
-  combat.remaining+=combat.delay;
+ // Opposing hero moves and attacks by the same class range/attack cadence rules.
+ if(combat.attackUntil<stageClock&&combat.sprite!==HEROES[combat.id].images.idle){
+  pose(combat,false);combat.node.classList.remove('burst');
  }
+ const target=targetHero(combat);
+ combat.remaining-=t;
+ if(target){
+  const close=moveTo(combat,target,reach(combat.id),t);
+  position(combat);
+  if(close&&combat.remaining<=0&&combat.cloakUntil<=stageClock){
+   enemyAttack(combat,target);
+   combat.remaining=Math.max(.06,combat.remaining+combat.delay);
+  }
+ }else{combat.walking=false;position(combat)}
  if(!fighters.some(f=>f.alive)){
   if(combat.boss){failBoss();return}
-  log('💔 ทีมพักฟื้นชั่วครู่ แล้วออกล่าใหม่');
-  resetCombat();respawn=1.5;return;
+  log('💔 ทีมพักฟื้นก่อนเดินทางต่อ');beginTravel(1.8);return;
  }
- if(combat.bar)combat.bar.style.width=Math.max(0,combat.hp/combat.maxHp*100)+'%';
+ combat.bar.style.width=combat.hp/combat.maxHp*100+'%';
  for(const f of fighters){
   if(f.hpbar)f.hpbar.style.width=Math.max(0,f.hp/f.maxHp*100)+'%';
   f.node.style.opacity=f.alive?'1':'.2';
