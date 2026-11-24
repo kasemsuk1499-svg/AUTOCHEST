@@ -32,6 +32,14 @@
   return placements;
  }
  const killsNeeded=stage=>6+Math.floor((stage-1)/5);
+ // Waves are finite TFT encounters. The battle loop may not stream extra enemies mid-wave.
+ const waveSize=stage=>Math.min(5,3+Math.floor((Math.max(1,stage)-1)/5));
+ const nextEncounter=state=>state.autoBoss&&state.kills>=killsNeeded(state.stage)&&state.bossRetryWaves===0?'boss':'wave';
+ const bossDefeated=state=>{state.bossRetryWaves=3;};
+ const waveCleared=state=>{
+  if(state.bossRetryWaves>0)state.bossRetryWaves--;
+  return state.bossRetryWaves;
+ };
  const stageName=stage=>['ทุ่งหญ้าแห่งการเริ่มต้น','ป่าแห่งความทรงจำ','หุบเขาเหล็ก','วิหารรัตติกาล','ปราสาทลอยฟ้า'][Math.floor((stage-1)/5)%5];
  const levelCost=level=>({gold:Math.round(75*Math.pow(level,1.35)),exp:Math.round(32*Math.pow(level,1.25))});
  const shardsNeeded=stars=>stars>=MAX_STARS?0:stars===1?3:stars===2?6:stars===3?10:15;
@@ -132,6 +140,6 @@
   return rewards;
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,
-  initial,maxSquad,defaultCells,fillPlacements,killsNeeded,stageName,levelCost,shardsNeeded,ascendCost,
+  initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,levelCost,shardsNeeded,ascendCost,
   normalized,stats,power,monster,farmReward,bossReward,offlineLoot,spendLevel,ascend,draw});
 })();
