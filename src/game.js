@@ -647,5 +647,5 @@ $('sellBtn').addEventListener('click',sellSelected);
 $('removeBtn').addEventListener('click',removeSelected);
 $('restartBtn').addEventListener('click',()=>{if(!confirm('เริ่มเกมใหม่ทั้งหมดหรือไม่?'))return;reset()});
 function reset(){closeHero();finishGesture();landings.clear();encounterWave=-1;encounterPlan=[];combatTime=0;wave=1;gold=12;wins=0;strategy=TFT.newRun();units=[newUnit('lisbeth',true,2,5),newUnit('silica',true,3,5),newUnit('kirito')];selected=units[2].id;phase='prep';roundResult='';speed=1;combat=[];fx=[];bullets=[];floaters=[];messages=[];roll(true);addLog('✨ ยินดีต้อนรับสู่ AUTOCHEST');setTip('💡 มีคิริโตะบนม้านั่งให้แล้ว! เลือกและวางลงสนามสีฟ้าได้เลย');renderUI()}
-reset();requestAnimationFrame(loop)
+reset();window.__AUTOCHEST_READY__=true;requestAnimationFrame(loop)
 })();

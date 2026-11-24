@@ -105,3 +105,10 @@ Previously a single +4 XP purchase at Level 3 did not increase level immediately
 - **ซื้อ +4 XP (4 G):** accumulates XP; a clear hint shows how many XP remain until the next level.
 - **อัปเลเวลทันที:** spends the minimum whole +4 XP purchases needed to reach the next level in one click, with the exact Gold cost shown. At 0/6 XP on Level 3, it costs 8 G and leaves 2/10 XP after upgrading to Level 4.
 Both buttons work in planning, battle, and result phases; deployment remains preparation-only. Both disable when Gold is insufficient, the player reaches Level 8, or the run has ended.
+
+## v0.13.2 — Avoid blank screens caused by mixed cached releases
+
+- All deferred gameplay scripts and the stylesheet carry the same release query version (`?v=0.13.2`), forcing browsers to download a compatible JS/CSS set when the HTML updates instead of mixing old and new files.
+- Early startup diagnostics show a visible, user-friendly error banner and a cache-busting **โหลดเกมเวอร์ชันใหม่** button if startup fails. No more silent blank arena/shop/bench.
+- After successful `reset()` the game explicitly marks `window.__AUTOCHEST_READY__=true`.
+- Do not assume GitHub Pages deployment or browser cache has updated until the HTML version changes. For stale HTML, use Ctrl+F5 or the provided reload button when visible.

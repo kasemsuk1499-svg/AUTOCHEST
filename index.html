@@ -6,7 +6,33 @@
   <meta name="theme-color" content="#080d1f" />
   <meta name="description" content="AUTOCHEST — เกมจัดทีมฮีโร่จิบิและต่อสู้อัตโนมัติ" />
   <title>AUTOCHEST — Chibi Auto Battler</title>
-  <link rel="stylesheet" href="./src/styles.css" />
+  <link rel="stylesheet" href="./src/styles.css?v=0.13.2" />
+  <script>
+    // The HTML may be newer than previously cached JS. Report boot failures instead of showing an empty arena.
+    window.__AUTOCHEST_READY__ = false;
+    let autochestBootError = '';
+    function showAutochestBootError(message) {
+      const panel = document.getElementById('bootError');
+      if (!panel) { autochestBootError = message; return; }
+      document.getElementById('bootErrorMessage').textContent = message;
+      panel.hidden = false;
+    }
+    window.addEventListener('error', function(e) {
+      if (e.target !== window && e.target?.tagName !== 'SCRIPT') return;
+      const detail = e.message || (e.target?.tagName === 'SCRIPT' ? 'ไม่สามารถโหลดไฟล์สคริปต์ของเกมได้' : 'เกมเริ่มทำงานไม่สำเร็จ');
+      showAutochestBootError('เกมโหลดไม่ครบ: ' + detail);
+    }, true);
+    window.addEventListener('load', function() {
+      if (autochestBootError) showAutochestBootError(autochestBootError);
+      if (!window.__AUTOCHEST_READY__) showAutochestBootError(autochestBootError || 'ไฟล์เกมอาจเป็นคนละเวอร์ชัน กรุณาโหลดเกมใหม่');
+      const btn = document.getElementById('bootReloadBtn');
+      if (btn) btn.addEventListener('click', () => {
+        const url = new URL(location.href);
+        url.searchParams.set('reload', Date.now().toString());
+        location.replace(url.href);
+      });
+    });
+  </script>
 </head>
 <body>
   <div class="app-shell">
@@ -15,6 +41,11 @@
       <div class="header-tools"><span class="server-pill"><span class="live-dot"></span> SINGLE PLAYER ALPHA</span><span class="edition-pill">HERO REBIRTH <b>✦</b></span></div>
     </header>
 
+    <div id="bootError" class="boot-error" hidden role="alert">
+      <strong>⚠️ โหลดเกมไม่สำเร็จ</strong>
+      <span id="bootErrorMessage">ไฟล์เกมยังโหลดไม่ครบ</span>
+      <button id="bootReloadBtn" type="button">🔄 โหลดเกมเวอร์ชันใหม่</button>
+    </div>
     <main class="game-layout">
       <section class="arena-card" aria-label="สนามต่อสู้">
         <div class="arena-header">
@@ -73,7 +104,7 @@
         <section class="hud-panel help-panel"><div class="tip-icon">✧</div><div id="tip" class="hint" role="status">ลากตัวละครจากม้านั่งลงบนสนามเพื่อจัดทีม</div><details class="battle-log"><summary>บันทึกการต่อสู้ <span>▾</span></summary><div class="log" id="log"></div></details></section>
       </aside>
     </main>
-    <footer class="game-footer"><span>✦ AUTOCHEST / TFT SOLO STRATEGY v0.13</span><span>CLICK • DRAG • DROP • AUTO BATTLE</span></footer>
+    <footer class="game-footer"><span>✦ AUTOCHEST / TFT SOLO STRATEGY v0.13.2</span><span>CLICK • DRAG • DROP • AUTO BATTLE</span></footer>
   </div>
   <div id="heroModal" class="hero-modal" role="dialog" aria-modal="true" aria-labelledby="heroModalTitle" hidden>
     <div class="hero-modal-backdrop" data-close-hero></div>
@@ -84,15 +115,15 @@
   </div>
   <div id="dragGhost" class="drag-ghost" aria-hidden="true"></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script defer src="./src/characters.js"></script>
-  <script defer src="./src/characters/heroes/asuna.js"></script>
-  <script defer src="./src/characters/heroes/kirito.js"></script>
-  <script defer src="./src/characters/heroes/sinon.js"></script>
-  <script defer src="./src/characters/heroes/lisbeth.js"></script>
-  <script defer src="./src/characters/heroes/deathgun.js"></script>
-  <script defer src="./src/characters/heroes/heathcliff.js"></script>
-  <script defer src="./src/characters/heroes/silica.js"></script>
-  <script defer src="./src/tft-core.js"></script>
-  <script defer src="./src/game.js"></script>
+  <script defer src="./src/characters.js?v=0.13.2"></script>
+  <script defer src="./src/characters/heroes/asuna.js?v=0.13.2"></script>
+  <script defer src="./src/characters/heroes/kirito.js?v=0.13.2"></script>
+  <script defer src="./src/characters/heroes/sinon.js?v=0.13.2"></script>
+  <script defer src="./src/characters/heroes/lisbeth.js?v=0.13.2"></script>
+  <script defer src="./src/characters/heroes/deathgun.js?v=0.13.2"></script>
+  <script defer src="./src/characters/heroes/heathcliff.js?v=0.13.2"></script>
+  <script defer src="./src/characters/heroes/silica.js?v=0.13.2"></script>
+  <script defer src="./src/tft-core.js?v=0.13.2"></script>
+  <script defer src="./src/game.js?v=0.13.2"></script>
 </body>
 </html>
