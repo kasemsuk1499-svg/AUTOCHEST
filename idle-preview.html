@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#101729">
 <meta name="description" content="AUTOCHEST IDLE — เกม SAO Idle RPG ต่อสู้และฟาร์มอัตโนมัติ">
 <title>AUTOCHEST IDLE — SAO Adventure</title>
-<link rel="stylesheet" href="./src/idle-style.css?v=0.18.10">
+<link rel="stylesheet" href="./src/idle-style.css?v=0.19.0">
 <script>
 window.__AUTOCHEST_IDLE_READY__=false;
 window.__idleBootMessage='';
@@ -29,7 +29,7 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
  <header class="app-header">
   <div class="logo-box">✦</div>
   <div class="brand"><small>SAO • HERO COLLECTION • AUTO BATTLE</small><h1>AUTO<span>CHEST</span> <em>IDLE</em></h1></div>
-  <div class="header-badge"><span class="online-dot"></span> SOLO ADVENTURE <b>v0.18.10</b></div>
+  <div class="header-badge"><span class="online-dot"></span><b>v0.19.0</b></div>
  </header>
  <div id="startupError" class="startup-error" role="alert" hidden><b>⚠️ เกมโหลดไม่สำเร็จ</b><span id="startupErrorText"></span><button type="button" onclick="idleHardReload()">🔄 โหลดเวอร์ชันใหม่</button></div>
  <div class="resource-ribbon">
@@ -39,14 +39,11 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
    <div class="resource-box"><span>🎟️ TICKETS</span><strong id="ticketValue">0</strong></div>
    <div class="resource-box power"><span>⚡ TEAM POWER</span><strong id="teamPower">0</strong></div>
  </div>
- <a class="mobile-upgrade-shortcut" href="#heroEnhance" aria-label="ข้ามไปส่วนเสริมแกร่งฮีโร่">
-    <span>⬆ เสริมแกร่งฮีโร่</span><b id="upgradeShortcutReady">พร้อมอัป 0 ตัว</b>
-  </a>
   <main class="main-layout">
    <section class="stage-card">
      <div class="stage-header">
-       <div><div class="eyebrow">WORLD 01 · MAIN ADVENTURE</div><h2 id="stageName">ทุ่งหญ้าแห่งการเริ่มต้น</h2><div class="stage-sub">STAGE <b id="stageNumber">1</b> <span id="fightLabel" class="battle-label">AUTO FARM</span></div></div>
-       <div class="stage-badge"><small>ด่านสูงสุด</small><b id="bestStage">01</b></div>
+       <div><h2 id="stageName">ทุ่งหญ้าแห่งการเริ่มต้น</h2><div class="stage-sub">STAGE <b id="stageNumber">1</b> <span id="fightLabel" class="battle-label">AUTO FARM</span></div></div>
+       <div class="stage-badge"><small>BEST</small><b id="bestStage">01</b></div>
      </div>
      <div class="monster-track"><span>กำจัดฮีโร่ศัตรู <strong id="killCounter">0 / 6</strong></span><div class="track"><i id="killFill"></i></div></div>
      <div id="stageViewport" class="stage-viewport" aria-label="สนาม AUTOCHEST แบบตาราง 6 คอลัมน์ 7 แถว">
@@ -55,24 +52,22 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
        <div class="board-region board-enemy-label">ENEMY FIELD · 3 แถวบน</div>
        <div class="board-region board-ally-label">ALLY FIELD · 3 แถวล่าง</div>
        <div id="bossTimer" class="boss-timer" hidden>👑 BOSS <b id="bossCountdown">30</b>s</div>
-       <div class="arena-caption"><span>♟️ TFT BOARD · ลากฮีโร่เพื่อย้ายหรือสลับ</span><span id="battleMessage">ตั้งรับศัตรู...</span></div>
+       <div class="arena-caption"><span>สนามต่อสู้</span><span id="battleMessage">ตั้งรับศัตรู...</span></div>
      </div>
      <div class="battle-actions">
        <button id="challengeBtn" class="primary-btn">👑 ท้าทายบอส</button>
        <button id="autoBossBtn" class="control-btn selected">🔄 AUTO BOSS ON</button>
        <button id="speedBtn" class="control-btn">⏩ ×1</button>
+       <button type="button" id="autoQuickBtn" class="quick-auto">⚔️ AUTO ON</button>
      </div>
-     <div class="tft-mode-status"><span>⚔️ TFT COMBAT</span> <span>👑 AUTO WAVE FARM</span> <span>🎯 ยิงไกลรักษาระยะ</span></div>
-     <div class="battle-quickbar">
-        <button type="button" id="formationQuickBtn" class="quick-formation">♟️ จัดทัพ / วางตัว</button>
-        <button type="button" id="autoQuickBtn" class="quick-auto">⚔️ AUTO ON</button>
-       </div>
-       <div class="stage-foot"><span>♟️ ศัตรูเป็นเวฟแบบ TFT • แพ้บอสฟาร์มด่านเดิมต่อ</span><span id="farmGain">+ Gold · + Hero EXP</span></div>
-     <div class="combat-log" id="battleLog" aria-live="off"></div>
+     <button type="button" id="formationQuickBtn" hidden>จัดทัพ</button>
+       <div class="stage-foot"><span>รางวัลต่อศัตรู</span><span id="farmGain">+ Gold · + Hero EXP</span></div>
+     <details class="log-disclosure"><summary>ประวัติการต่อสู้</summary><div class="combat-log" id="battleLog" aria-live="off"></div></details>
    </section>
    <aside class="sidebar">
+     <nav class="game-nav" aria-label="เมนูเกม"><button type="button" data-open-panel="upgrade"><span>⬆</span> อัปเกรด <b id="upgradeShortcutReady"></b></button><button type="button" data-open-panel="summon"><span>✦</span> อัญเชิญ</button><button type="button" id="offlineBtn"><span>▣</span> ออฟไลน์</button><button type="button" data-open-panel="guide"><span>◎</span> ภารกิจ</button></nav>
      <section class="side-card team-card">
-       <div class="card-heading"><div><small>YOUR KNIGHT'S ORDER</small><h3>จัดทีมผจญภัย</h3></div><div class="count-pill" id="teamCount">3 / 4</div></div>
+       <div class="card-heading"><div><h3>จัดทีมผจญภัย</h3></div><div class="count-pill" id="teamCount">3 / 4</div></div>
        <div class="formation-toolbar">
          <button type="button" id="formationBtn" class="formation-action" aria-pressed="false">♟️ จัดทัพ (พักการต่อสู้)</button>
          <button type="button" id="autoBattleBtn" class="auto-battle-action" aria-pressed="true">⚔️ AUTO ON</button>
@@ -80,20 +75,27 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
        <div id="formationStatus" class="formation-status" role="status">⚔️ ระบบ Auto กำลังต่อสู้ · ลากจัดทีมได้เลย</div>
        <div id="teamSlots" class="team-slots"></div><div id="benchDrop" aria-label="พื้นที่ถอนฮีโร่ออกจากทีม">↩ ลากฮีโร่มาที่นี่เพื่อเก็บเป็นตัวสำรอง</div>
        <div class="swap-help" id="swapHelp">ลากฮีโร่จากคลังหรือทีมลงสนาม · ลากทับตัวเดิมเพื่อสลับ</div>
-       <div class="team-note">แตะฮีโร่ในคลังเพื่อลงช่องว่างอัตโนมัติ • ลากเพื่อจัดตำแหน่ง</div>
-       <div class="inline-actions"><button id="autoTeamBtn" class="soft-btn">✦ จัดทีมอัตโนมัติ</button><button id="offlineBtn" class="soft-btn">📦 รางวัลออฟไลน์</button></div>
+       
+       <button id="autoTeamBtn" class="soft-btn auto-lineup">จัดทีมอัตโนมัติ</button>
      </section>
-     <section id="heroEnhance" class="side-card upgrade-card" aria-label="เสริมแกร่งฮีโร่">
+     
+     <section class="side-card heroes-card">
+       <div class="card-heading"><div><h3>ฮีโร่ SAO</h3></div><span id="ownedCount" class="count-pill">3 / 7</span></div>
+       <div class="collection-hint">แตะเพื่อลงทีม · ลากเพื่อสลับ · ⓘ ดูสกิล</div>
+       <div id="heroList" class="hero-list"></div>
+     </section>
+     
+     
+   </aside>
+ </main>
+ <footer>AUTOCHEST · SAO FAN PROTOTYPE</footer>
+</div>
+<div class="modal management-modal" id="panel-upgrade" hidden><div class="modal-overlay" data-close-panel></div><div class="management-dialog" role="dialog" aria-modal="true" aria-label="เสริมแกร่งฮีโร่"><button type="button" class="panel-close" data-close-panel aria-label="ปิด">✕</button><section id="heroEnhance" class="side-card upgrade-card" aria-label="เสริมแกร่งฮีโร่">
        <div class="card-heading"><div><small>HERO DEVELOPMENT</small><h3>⬆ เสริมแกร่งฮีโร่</h3></div><span id="upgradeReadyCount" class="count-pill">พร้อมอัป 0 ตัว</span></div>
        <div class="upgrade-guide">① เลือกฮีโร่จากทีม/คลัง → ② กดเพิ่มเลเวลหรือดาว → ③ ค่าสถานะเพิ่มทันที</div>
        <div id="heroDetails" class="hero-details upgrade-details"><div class="no-selection">เลือกฮีโร่จากทีมด้านบนเพื่อเสริมแกร่ง</div></div>
-     </section>
-     <section class="side-card heroes-card">
-       <div class="card-heading"><div><small>HERO COLLECTION</small><h3>ฮีโร่ SAO</h3></div><span id="ownedCount" class="count-pill">3 / 7</span></div>
-       <div class="collection-hint">แตะตัวที่ปลดล็อกเพื่อลงทีมอัตโนมัติ • ลากเพื่อสลับ • ⓘ ดูสกิล</div>
-       <div id="heroList" class="hero-list"></div>
-     </section>
-     <section class="side-card summon-card">
+     </section></div></div>
+<div class="modal management-modal" id="panel-summon" hidden><div class="modal-overlay" data-close-panel></div><div class="management-dialog" role="dialog" aria-modal="true" aria-label="อัญเชิญฮีโร่"><button type="button" class="panel-close" data-close-panel aria-label="ปิด">✕</button><section class="side-card summon-card">
        <div class="card-heading"><div><small>SUMMON GATE</small><h3>อัญเชิญฮีโร่</h3></div><span class="count-pill">7 HEROES</span></div>
        <p>รับฮีโร่ใหม่หรือชิ้นส่วนตัวซ้ำ เพื่อปลดดาวให้แข็งแกร่งขึ้น</p>
        <div class="summon-actions">
@@ -101,15 +103,11 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
          <button id="summonTenBtn" class="summon-btn ten">✨ อัญเชิญ ×10 <small>10 ตั๋ว / ส่วนที่ขาดใช้ 💎</small></button>
        </div>
        <div id="summonResults" class="summon-results">✨ พร้อมอัญเชิญ!</div>
-     </section>
-     <section class="side-card guide-card">
+     </section></div></div>
+<div class="modal management-modal" id="panel-guide" hidden><div class="modal-overlay" data-close-panel></div><div class="management-dialog" role="dialog" aria-modal="true" aria-label="ภารกิจ"><button type="button" class="panel-close" data-close-panel aria-label="ปิด">✕</button><section class="side-card guide-card">
        <div class="card-heading"><div><small>GUIDE QUEST</small><h3>เป้าหมายต่อไป</h3></div></div>
        <div id="guideQuest" class="guide-quest"></div>
-     </section>
-   </aside>
- </main>
- <footer>✦ AUTOCHEST IDLE • SAO FAN PROTOTYPE <span>สนามตารางเดิม • เสริมแกร่งฮีโร่ • ฟาร์ม Idle • ล่าบอส</span></footer>
-</div>
+     </section></div></div>
 <div id="rewardModal" class="modal" hidden>
  <div class="modal-overlay"></div>
  <section class="reward-dialog" role="dialog" aria-modal="true" aria-labelledby="rewardTitle">
@@ -130,15 +128,15 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
    </section>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script defer src="./src/characters.js?v=0.18.10"></script>
-<script defer src="./src/characters/heroes/asuna.js?v=0.18.10"></script>
-<script defer src="./src/characters/heroes/kirito.js?v=0.18.10"></script>
-<script defer src="./src/characters/heroes/sinon.js?v=0.18.10"></script>
-<script defer src="./src/characters/heroes/lisbeth.js?v=0.18.10"></script>
-<script defer src="./src/characters/heroes/deathgun.js?v=0.18.10"></script>
-<script defer src="./src/characters/heroes/heathcliff.js?v=0.18.10"></script>
-<script defer src="./src/characters/heroes/silica.js?v=0.18.10"></script>
-<script defer src="./src/idle-core.js?v=0.18.10"></script>
-<script defer src="./src/idle-tft-combat.js?v=0.18.10"></script>
-<script defer src="./src/idle-game.js?v=0.18.10"></script>
+<script defer src="./src/characters.js?v=0.19.0"></script>
+<script defer src="./src/characters/heroes/asuna.js?v=0.19.0"></script>
+<script defer src="./src/characters/heroes/kirito.js?v=0.19.0"></script>
+<script defer src="./src/characters/heroes/sinon.js?v=0.19.0"></script>
+<script defer src="./src/characters/heroes/lisbeth.js?v=0.19.0"></script>
+<script defer src="./src/characters/heroes/deathgun.js?v=0.19.0"></script>
+<script defer src="./src/characters/heroes/heathcliff.js?v=0.19.0"></script>
+<script defer src="./src/characters/heroes/silica.js?v=0.19.0"></script>
+<script defer src="./src/idle-core.js?v=0.19.0"></script>
+<script defer src="./src/idle-tft-combat.js?v=0.19.0"></script>
+<script defer src="./src/idle-game.js?v=0.19.0"></script>
 </body></html>
