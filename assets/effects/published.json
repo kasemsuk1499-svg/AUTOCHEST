@@ -135,7 +135,16 @@
         "col": 0,
         "frames": 8,
         "size": 80,
-        "ms": 500
+        "ms": 500,
+        "mode": "point",
+        "scaleX": 3,
+        "scaleY": 1,
+        "rotation": 0,
+        "thickness": 48,
+        "orientation": "horizontal",
+        "delayMs": 0,
+        "airtimeMs": 0,
+        "loopFrames": false
       },
       "skillProjectile": {
         "src": "./assets/effects/sinon/skillProjectile-6f5347f1222a.png",
