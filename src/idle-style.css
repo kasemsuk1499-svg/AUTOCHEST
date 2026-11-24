@@ -387,3 +387,9 @@ footer{margin:20px 0 0;display:flex;justify-content:space-between;color:#789db8;
 .fighter.weakened .fighter-name{color:#ffcb85}
 .fighter.vulnerable .fighter-name::after{content:' · DMG↑';color:#ff9faa;font-size:9px}
 .fighter.weakened .mini-stars::before{content:'ATK↓ ';color:#ffbc7e;font-size:9px}
+
+/* Silica: healing pulse and party support buff. */
+.fighter.support-buffed .mini-stars{color:#9effc5;text-shadow:0 0 7px #4bf49f}
+.fighter.support-buffed .fighter-name::before{content:'✦ ';color:#98ffc4}
+.fighter.healing-pulse .mini-hp{animation:healingGlow .55s ease-out}
+@keyframes healingGlow{0%{box-shadow:0 0 0 0 #89ffb5}50%{box-shadow:0 0 11px 4px #89ffb5}100%{box-shadow:0 0 0 0 transparent}}
