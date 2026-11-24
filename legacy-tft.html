@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <meta name="theme-color" content="#080d1f" />
+  <meta name="description" content="AUTOCHEST — เกมจัดทีมฮีโร่จิบิและต่อสู้อัตโนมัติ" />
+  <title>AUTOCHEST — Chibi Auto Battler</title>
+  <link rel="stylesheet" href="./src/styles.css?v=0.13.2" />
+  <script>
+    // The HTML may be newer than previously cached JS. Report boot failures instead of showing an empty arena.
+    window.__AUTOCHEST_READY__ = false;
+    let autochestBootError = '';
+    function showAutochestBootError(message) {
+      const panel = document.getElementById('bootError');
+      if (!panel) { autochestBootError = message; return; }
+      document.getElementById('bootErrorMessage').textContent = message;
+      panel.hidden = false;
+    }
+    window.addEventListener('error', function(e) {
+      if (e.target !== window && e.target?.tagName !== 'SCRIPT') return;
+      const detail = e.message || (e.target?.tagName === 'SCRIPT' ? 'ไม่สามารถโหลดไฟล์สคริปต์ของเกมได้' : 'เกมเริ่มทำงานไม่สำเร็จ');
+      showAutochestBootError('เกมโหลดไม่ครบ: ' + detail);
+    }, true);
+    window.addEventListener('load', function() {
+      if (autochestBootError) showAutochestBootError(autochestBootError);
+      if (!window.__AUTOCHEST_READY__) showAutochestBootError(autochestBootError || 'ไฟล์เกมอาจเป็นคนละเวอร์ชัน กรุณาโหลดเกมใหม่');
+      const btn = document.getElementById('bootReloadBtn');
+      if (btn) btn.addEventListener('click', () => {
+        const url = new URL(location.href);
+        url.searchParams.set('reload', Date.now().toString());
+        location.replace(url.href);
+      });
+    });
+  </script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="game-header">
+      <div class="brand-lockup"><div class="brand-mark">✦</div><div><div class="eyebrow">CHIBI • STRATEGY • AUTO BATTLE</div><h1>AUTO<span>CHEST</span></h1></div></div>
+      <div class="header-tools"><span class="server-pill"><span class="live-dot"></span> SINGLE PLAYER ALPHA</span><span class="edition-pill">HERO REBIRTH <b>✦</b></span></div>
+    </header>
+
+    <div id="bootError" class="boot-error" hidden role="alert">
+      <strong>⚠️ โหลดเกมไม่สำเร็จ</strong>
+      <span id="bootErrorMessage">ไฟล์เกมยังโหลดไม่ครบ</span>
+      <button id="bootReloadBtn" type="button">🔄 โหลดเกมเวอร์ชันใหม่</button>
+    </div>
+    <main class="game-layout">
+      <section class="arena-card" aria-label="สนามต่อสู้">
+        <div class="arena-header">
+          <div class="phase-block"><span class="eyebrow">BATTLE FIELD / ARENA</span><div class="phase-name" id="phaseLabel">◈ เตรียมจัดทัพ</div><div class="phase-desc" id="phaseSub">เลือกยูนิตจากม้านั่ง ลากลงไปบนสนามฝั่งเรา</div></div>
+          <div class="round-indicator"><span>ROUND</span><b id="battleClock">01</b><small>บอสทุก 3 รอบ</small></div>
+        </div>
+        <div class="arena-canvas-wrap" id="arenaDrop">
+          <div class="arena-surface-label enemy-label"><span></span> ENEMY FIELD <span></span></div>
+          <canvas id="battlefield" width="760" height="775" aria-label="สนามต่อสู้: คลิกเลือกหรือกดค้างเพื่อลากยูนิต" tabindex="0"></canvas>
+          <div id="animatedSprites" class="animated-sprites" aria-hidden="true"></div>
+          <div class="arena-surface-label ally-label"><span></span> ALLIED FIELD <span></span></div>
+          <div class="board-tooltip" id="boardTooltip">✦ ลากยูนิตลงช่องเรืองแสง หรือแตะเลือกแล้วแตะช่องที่ต้องการ</div>
+        </div>
+        <div class="arena-footer">
+          <div class="squad-status"><span class="field-icon">♟</span><div><small>ยูนิตบนกระดาน</small><b id="unitCount">2 / 4</b></div><div class="squad-meter"><i id="squadFill"></i></div></div>
+          <div class="arena-stat"><span>⏩ ความเร็ว</span><b id="speedInfo">×1</b></div>
+          <div class="arena-stat"><span>⚔️ สถานะ</span><b id="combatInfo">พร้อมรบ</b></div>
+        </div>
+      </section>
+
+      <aside class="side-panel">
+        <section class="hud-panel economy-panel" aria-label="สถานะเกม">
+          <div class="panel-title"><span>COMMAND DECK</span><span class="round-small">BATTLE PASS / 01</span></div>
+          <div class="resource-strip"><div class="resource gold-resource"><span>✦ GOLD</span><b id="gold">12</b></div><div class="resource"><span>◉ ROUND</span><b id="wave">1</b></div><div class="resource"><span>★ WINS</span><b id="record">0</b></div></div>
+          <div class="tft-progression">
+            <div class="tft-progress-head"><span>❤️ HP ผู้เล่น</span><strong id="playerHp">100 / 100</strong></div><div class="tft-track"><i id="hpFill" class="tft-hp"></i></div>
+            <div class="tft-progress-head"><span>⭐ เลเวล <b id="levelCount">3</b> · ลงสนามได้ <b id="boardLimitInfo">3</b> ตัว</span><strong id="xpCount">0 / 6 XP</strong></div><div class="tft-track"><i id="xpFill" class="tft-xp"></i></div>
+            <div class="tft-economy"><span id="economyInfo">ดอกเบี้ย +1 G</span><span id="streakInfo">สตรีก 0</span></div>
+            <div class="tft-level-actions">
+              <button id="buyXPBtn" type="button" class="tft-buy-xp" title="ซื้อค่าประสบการณ์ 4 XP เพื่อสะสมเลเวล">⬆ ซื้อ 4 XP · 4 G</button>
+              <button id="buyLevelBtn" type="button" class="tft-buy-level" title="ซื้อ XP ที่ต้องใช้ทั้งหมดเพื่อขึ้นเลเวลถัดไปในคลิกเดียว">⭐ อัปเลเวลทันที</button>
+            </div>
+            <div id="levelHint" class="tft-level-hint" aria-live="polite">ซื้อ XP ให้ครบจึงจะเลเวลอัป หรือเลือกอัปเลเวลทันที</div>
+          </div>
+          <div class="combat-buttons"><button id="startBtn" class="action-btn start-btn"><span class="button-symbol">⚔</span><span>เริ่มการต่อสู้</span><small>▶</small></button><button id="speedBtn" class="action-btn speed-btn">⏩ ×2</button></div>
+          <div class="status-line" id="prepHint"><span class="live-dot"></span> จัดตำแหน่งฮีโร่ให้พร้อมก่อนเริ่ม</div>
+        </section>
+
+        <section class="hud-panel store-panel" aria-label="ร้านค้าฮีโร่">
+          <div class="section-title-row"><div><span class="eyebrow">RECRUITMENT</span><h2>ร้านค้าฮีโร่ <span class="tiny-glyph">✦</span></h2></div><div class="shop-action-row"><button id="lockShopBtn" type="button" class="reroll-btn">🔓 ล็อกร้าน</button><button id="rollBtn" class="reroll-btn">⟳ รีโรล <b>2 G</b></button></div></div><div id="shopOdds" class="shop-odds"></div>
+          <div class="shop" id="shop"></div>
+          <p class="shop-note"><span>ⓘ</span> แตะการ์ดเพื่อดูรายละเอียดก่อนซื้อ • ซื้อจากปุ่มใต้การ์ด</p>
+          <button id="heroCodexBtn" class="light-btn codex-btn" type="button">📖 สารานุกรมฮีโร่ทั้งหมด</button>
+        </section>
+
+        <section class="hud-panel bench-panel" aria-label="ม้านั่งสำรอง">
+          <div class="section-title-row"><div><span class="eyebrow">YOUR RESERVE</span><h2>ม้านั่งสำรอง</h2></div><span class="count-chip" id="benchN">0 / 9</span></div>
+          <div class="bench-drop" id="benchDrop"><div class="bench" id="bench"></div><div class="bench-drop-hint">↩ ลากยูนิตจากสนามมาวางที่นี่เพื่อเก็บ</div></div>
+          <div class="bench-actions"><button id="removeBtn" class="light-btn">↩ เก็บตัวที่เลือก</button><button id="sellBtn" class="light-btn">🪙 ขายตัวที่เลือก</button><button id="restartBtn" class="light-btn">⟳ เริ่มใหม่</button></div>
+        </section>
+
+        <section class="hud-panel details-panel" aria-label="ข้อมูลฮีโร่ที่เลือก"><div class="section-title-row"><div><span class="eyebrow">UNIT INSPECTOR</span><h2>ข้อมูลฮีโร่</h2></div><span class="eyebrow">✦ UNIT CARD</span></div><div id="unitDetails" class="unit-details"><div class="no-selection">แตะหรือคลิกฮีโร่เพื่อดูรายละเอียด</div></div></section>
+
+        <section class="hud-panel traits-panel" aria-label="โบนัสสายอาชีพ"><div class="section-title-row"><div><span class="eyebrow">TEAM COMPOSITION</span><h2>โบนัสสายอาชีพ</h2></div></div><div class="synergy" id="synergies"></div></section>
+
+        <section class="hud-panel help-panel"><div class="tip-icon">✧</div><div id="tip" class="hint" role="status">ลากตัวละครจากม้านั่งลงบนสนามเพื่อจัดทีม</div><details class="battle-log"><summary>บันทึกการต่อสู้ <span>▾</span></summary><div class="log" id="log"></div></details></section>
+      </aside>
+    </main>
+    <footer class="game-footer"><span>✦ AUTOCHEST / TFT SOLO STRATEGY v0.13.2</span><span>CLICK • DRAG • DROP • AUTO BATTLE</span></footer>
+  </div>
+  <div id="heroModal" class="hero-modal" role="dialog" aria-modal="true" aria-labelledby="heroModalTitle" hidden>
+    <div class="hero-modal-backdrop" data-close-hero></div>
+    <section class="hero-modal-panel" aria-label="รายละเอียดฮีโร่">
+      <button id="closeHeroModal" class="hero-modal-close" type="button" aria-label="ปิดข้อมูลฮีโร่">✕</button>
+      <div id="heroModalContent"></div>
+    </section>
+  </div>
+  <div id="dragGhost" class="drag-ghost" aria-hidden="true"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script defer src="./src/characters.js?v=0.13.2"></script>
+  <script defer src="./src/characters/heroes/asuna.js?v=0.13.2"></script>
+  <script defer src="./src/characters/heroes/kirito.js?v=0.13.2"></script>
+  <script defer src="./src/characters/heroes/sinon.js?v=0.13.2"></script>
+  <script defer src="./src/characters/heroes/lisbeth.js?v=0.13.2"></script>
+  <script defer src="./src/characters/heroes/deathgun.js?v=0.13.2"></script>
+  <script defer src="./src/characters/heroes/heathcliff.js?v=0.13.2"></script>
+  <script defer src="./src/characters/heroes/silica.js?v=0.13.2"></script>
+  <script defer src="./src/tft-core.js?v=0.13.2"></script>
+  <script defer src="./src/game.js?v=0.13.2"></script>
+</body>
+</html>

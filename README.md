@@ -1,114 +1,54 @@
-# AUTOCHEST — SAO Character Roster v0.9 ⚔️
+# ✦ AUTOCHEST IDLE — SAO Adventure
 
-Single-player Chibi Auto Battler fan prototype. All characters use one roster for allies, enemies and boss variants.
+A standalone, fan-made **Sword Art Online idle RPG prototype** with gameplay inspired by Seven Knights Idle Adventure (7K Idle), but with original UI, balancing, stage logic and progression. It does **not** clone or host Seven Knights Idle Adventure. No payments, paid pulls or server account services.
 
-## Playable roster (7)
-- **อาสึนะ (Asuna)** — นักรบ ราคา 3; โจมตีเร็ว / คริ 35%, ใช้รูปที่ผู้เล่นอัปโหลดไว้แล้ว
-- **คิริโตะ (Kirito)** — นักรบ ราคา 2; ดาบคู่ โจมตีเร็ว
-- **ชิน่อน (Sinon)** — ยิงไกล ราคา 2; สไนเปอร์ คริ
-- **ลิซเบธ (Lisbeth)** — ป้องกัน ราคา 1; ค้อนโจมตีเป็นบริเวณ
-- **เดธกัน (Death Gun)** — นักรบ ราคา 3; ลอบสังหารว่องไว + คริ
-- **ฮีทคลิฟฟ์ (Heathcliff)** — ป้องกัน ราคา 3; ตั้งโล่และความทนทาน
-- **ซิลิก้า (Silica)** — เวท ราคา 1; พีน่า / โจมตีเชื่อมต่อหลายเป้าหมาย
+**Play:** https://kasemsuk1499-svg.github.io/AUTOCHEST/
 
-สกิลและค่าสเตตัสของทั้ง 6 ตัวใหม่เป็น **ต้นแบบชั่วคราว** สำหรับทดสอบ ไม่ใช่ชุดสกิลสุดท้าย
+## Gameplay (v0.14.1)
 
-## Add your own PNG / GIF
-โฟลเดอร์ภาพทั้ง 6 ตัวใหม่มี **placeholder PNG รูป ?** ทั้งสามสถานะ เตรียมไว้ให้เล่นได้ก่อนใส่ภาพจริง:
+1. **Idle auto-hunt:** Asuna, Kirito, Silica and other SAO characters automatically battle field monsters. Receive Gold and Hero EXP every kill.
+2. **Stage / Boss:** Defeat 6+ mobs to unlock that stage's boss. Enable Auto Boss or trigger manually. Winning the timed boss battle opens the next stage and grants Rubies, tickets, EXP, and Gold. If it fails, farm and upgrade then retry.
+3. **Build your SAO team:** Begin with Asuna, Kirito, Silica. Equip/unequip unlocked heroes or use auto-formation; unlock 5th team slot at stage 5, 6th at stage 12, and 7th at stage 20.
+4. **Hero leveling:** Spend Gold + Hero EXP to increase a selected hero's level; ×5 quick upgrades available. Max level 100.
+5. **Hero summon:** Use summon tickets first, otherwise 120 in-game Rubies per draw. Summon x1/x10 to unlock any of seven heroes. Repeated copies grant fragments.
+6. **Awakening stars:** Spend duplicate fragments and Gold to increase hero star rank (max ★★★★★).
+7. **Real time & offline rewards:** Fight automatically while the webpage is active; when you return after absence, claim Gold/EXP calculated from the elapsed time (max 8 hours). Unclaimed offline rewards remain saved across reloads.
+8. **Save / resume:** Auto-saves progression locally in the browser's `localStorage`, every few seconds and when leaving. Different devices/browsers do **not** synchronize.
+9. **Auto boss / Speed:** Toggle auto boss and select ×1/×2 battle speed. The combat engine supports shared SAO hero PNG/GIF assets.
 
-```text
-assets/heroes/kirito/{art.png,idle.png,attack.png}
-assets/heroes/sinon/{art.png,idle.png,attack.png}
-assets/heroes/lisbeth/{art.png,idle.png,attack.png}
-assets/heroes/deathgun/{art.png,idle.png,attack.png}
-assets/heroes/heathcliff/{art.png,idle.png,attack.png}
-assets/heroes/silica/{art.png,idle.png,attack.png}
-assets/heroes/asuna/{art.png,idle.png,attack.png}  (real images preserved)
+### Current SAO roster
+
+| ID | Name | Role |
+|---|---|---|
+| asuna | อาสึนะ | Fast slash / critical |
+| kirito | คิริโตะ | Dual swords |
+| silica | ซิลิก้า | Dragon-chain magic |
+| lisbeth | ลิซเบธ | Hammer area attack |
+| sinon | ชิน่อน | Sniper / multishot |
+| deathgun | เดธกัน | Long-range sniper, 2-second stealth, ambush critical |
+| heathcliff | ฮีทคลิฟฟ์ | Shield defender |
+
+Hero data: `src/characters/heroes/*.js` — images: `assets/heroes/<id>/{art.png,idle.png,attack.png}`. PNG and GIF are supported in hero fields. Individual hero images and skills remain adjustable.
+
+## Files
+
+- `index.html` — **new** Idle RPG entry point (v0.14.1)
+- `src/idle-style.css` — responsive Idle RPG presentation
+- `src/idle-core.js` — game economy, stage rules, XP, summon, offline rewards
+- `src/idle-game.js` — UI, boss battles, autoplay combat, hero skills, save/load
+- `idle-preview.html` — separate preview of the Idle RPG
+- `legacy-tft.html` — original TFT-inspired autobattler preserved for comparison
+- `src/game.js` / `src/tft-core.js` / `src/styles.css` — preserved code for legacy TFT mode
+
+## Tests
+
+```bash
+node scripts/test-idle-core.cjs
+node scripts/test-idle-release.cjs
 ```
 
-อัปโหลดภาพ PNG ชื่อเดิมทับ placeholder ได้ทันที โดยไม่ต้องแก้โค้ด หากใช้ GIF ให้เพิ่มไฟล์ `art.gif`, `idle.gif` หรือ `attack.gif` แล้วแก้ path ในไฟล์ JS รายตัวให้เป็น .gif; ทั้งสามช่องรองรับ PNG/GIF
+Chrome headless preview playtest performed on 2026-11-24 with UI actions (10x summon, upgrade hero, auto formation, offline modal, speed ×2) and autonomous progress from stage 1 to stage 4; zero runtime JavaScript exceptions.
 
-## Game mechanics
-- ซื้อจากร้าน, ลากตัวลงสนาม, รวมฮีโร่เหมือนกัน 3 ตัวเพิ่มดาว, PvE waves, บอสทุก 3 เวฟ
-- ศัตรูใช้ภาพและสกิลเดียวกับฮีโร่ เพียงคูณค่าสเตตัสและสเกลโมเดลตามเวฟ
-- สารานุกรมค้นหา, กรองสาย/ราคา, เฉพาะฮีโร่ที่มี, แสดง 12 ตัวต่อหน้า
-- กดดูสเตตัส/สกิลก่อนซื้อหรือหลังซื้อได้ตลอด ไม่ต้องจ่าย Gold เพื่อเปิดดู
-- เริ่มต้นด้วย **ลิซเบธและซิลิก้า** บนสนาม และ **คิริโตะ** สำรอง
+### Scope / next steps
 
-## Verify
-`node scripts/verify-roster.cjs` และ `node scripts/test-gif-contract.cjs`
-
-```text
-index.html
-src/game.js
-src/characters.js
-src/characters/heroes/{asuna,kirito,sinon,lisbeth,deathgun,heathcliff,silica}.js
-assets/heroes/<id>/{art.png,idle.png,attack.png}
-src/styles.css
-docs/CHARACTER_SYSTEM.md
-docs/GAME_DESIGN.md
-```
-
-Old original characters were removed from active roster and repository files. They can still be restored from Git history if needed.
-
-## v0.10 — Death Gun: Stealth Sniper (finalized kit)
-
-- สาย **ยิงไกล / สไนเปอร์พรางตัว** ราคา 3 G; HP 430, ATK 118, ระยะ **4.7 ช่อง**, ยิงทุก 1.28 วิ, เดินเร็ว 82
-- คริ 28%; ดาเมจคริ ×2.0
-- ทุก 4 การโจมตีเข้าสู่พรางตัว 2 วิ; ไม่ถูก AI เลือกเป็นเป้าหมายใหม่ และงดยิงระหว่างพราง (ยังเคลื่อนที่ได้)
-- นัดแรกหลังพราง: ยิง **170% ATK**, โอกาสคริเพิ่ม **+50 จุดเปอร์เซ็นต์** (รวม 78%)
-- หากเป้าหมาย HP ต่ำกว่า 35% เมื่อกระสุนกระทบ ดาเมจเพิ่ม 20%
-- กระสุนที่เล็งไว้ก่อนเริ่มพรางยังยิงโดนได้; การพรางป้องกันการล็อกเป้าหมาย **ใหม่** เท่านั้น
-- ทั้งฮีโร่ฝั่งเราและศัตรูใช้สกิลเดียวกัน และยังรองรับ PNG/GIF Art, Idle, Attack
-
-## v0.11 — Fixed the combat AI standing idle at attack range
-
-- Corrected floating-point asymptotic movement that could stop just **outside** attack range forever (even when a hero looks close enough).
-- Combat accepts a **3-pixel** range tolerance and moves into firing range in finite steps.
-- When every enemy is cloaked, heroes stop the walking animation and resume pursuing when a target becomes visible again.
-- Stealth duration now advances with combat speed (including ×2 mode).
-- Characters face the target before attacking. Verified long-range and melee units in regression scenarios.
-
-## v0.12 — Casual PvE balance (ปรับมอนให้น่าเล่นขึ้น)
-
-ลดจำนวนและความแข็งแกร่งของศัตรู โดยไม่เปลี่ยนสกิล/ระยะยิง/ภาพของฮีโร่ฝั่งเรา:
-
-| ค่า | เดิม | ใหม่ |
-|---|---:|---:|
-| HP ศัตรูเวฟ 1 | ×0.62 | ×0.55 |
-| ATK ศัตรูเวฟ 1 | ×0.69 | ×0.56 |
-| HP เพิ่มต่อเวฟ | +0.13 | +0.07 (สูงสุด ×1.45) |
-| ATK เพิ่มต่อเวฟ | +0.10 | +0.05 (สูงสุด ×1.20) |
-| HP บอส (คูณค่าศัตรูเวฟนั้น) | ×2.4 | ×1.80 |
-| ATK บอส (คูณค่าศัตรูเวฟนั้น) | ×1.40 | ×1.12 |
-| จำนวนมอนเวฟ 1 / 3 / 6 / 9 | 3 / 3 / 4 / 5 | 2 / 2 / 3 / 4 |
-| จำนวนมอนสูงสุด | 8 | 6 |
-
-บอสยังเกิดทุก 3 เวฟและตัวใหญ่เท่าเดิม แต่ลูกน้องจะสุ่มตัวระดับ Common/ราคา 1 ได้บ่อยขึ้น ไม่รุมตัวราคา 3 จำนวนมากตั้งแต่เวฟ 5 ค่าปรับทั้งหมดอยู่ที่ `ENEMY_SCALING` ใน `src/game.js` และมีสคริปต์ทดสอบ `node scripts/test-wave-balance.cjs`
-
-## v0.13 — TFT-inspired SOLO systems (Phase 1)
-
-- 100 HP player health, losing rounds subtract HP; run ends at 0 HP (restart available)
-- Level 3 start / max 8, team size = level. Passive +2 XP per round, buy +4 XP for 4 G. XP thresholds 3→4=6, 4→5=10, 5→6=18, 6→7=26, 7→8=38
-- 5-card shop, level-weighted rarity for cost 1/2/3, reroll 2 G, shop lock between rounds
-- End-of-round Gold: +5 base, +1 interest per saved 10 Gold (max +5), +1 on win, streak bonus +1 from 2 consecutive results / +2 from 4+
-- Sell heroes at cost ×3^(stars−1) when preparing; keep 3-copy automatic star combining
-- Real class synergy from 2 **distinct** deployed champions: Warrior ATK +15%, Mage ATK +20%, Ranged attack cooldown ×0.85, Defender HP +20%. Only one mage exists yet, so its tier is future-ready
-- Keep SAO art, battle effects, boss every third wave, previous enemy balance, inspector and GIF support
-- **Not implemented yet:** timed planning, hex board, loot/item crafting, augments, carousel or PvP. This is our own single-player strategy mode, not a one-to-one TFT reproduction
-
-Test solo strategy rules: `node scripts/test-tft-core.cjs`
-
-## v0.13.1 — Clear XP purchases and one-click leveling
-
-Previously a single +4 XP purchase at Level 3 did not increase level immediately because 6 XP is needed, making leveling appear broken. Two options are now displayed:
-- **ซื้อ +4 XP (4 G):** accumulates XP; a clear hint shows how many XP remain until the next level.
-- **อัปเลเวลทันที:** spends the minimum whole +4 XP purchases needed to reach the next level in one click, with the exact Gold cost shown. At 0/6 XP on Level 3, it costs 8 G and leaves 2/10 XP after upgrading to Level 4.
-Both buttons work in planning, battle, and result phases; deployment remains preparation-only. Both disable when Gold is insufficient, the player reaches Level 8, or the run has ended.
-
-## v0.13.2 — Avoid blank screens caused by mixed cached releases
-
-- All deferred gameplay scripts and the stylesheet carry the same release query version (`?v=0.13.2`), forcing browsers to download a compatible JS/CSS set when the HTML updates instead of mixing old and new files.
-- Early startup diagnostics show a visible, user-friendly error banner and a cache-busting **โหลดเกมเวอร์ชันใหม่** button if startup fails. No more silent blank arena/shop/bench.
-- After successful `reset()` the game explicitly marks `window.__AUTOCHEST_READY__=true`.
-- Do not assume GitHub Pages deployment or browser cache has updated until the HTML version changes. For stale HTML, use Ctrl+F5 or the provided reload button when visible.
+This release implements the core idle gameplay, **not** the entire Seven Knights Idle system. Future features could include more hero varieties, real equipment, a main quest chain, daily dungeons, party formations, additional status effects and polished boss animations. It does not provide multiplayer, offline server simulation, cross-device syncing, or an exact recreation of 7K Idle.
