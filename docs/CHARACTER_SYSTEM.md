@@ -1,103 +1,39 @@
-# ระบบปัจจุบัน v0.6 — Shared Hero & Enemy Model
+# SAO Hero Data Format — AUTOCHEST v0.9
 
-**ฮีโร่กับศัตรูใช้ไฟล์เดียวกัน** ไม่มีการเพิ่มไฟล์ศัตรูแยกอีกแล้ว
+One character file per hero, one image folder per hero, and the **same files are used for allies and enemies**.
 
-- ข้อมูลฮีโร่ทั้งหมดอยู่ใน `src/characters/heroes/<id>.js`
-- ภาพ `images.art`, `images.idle`, `images.attack` ใช้ไฟล์เดียวกันทั้งสองฝ่าย รองรับ PNG/GIF ทุกช่อง
-- การสุ่มฝ่ายศัตรูใช้ ID ฮีโร่เดิม แล้วเพิ่ม `side:'enemy'` และตัวคูณจาก `ENEMY_SCALING` ใน `src/game.js`
-- `isBoss` ขยายภาพของฮีโร่และคูณ HP/ATK เพิ่มเติมโดยไม่ต้องสร้างบอสใหม่
-- ศัตรูมีสกิล คริ และแอนิเมชันตามฮีโร่ต้นฉบับ
-- หมายเหตุ: ข้อมูลด้านล่างเป็นบันทึกระบบเวอร์ชันเก่า v0.3/v0.4 และบางส่วนอ้างถึงโฟลเดอร์ศัตรูที่ยกเลิกแล้ว
-
----
-
-# AUTOCHEST — ระบบตัวละคร v0.4
-
-## หลักคิดการรื้อระบบ
-
-- ย้ายข้อมูลทุกตัวละครออกจาก `src/game.js` ลงไฟล์รายตัว แยกกลไกของเกมกับข้อมูลตัวละคร
-- แยกภาพโปร่งใสของแต่ละตัวเป็นไฟล์จริง (`character.png`, `character.svg`)
-- รักษา ID ทางเทคนิค เช่น `knight` ไว้ให้ระบบ AI, การรวมดาว, animation และสกิลเดิมยังเชื่อมกันได้ ในขณะที่เปลี่ยนชื่อที่แสดงเป็น **อาเรน**
-- เวอร์ชันนี้ปรับ **ภาพ, ตัวตน, ชื่อ, การจัดโครงสร้าง และสถานะอนิเมชัน** โดยคงค่าสเตตัสเดิมเป็นฐานชั่วคราวเพื่อไม่ทำสมดุลการต่อสู้เสีย
-
-## ฮีโร่ออริจินัลชุดแรก (ยังเปลี่ยนได้)
-
-| ID | ชื่อ | บทบาท | ค่าจ้าง | สกิล | effect |
+| ID | Name | Class | Cost | Skill | Effect |
 |---|---|---|---:|---|---|
-| knight | อาเรน | นักรบ | 1 | คมดาบอรุณ | slash |
-| mage | ลูนา | เวท | 2 | สายฟ้าจันทรา | chain |
-| archer | เรน | ยิงไกล | 1 | สามศรพายุ | triple |
-| tank | บรอนน์ | ป้องกัน | 2 | กำแพงเหล็ก | shield |
-| assassin | คิระ | นักรบ | 2 | จู่โจมพริบตา | blink |
-| thunder | เซรา | เวท | 3 | อัสนีพิพากษา | chain |
-| hammer | การ์ด | ป้องกัน | 3 | ทุบสะท้านโลก | slam |
+| asuna | อาสึนะ | นักรบ | 3 | แฟลชสไตรค์ | slash |
+| kirito | คิริโตะ | นักรบ | 2 | ดาบคู่ทะลวง | slash |
+| sinon | ชิน่อน | ยิงไกล | 2 | กระสุนพิฆาต | triple |
+| lisbeth | ลิซเบธ | ป้องกัน | 1 | ค้อนสะท้าน | slam |
+| deathgun | เดธกัน | นักรบ | 3 | เงาพิฆาต | blink |
+| heathcliff | ฮีทคลิฟฟ์ | ป้องกัน | 3 | ปราการไร้พ่าย | shield |
+| silica | ซิลิก้า | เวท | 1 | ลมหายใจพีน่า | chain |
 
-## ศัตรู
+## Asset slots — files to upload
+Create/replace these files inside `assets/heroes/<id>/`:
+- `art.png`: character illustration for shop and inspector
+- `idle.png`: chibi standing/walking model
+- `attack.png`: chibi attack pose
 
-`slime`, `crab`, `ghost`, `boss` มีข้อมูลและภาพแยกไฟล์ทั้งหมด
+All three accept `.png` or `.gif`. For GIF upload the GIF then change the corresponding path in `src/characters/heroes/<id>.js`. User-provided artwork is not generated or replaced automatically.
 
-## Asset Slots — PNG / GIF ทุกสถานะ
+The 6 new characters use **temporary PNG placeholders**, not authentic anime artwork. Asuna keeps the existing artwork. Replacing placeholder PNGs with the same filenames requires no code changes.
 
-ตัวละครทุกตัวมีภาพ **3 ช่องแยกกัน** ใน `images`: `art`, `idle`, `attack` (รองรับ `.png` และ `.gif` ทั้งหมด)
+## Code structure
+Each file uses `window.AUTOCHEST_CHARACTERS.registerHero({id,name,subtitle,team,cost,hp,dmg,range,cool,move,skill,effect,triggerEvery,col,portrait,images,visual})`.
 
-| ช่อง | ใช้ที่ไหน | รองรับ |
-|---|---|---|
-| `images.art` | ภาพอาร์ตในร้านค้า / ข้อมูลตัวละคร | PNG / GIF |
-| `images.idle` | โมเดลจิบิบนกระดาน / ม้านั่ง / ตอนเดิน | PNG / GIF |
-| `images.attack` | โมเดลจิบิขณะโจมตีและใช้สกิล | PNG / GIF |
+Optional fields: `critChance` 0..1; `critDamage` multiplier; `traits` descriptive UI labels; `chainTargets`, `chainPower` apply to `chain` effect.
 
-ตัวอย่าง **Premium**:
+- `cost`: 1/2/3 Gold tiers
+- `cool`: seconds between basic attacks; smaller is faster
+- `triggerEvery`: every N attacks triggers special effect
+- `visual.attackMs`: model attack sprite exposure, 100–5000 ms
+- `visual.scale`: hero model scale
+- All skills and stars are handled by shared combat engine in `src/game.js`
+- Adding future hero: register file in `index.html` before `src/game.js`
+- All new heroes also become eligible enemies according to tier/wave progression
 
-```js
-images: {
-  art: './assets/heroes/mage/art.gif',
-  idle: './assets/heroes/mage/idle.gif',
-  attack: './assets/heroes/mage/attack.gif'
-},
-visual: {scale: 1, walkBob: 6, skillGlow: 1, attackMs: 900}
-```
-
-ภาพ `.gif` ที่เป็นโมเดลถูกวางเป็น DOM `<img>` ซ้อนบน Canvas เพื่อให้ GIF เคลื่อนไหวจริง (รวมตอนเดินและโจมตี) ส่วน PNG วาดตรงใน Canvas เหมือนเดิม ภาพ art ใช้ `<img>` ใน UI อยู่แล้ว รูปในไฟล์ตัวละครตัวอย่างยังชี้ไป `character.png` ทั้ง 3 ช่อง เพื่อใช้ได้ทันทีโดยไม่ต้องเตรียมไฟล์ใหม่ เปลี่ยนเฉพาะช่องที่ต้องการได้เลย
-
-ภาพต้องเป็น path ภายใน `./assets/heroes/<id>/` หรือ `./assets/enemies/<id>/` มีชื่อไฟล์ `.png` หรือ `.gif` และอยู่ใน GitHub repo ด้วย ตรวจข้อมูลด้วย `node scripts/verify-roster.cjs` ก่อนเผยแพร่
-
-## การแก้ไขตัวละครหนึ่งตัว
-
-1. เปิดไฟล์ `src/characters/heroes/mage.js` (ตัวอย่าง ลูนา)
-2. แก้ `name`, `subtitle`, `team`, `cost`, `hp`, `dmg`, `range`, `cool`, `move`, `skill`, `effect`, `triggerEvery` หรือ `visual`
-3. เปลี่ยนภาพ `assets/heroes/mage/character.png` โดยให้มีพื้นหลังโปร่งใส ความละเอียดแนะนำ 360 × 420 px (ภาพต้นแบบ SVG อยู่ในโฟลเดอร์เดียวกัน)
-4. ถ้าสร้าง ID ใหม่จริง ๆ ให้เพิ่ม `<script defer src="./src/characters/heroes/<id>.js"></script>` ใน `index.html` **ก่อน** `src/game.js`
-5. สั่ง `node scripts/verify-roster.cjs` เพื่อตรวจ roster ทุกตัว
-
-## Contract ข้อมูลตัวละคร
-
-```javascript
-window.AUTOCHEST_CHARACTERS.registerHero({
-  id: 'mage', name: 'ลูนา', subtitle: 'แม่มดจันทรา',
-  team: 'เวท', cost: 2,
-  hp: 415, dmg: 87, range: 2.95, cool: 1.62, move: 81,
-  skill: 'สายฟ้าจันทรา', effect: 'chain', triggerEvery: 3,
-  col: '#ba82ff',
-  portrait: './assets/heroes/mage/character.png',
-  images: {art:'./assets/heroes/mage/character.png', idle:'./assets/heroes/mage/character.png', attack:'./assets/heroes/mage/character.png'},
-  visual: {scale: 1, walkBob: 6, skillGlow: 1}
-});
-```
-
-- `team` รองรับ `นักรบ`, `เวท`, `ยิงไกล`, `ป้องกัน` ในเวอร์ชันนี้
-- `effect` เป็นชนิดสกิลที่ Engine รองรับ **ไม่ใช่ script ที่รันจากข้อมูลผู้เล่น**; การเพิ่มชนิดสกิลต้องเพิ่มตัวประมวลผลใน `src/game.js`
-- `triggerEvery`: จำนวนครั้งโจมตีธรรมดาก่อนใช้สกิล
-- `visual`: ตัวคูณขนาดภาพกับความสูงการกระเด้งตอนเดิน (อนิเมชันใช้ transforms ไม่ได้แยกภาพทุกเฟรม)
-- `portrait`: path ภาพสำรองเพื่อรองรับไฟล์เก่า; `images.art/idle/attack` คือภาพหลัก และเลือก PNG/GIF ได้อย่างอิสระ
-- ฮีโร่ใหม่จะถูกนำเข้าร้านค้าโดยอัตโนมัติ เมื่อเขียนไฟล์และโหลดทะเบียนถูกต้อง
-
-## สิ่งที่จะรื้อต่อในเวอร์ชันถัดไป
-
-- การปรับเวลา/จำนวนลูปของ GIF ตอนใช้สกิลพรีเมียม และเพิ่ม editor สำหรับเปลี่ยนไฟล์ภาพผ่านหน้าเว็บ
-- กำหนด skill payload หลายขั้น (hit count, target rule, status) เป็นข้อมูล แทนเงื่อนไขแบบตายตัว
-- แยก combat engine ไปเป็นโมดูล ลดความยาว `src/game.js`
-- หน้า Character Lab สำหรับเพิ่มตัวละครโดยไม่ต้องเขียนโค้ด
-
-## Fast / Crit Unit Contract (Asuna)
-
-`src/characters/heroes/asuna.js` sets optional `critChance: 0.35` (probability), `critDamage: 1.9` (multiplier), `cool: 0.58` (seconds between attacks), `move: 140` (movement speed) and `traits: ['ว่องไว','คริติคอล']`. These traits are labels only; combat crit checks happen when a hit lands. Art/Idle/Attack continue supporting both PNG and GIF.
+The initial kits of Kirito, Sinon, Lisbeth, Death Gun, Heathcliff and Silica are provisional, for future adjustment.

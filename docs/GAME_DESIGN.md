@@ -1,49 +1,23 @@
-# AUTOCHEST — Game Design v0.3
+# AUTOCHEST — Game Design v0.9
 
-## Game Loop
+## Gameplay loop
+1. Buy SAO heroes from four-slot shop, inspect skills/stats
+2. Deploy up to 4 allied units initially, expands to 8; 9 reserve slots
+3. PvE auto battle with movement, basic attacks, auto skills and crit damage
+4. Collect gold; combine 3 duplicate same-star heroes to upgrade stars
+5. Boss every 3 rounds
 
-1. Prep: รับ Gold ซื้อฮีโร่และจัดตำแหน่งทีม
-2. Combat: ทุกยูนิตสู้เอง เล็งฝ่ายตรงข้ามที่อยู่ใกล้ที่สุด ใช้ basic/skill อัตโนมัติ
-3. Result: ได้ผลแพ้ชนะ, เงินรางวัลเมื่อชนะ
-4. Next Wave: เลือกปรับทีม และเจอ Boss ทุก 3 เวฟ
+## SAO-only cast
+Asuna, Kirito, Sinon, Lisbeth, Death Gun, Heathcliff and Silica (7 total).
+No original characters remain in the active repository. Six new characters use temporary replaceable PNG art/idle/attack placeholder images.
 
-## สนาม / ทีม
+## Shared models
+Allies and enemies use the same hero registry and artwork in `assets/heroes/<id>/`.
+Enemy HP, ATK and model size scale by wave; boss applies a further multiplier to an existing hero.
+Animation uses still PNG or GIF for each art/idle/attack slot.
 
-- สนาม: 6 × 7, ขนาดภาพ Canvas 760 × 775
-- พื้นที่วางทีม: แถว 4–6 (นับเริ่มจาก 0)
-- จำนวนยูนิตเริ่มต้น: 4; เพิ่มทุก 3 เวฟจนสูงสุด 8
-- ม้านั่งสำรอง: 9 ช่อง
+## Gallery
+Hero Codex supports search, team filter, price filter, owned-only filter and pagination (12 results per page), with lazy character art. Long-press or inspect button opens individual stats/skill details before and after purchase.
 
-## Class & Skill (prototype)
-
-- นักรบ: อัศวิน / นินจา
-- เวท: จอมเวท / เทพสายฟ้า
-- ยิงไกล: มือปืน
-- ป้องกัน: ผู้พิทักษ์ / ขุนค้อน
-- พิเศษ: โล่, โจมตีหลายเป้าหมาย, สายฟ้าลูกโซ่, ค้อน AoE, โจมตีซ้ำ
-
-## Economy & Progression
-
-- เริ่มต้น 12 Gold; รีโรล 2 Gold
-- ราคา: 1–3 Gold ต่อฮีโร่
-- รวมยูนิตชนิดเดียวกันและดาวเดียวกัน 3 ตัวเป็นดาวขั้นถัดไป
-- ศัตรูแข็งแกร่งขึ้นเรื่อย ๆ ตามเวฟ
-
-## Technical Constraints
-
-- Static web app: HTML, CSS, JavaScript, Canvas
-- ไม่ใช้ภาพหรือโค้ดจากเกมต้นฉบับ
-- เกมหลักทำงานออฟไลน์หลังโหลดไฟล์แล้ว (ยกเว้นฟอนต์ภายนอก)
-- อัปเดตสถานะผ่าน requestAnimationFrame
-
-## Milestones
-
-- [x] M1: สนาม, ร้าน, ม้านั่ง, วางยูนิต, AI ต่อสู้, boss waves
-- [x] M2a: ข้อมูลฮีโร่/ศัตรูแยกไฟล์รายตัว + PNG/SVG โปร่งใส + pose animation บน Canvas
-- [ ] M2b: frame-by-frame sprite sheets + แยก combat engine
-- [ ] M3: ระบบไอเทม, XP, class traits, UI แสดงข้อมูลฮีโร่
-- [ ] M4: Save / Load + round balancing + automation tests
-- [ ] M5: เผยแพร่ GitHub Pages และทดสอบบนอุปกรณ์จริง
-
-## v0.6 — Shared hero and enemy roster
-Enemy waves now select from the hero registry and use identical Art/Idle/Attack PNG/GIF files, ability effects and critical chances. Only wave-scaled HP, ATK and visual size differ. Every third wave enlarges and empowers an existing hero as a boss; no separate enemy models are required. Earlier design notes describing slime/crab/ghost/boss files are historical.
+## Planned
+Replace placeholders with user-supplied artwork and refine SAO-specific skills and balance one character at a time.

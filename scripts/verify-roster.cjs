@@ -11,7 +11,9 @@ for(const s of scripts.filter(x=>x!=='./src/game.js')){
 }
 const reg=context.window.AUTOCHEST_CHARACTERS;
 const hero=Object.values(reg.HEROES);
-if(hero.length!==8)throw Error('Expected 8 heroes');
+if(hero.length!==7)throw Error('Expected 7 SAO heroes');
+const expected=['asuna','kirito','sinon','lisbeth','deathgun','heathcliff','silica'];
+if(expected.some(id=>!reg.HEROES[id])||Object.keys(reg.HEROES).some(id=>!expected.includes(id)))throw Error('Unexpected hero roster');
 if(scripts.some(s=>s.includes('/enemies/')))throw Error('Separate enemy files must not be loaded');
 for(const c of hero){
  const picture=path.resolve(root,c.portrait);
@@ -28,4 +30,4 @@ for(const c of hero){
 }
 const asuna=reg.HEROES.asuna;
 if(!asuna||asuna.critChance!==.35||asuna.critDamage!==1.9||asuna.cool!==.58)throw Error('Asuna speed/crit build missing');
-console.log('✅ Shared roster: '+hero.length+' heroes; allies and enemies use the same art/idle/attack assets');
+console.log('✅ SAO roster: '+hero.length+' heroes; 7 complete art/idle/attack sets; same assets for ally and enemy');

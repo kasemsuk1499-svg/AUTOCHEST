@@ -5,7 +5,7 @@ const root=path.resolve(__dirname,'..');
 const context=vm.createContext({window:{}});
 vm.runInContext(fs.readFileSync(path.join(root,'src/characters.js'),'utf8'),context);
 const r=context.window.AUTOCHEST_CHARACTERS;
-const base={id:'premium_demo',name:'Test Premium',portrait:'./assets/heroes/knight/character.png',team:'นักรบ',hp:100,dmg:25,range:1,cool:1,move:100,effect:'slash',triggerEvery:4,images:{art:'./assets/heroes/knight/art.gif',idle:'./assets/heroes/knight/idle.gif',attack:'./assets/heroes/knight/attack.gif'},visual:{attackMs:900}};
+const base={id:'premium_demo',name:'Test Premium',portrait:'./assets/heroes/lisbeth/character.png',team:'นักรบ',hp:100,dmg:25,range:1,cool:1,move:100,effect:'slash',triggerEvery:4,images:{art:'./assets/heroes/lisbeth/art.gif',idle:'./assets/heroes/lisbeth/idle.gif',attack:'./assets/heroes/lisbeth/attack.gif'},visual:{attackMs:900}};
 r.registerHero(base);
 assert.equal(r.HEROES.premium_demo.images.art,base.images.art);
 assert.equal(r.HEROES.premium_demo.images.idle,base.images.idle);

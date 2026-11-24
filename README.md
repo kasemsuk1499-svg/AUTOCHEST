@@ -1,76 +1,52 @@
-# AUTOCHEST — Chibi Auto Battler 🎮
+# AUTOCHEST — SAO Character Roster v0.9 ⚔️
 
-**Playable Alpha v0.6 · Shared Hero / Enemy Models**
+Single-player Chibi Auto Battler fan prototype. All characters use one roster for allies, enemies and boss variants.
 
-## เล่นเกม
-ซื้อฮีโร่ จัดทีมในสามแถวล่าง กดเริ่มต่อสู้อัตโนมัติ ชนะรับ Gold และรวมฮีโร่เหมือนกัน 3 ตัวเพิ่มดาว บอสปรากฏทุก 3 เวฟ
+## Playable roster (7)
+- **อาสึนะ (Asuna)** — นักรบ ราคา 3; โจมตีเร็ว / คริ 35%, ใช้รูปที่ผู้เล่นอัปโหลดไว้แล้ว
+- **คิริโตะ (Kirito)** — นักรบ ราคา 2; ดาบคู่ โจมตีเร็ว
+- **ชิน่อน (Sinon)** — ยิงไกล ราคา 2; สไนเปอร์ คริ
+- **ลิซเบธ (Lisbeth)** — ป้องกัน ราคา 1; ค้อนโจมตีเป็นบริเวณ
+- **เดธกัน (Death Gun)** — นักรบ ราคา 3; ลอบสังหารว่องไว + คริ
+- **ฮีทคลิฟฟ์ (Heathcliff)** — ป้องกัน ราคา 3; ตั้งโล่และความทนทาน
+- **ซิลิก้า (Silica)** — เวท ราคา 1; พีน่า / โจมตีเชื่อมต่อหลายเป้าหมาย
 
-## ฝ่ายศัตรูใช้ไฟล์เดียวกับฮีโร่
-- **ไฟล์ตัวละครเดียวกันทั้งสองฝ่าย:** `src/characters/heroes/*.js`
-- ภาพ Art / Idle / Attack ใช้ชุดเดียวกันที่ `assets/heroes/<id>/` เลือก PNG หรือ GIF ได้ทุกช่อง รวมภาพตัวพรีเมียม
-- ฝ่ายเราใช้สเตตัสปกติ; ฝ่ายศัตรูใช้ HP และ ATK ที่คูณตามเวฟ ทั้งสองฝ่ายใช้สกิล ความเร็วโจมตี และอัตราคริติคอลพื้นฐานเดียวกัน
-- ศัตรูจะแสดงบนสนามส่วนบนและมีแถบ HP สีแดง
-- บอสคือฮีโร่หนึ่งตัวที่ขยายขนาดและเพิ่มพลัง ไม่ต้องวาดภาพแยก
-- เพิ่มฮีโร่ใหม่เพียงครั้งเดียว ทั้งเข้าร้านค้าและสุ่มเป็นศัตรูได้ตามระดับเวฟ
+สกิลและค่าสเตตัสของทั้ง 6 ตัวใหม่เป็น **ต้นแบบชั่วคราว** สำหรับทดสอบ ไม่ใช่ชุดสกิลสุดท้าย
 
-### ตัวคูณศัตรูใน `src/game.js`
-| ค่า | ศัตรูทั่วไป | บอส |
-|---|---|---|
-| HP เวฟ 1 | ×0.62 | ×0.62 ×2.4 |
-| เพิ่ม HP ต่อเวฟ | +0.13 | +0.13 (ก่อนคูณบอส) |
-| ATK เวฟ 1 | ×0.69 | ×0.69 ×1.4 |
-| เพิ่ม ATK ต่อเวฟ | +0.10 | +0.10 (ก่อนคูณบอส) |
-| สเกลภาพ | ×0.94 | ×1.65 |
+## Add your own PNG / GIF
+โฟลเดอร์ภาพทั้ง 6 ตัวใหม่มี **placeholder PNG รูป ?** ทั้งสามสถานะ เตรียมไว้ให้เล่นได้ก่อนใส่ภาพจริง:
 
-เวฟ 1–2 ใช้ฮีโร่ราคา 1, เวฟ 3–4 ใช้ราคาสูงสุด 2, เวฟ 5+ ใช้ฮีโร่ราคาสูงสุด 3; อาสึนะจึงเป็นศัตรูได้ตั้งแต่เวฟ 5 และบอสได้ตั้งแต่เวฟ 6
-
-## รูป Art / Idle / Attack
 ```text
-assets/
-  heroes/
-    asuna/
-      art.png
-      idle.png
-      attack.png
+assets/heroes/kirito/{art.png,idle.png,attack.png}
+assets/heroes/sinon/{art.png,idle.png,attack.png}
+assets/heroes/lisbeth/{art.png,idle.png,attack.png}
+assets/heroes/deathgun/{art.png,idle.png,attack.png}
+assets/heroes/heathcliff/{art.png,idle.png,attack.png}
+assets/heroes/silica/{art.png,idle.png,attack.png}
+assets/heroes/asuna/{art.png,idle.png,attack.png}  (real images preserved)
 ```
-หรือแทนแต่ละไฟล์ด้วย GIF และแก้ `images.art`, `images.idle`, `images.attack` ใน `src/characters/heroes/asuna.js`
 
-## อาสึนะ — ความเร็ว + คริ
-ATK 66, โจมตีทุก 0.58 วินาที, ความเร็วเดิน 140, โอกาสคริ 35%, ดาเมจคริ ×1.9 สกิลแฟลชสไตรค์ทุก 3 การโจมตี
+อัปโหลดภาพ PNG ชื่อเดิมทับ placeholder ได้ทันที โดยไม่ต้องแก้โค้ด หากใช้ GIF ให้เพิ่มไฟล์ `art.gif`, `idle.gif` หรือ `attack.gif` แล้วแก้ path ในไฟล์ JS รายตัวให้เป็น .gif; ทั้งสามช่องรองรับ PNG/GIF
 
-## ไฟล์สำคัญ
+## Game mechanics
+- ซื้อจากร้าน, ลากตัวลงสนาม, รวมฮีโร่เหมือนกัน 3 ตัวเพิ่มดาว, PvE waves, บอสทุก 3 เวฟ
+- ศัตรูใช้ภาพและสกิลเดียวกับฮีโร่ เพียงคูณค่าสเตตัสและสเกลโมเดลตามเวฟ
+- สารานุกรมค้นหา, กรองสาย/ราคา, เฉพาะฮีโร่ที่มี, แสดง 12 ตัวต่อหน้า
+- กดดูสเตตัส/สกิลก่อนซื้อหรือหลังซื้อได้ตลอด ไม่ต้องจ่าย Gold เพื่อเปิดดู
+- เริ่มต้นด้วย **ลิซเบธและซิลิก้า** บนสนาม และ **คิริโตะ** สำรอง
+
+## Verify
+`node scripts/verify-roster.cjs` และ `node scripts/test-gif-contract.cjs`
+
 ```text
 index.html
-src/game.js                     Combat / ENEMY_SCALING
-src/characters.js               ทะเบียนฮีโร่ชุดเดียว
-src/characters/heroes/*.js      ข้อมูลฮีโร่รายตัว
+src/game.js
+src/characters.js
+src/characters/heroes/{asuna,kirito,sinon,lisbeth,deathgun,heathcliff,silica}.js
+assets/heroes/<id>/{art.png,idle.png,attack.png}
 src/styles.css
-assets/heroes/<id>/*            PNG/GIF ของทุกตัว
-scripts/verify-roster.cjs
-scripts/test-gif-contract.cjs
 docs/CHARACTER_SYSTEM.md
 docs/GAME_DESIGN.md
 ```
 
-ตรวจโครงสร้างด้วย `node scripts/verify-roster.cjs` และ `node scripts/test-gif-contract.cjs`
-
-> เกมยังเป็น single-player PvE alpha; ยังไม่มี PvP, ระบบเซฟ และ Character Lab
-
-## v0.7 — Hero Inspector / ดูข้อมูลฮีโร่ก่อนและหลังซื้อ
-
-- แตะการ์ดร้านค้าเพื่อเปิดหน้าต่างดูภาพอาร์ต ค่าสเตตัส และคำอธิบายสกิลโดย **ยังไม่ซื้อ**
-- ปุ่มซื้ออยู่ใต้การ์ด แยกจากปุ่มดูข้อมูล (ยังดูข้อมูลได้แม้ Gold ไม่พอหรืออยู่ระหว่างต่อสู้)
-- กดค้างฮีโร่บนม้านั่งหรือสนามประมาณ 0.54 วินาทีเพื่อดูรายละเอียด; ถ้าลากก่อนยังลากวางได้เหมือนเดิม
-- คลิกปุ่ม **ⓘ ดูสเตตัสและสกิลทั้งหมด** ในแผงข้อมูลฮีโร่หลังเลือก หรือใช้ **📖 สารานุกรมฮีโร่** ดูทุกตัวได้ตลอดเวลา
-- หน้าต่างแสดง HP, ATK, ความเร็วโจมตี, ระยะ, ความเร็วเดิน, โอกาสคริ, ดาเมจคริ, คำอธิบายสกิลตามระบบต่อสู้จริง และเวลาทริกเกอร์สกิล
-- เปิดดูศัตรูบนสนามระหว่างสู้ได้ และปิดด้วยปุ่ม ✕, แตะฉากหลัง หรือกด Esc
-- ในหน้าต่างข้อมูล ถ้าฮีโร่ปรากฏในร้านและซื้อได้ จะมีปุ่มซื้อยืนยันอีกชั้น
-
-## v0.8 — Codex พร้อมฮีโร่ 100+ ตัว
-
-- ช่องค้นหาชื่อ ตัวละคร สกิล และคุณสมบัติ; กรองสายอาชีพ ราคา 1–3 Gold และเฉพาะฮีโร่ที่เป็นเจ้าของ
-- หน้าแสดงผล 12 ตัวต่อหน้า; มีปุ่มก่อนหน้า/ถัดไปและข้อความแสดงจำนวนผลลัพธ์
-- หน้าใช้งานเหมือนเดิมทั้งก่อนซื้อ/หลังซื้อ แต่จะไม่สร้างการ์ด HTML ของฮีโร่ทั้งหมดทีเดียว
-- โมเดล PNG โหลดเมื่อจำเป็นบนกระดานเท่านั้น (ยกเลิก preload ทุกรูปตอนเริ่มเกม); ภาพอาร์ตใน UI ใช้ browser lazy loading
-- หน้า roster แสดง PNG หรือ GIF เฉพาะ 12 ตัวในหน้านั้น ไม่บังคับให้โหลดภาพของ 100 ตัวพร้อมกัน
-- ฮีโร่ยังลงทะเบียนด้วยไฟล์รายตัวใน `index.html` เหมือนเดิม; หากอนาคตมีหลายร้อยตัว การทำ asset manifest/bundle เพิ่มจะช่วยลดจำนวน HTTP requests ได้อีก
+Old original characters were removed from active roster and repository files. They can still be restored from Git history if needed.
