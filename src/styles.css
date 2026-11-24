@@ -29,3 +29,64 @@ body:before{content:'';position:fixed;inset:0;pointer-events:none;background-ima
 /* GIF sprites must remain DOM <img>s: canvas drawImage cannot reliably animate GIF frames. */
 .animated-sprites{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:1;contain:layout style paint}
 .animated-sprites .animated-sprite{position:absolute;display:block;pointer-events:none;user-select:none;object-fit:fill;transform-origin:center center;will-change:top,left;max-width:none}
+
+
+/* v0.7 Hero Inspector — preview first; purchase is a separate action */
+.shopitem{cursor:default}
+.shop-preview{display:block;min-width:0;width:100%;background:none;color:inherit;text-align:left;border:0;padding:0;margin:0;cursor:help;font:inherit;position:relative;z-index:1}
+.shop-preview:hover .card-art img.hero-portrait{transform:translateY(-4px) scale(1.1)}
+.shop-preview:focus-visible,.shop-buy:focus-visible,.unit-details-more:focus-visible,.hero-modal button:focus-visible{outline:2px solid #a7fff1;outline-offset:2px}
+.shop-inspect-tag{display:block;color:#9cdeec;font-size:10px;padding:0 0 6px;letter-spacing:.2px}
+.shop-buy{display:block;text-align:center;width:100%;background:#182b44;color:#d0fff7;border:1px solid #69d0ba70;border-radius:8px;padding:6px 3px;position:relative;z-index:1;font:600 11px Kanit,system-ui;cursor:pointer;transition:background .16s,transform .16s}
+.shop-buy:hover:not(:disabled){background:#215e68;color:#fff;transform:translateY(-1px)}
+.codex-btn{width:100%;margin-top:10px;border-color:#68c3c877;text-align:center}
+.unit-details-more{margin-top:9px;width:100%;padding:7px 8px;border-radius:8px;border:1px solid #63c8b46c;background:#19484f;color:#d8fff7;cursor:pointer;font:600 12px Kanit,system-ui}
+.unit-details-more:hover{background:#215765}
+.hero-modal[hidden]{display:none!important}
+.hero-modal{position:fixed;inset:0;z-index:500;display:grid;place-items:center;padding:18px}
+.hero-modal-backdrop{position:absolute;inset:0;background:#020914cf;backdrop-filter:blur(9px)}
+.hero-modal-panel{z-index:1;position:relative;width:min(790px,96vw);max-height:min(90vh,920px);overflow:auto;border-radius:20px;border:1px solid #69b5cf92;background:radial-gradient(ellipse at 18% 0,#213e5d,#111d36 58%,#090f20);box-shadow:0 25px 90px #000c,0 0 33px #4ceac118;padding:22px 24px;overscroll-behavior:contain}
+.hero-modal-close{position:sticky;top:0;float:right;z-index:2;width:36px;height:36px;border-radius:50%;border:1px solid #769bb18a;background:#17314c;color:#f4faff;cursor:pointer;font-size:17px}
+.hero-modal-eyebrow{color:#82e8dc;font:700 11px Rajdhani,Kanit,sans-serif;letter-spacing:2.2px;margin:5px 0}
+.hero-modal-heading h2{font-size:31px;line-height:1.1;margin:7px 0 2px;color:#fafcff}
+.hero-modal-heading>span{font-size:13px;color:#afc8dc}
+.hero-modal-top{display:grid;grid-template-columns:205px 1fr;align-items:stretch;gap:17px;margin-top:13px}
+.hero-modal-art{--hero-accent:#6af0e1;min-height:240px;border:1px solid color-mix(in srgb,var(--hero-accent) 58%,#516e94);border-radius:16px;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 36%,color-mix(in srgb,var(--hero-accent) 32%,#18283e),#142138 72%);overflow:hidden}
+.hero-modal-art .hero-portrait{object-fit:contain;width:100%;height:250px;filter:drop-shadow(0 12px 12px #0008)}
+.hero-modal-info{display:flex;flex-direction:column;gap:13px}
+.hero-modal-tags{display:flex;gap:6px;flex-wrap:wrap}
+.hero-modal-tags>span{border:1px solid #4d708c;background:#1b334e;border-radius:99px;padding:4px 10px;color:#beddec;font-size:11px}
+.hero-modal-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.hero-detail-stat{min-height:52px;border-radius:9px;border:1px solid #34516d;padding:7px 11px;background:#13283d}
+.hero-detail-stat small{color:#8eacc5;font-size:11px;display:block}
+.hero-detail-stat strong{color:#f5faff;font:700 19px Rajdhani,Kanit,sans-serif;display:block}
+.hero-skill-panel{margin-top:17px;padding:14px 18px;background:#122a43;border:1px solid #40738e;border-radius:13px}
+.hero-skill-panel h3{color:#ffdf9c;font-size:20px;margin:6px 0}
+.skill-trigger{color:#97f5df;font-size:12px;font-weight:600}
+.hero-skill-panel ul{margin:10px 0 9px;padding-left:23px;color:#dfedff;font-size:13px;line-height:1.9}
+.hero-skill-panel p{margin:8px 0 0;color:#93b3cc;font-size:11px}
+.hero-modal-footer{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:14px 0 17px;flex-wrap:wrap}
+.hero-modal-buy{border-radius:10px;background:linear-gradient(100deg,#42dfb9,#2fa2d6);border:1px solid #89ffdc;color:#062732;font:700 13px Kanit,system-ui;padding:10px 17px;cursor:pointer}
+.hero-modal-buy:hover:not(:disabled){filter:brightness(1.13)}
+.hero-modal-note{color:#a2bbd3;font-size:11px}
+.hero-roster-label{color:#a4dae9;font-size:11px;margin:5px 0 8px}
+.hero-roster-strip{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px}
+.hero-roster-pick{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px 2px;background:#11263e;border:1px solid #385773;border-radius:10px;color:#d8efff;cursor:pointer}
+.hero-roster-pick.selected{border-color:#85ffe0;background:#194d52;box-shadow:0 0 0 1px #7befd04d}
+.hero-roster-pick img{width:100%;max-width:54px;height:53px;object-fit:contain}
+.hero-roster-pick span{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+@media(max-width:650px){
+.hero-modal{padding:6px}
+.hero-modal-panel{max-height:96dvh;width:100%;padding:15px 13px;border-radius:13px}
+.hero-modal-top{grid-template-columns:112px 1fr;gap:8px}
+.hero-modal-art{min-height:169px}
+.hero-modal-art .hero-portrait{height:185px}
+.hero-modal-heading h2{font-size:23px}
+.hero-modal-stats{gap:4px}
+.hero-detail-stat{min-height:45px;padding:5px}
+.hero-detail-stat small{font-size:9px}
+.hero-detail-stat strong{font-size:15px}
+.hero-modal-tags span{font-size:9px;padding:3px 6px}
+.hero-roster-strip{grid-template-columns:repeat(4,minmax(0,1fr))}
+.hero-skill-panel{padding:11px}
+}

@@ -46,7 +46,8 @@
         <section class="hud-panel store-panel" aria-label="ร้านค้าฮีโร่">
           <div class="section-title-row"><div><span class="eyebrow">RECRUITMENT</span><h2>ร้านค้าฮีโร่ <span class="tiny-glyph">✦</span></h2></div><button id="rollBtn" class="reroll-btn">⟳ รีโรล <b>2 G</b></button></div>
           <div class="shop" id="shop"></div>
-          <p class="shop-note"><span>★</span> ฮีโร่เหมือนกัน 3 ตัว รวมเป็นฮีโร่ดาวสูงขึ้นโดยอัตโนมัติ</p>
+          <p class="shop-note"><span>ⓘ</span> แตะการ์ดเพื่อดูรายละเอียดก่อนซื้อ • ซื้อจากปุ่มใต้การ์ด</p>
+          <button id="heroCodexBtn" class="light-btn codex-btn" type="button">📖 สารานุกรมฮีโร่ทั้งหมด</button>
         </section>
 
         <section class="hud-panel bench-panel" aria-label="ม้านั่งสำรอง">
@@ -62,7 +63,14 @@
         <section class="hud-panel help-panel"><div class="tip-icon">✧</div><div id="tip" class="hint" role="status">ลากตัวละครจากม้านั่งลงบนสนามเพื่อจัดทีม</div><details class="battle-log"><summary>บันทึกการต่อสู้ <span>▾</span></summary><div class="log" id="log"></div></details></section>
       </aside>
     </main>
-    <footer class="game-footer"><span>✦ AUTOCHEST / SHARED HERO / ENEMY MODELS v0.6</span><span>CLICK • DRAG • DROP • AUTO BATTLE</span></footer>
+    <footer class="game-footer"><span>✦ AUTOCHEST / HERO INSPECTOR v0.7</span><span>CLICK • DRAG • DROP • AUTO BATTLE</span></footer>
+  </div>
+  <div id="heroModal" class="hero-modal" role="dialog" aria-modal="true" aria-labelledby="heroModalTitle" hidden>
+    <div class="hero-modal-backdrop" data-close-hero></div>
+    <section class="hero-modal-panel" aria-label="รายละเอียดฮีโร่">
+      <button id="closeHeroModal" class="hero-modal-close" type="button" aria-label="ปิดข้อมูลฮีโร่">✕</button>
+      <div id="heroModalContent"></div>
+    </section>
   </div>
   <div id="dragGhost" class="drag-ghost" aria-hidden="true"></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>

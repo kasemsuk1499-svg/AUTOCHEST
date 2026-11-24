@@ -43,7 +43,7 @@ function addLog(s){messages.unshift(s);messages=messages.slice(0,6);$('log').inn
 function newUnit(kind,board=false,col=-1,row=-1,lv=1){return{id:uid++,kind,board,col,row,lv}}
 function roll(free=false){if(phase!=='prep')return;if(!free){if(gold<2)return;gold-=2;}let keys=Object.keys(TYPES),weights=keys.map(k=>TYPES[k].cost===1?4:TYPES[k].cost===2?3:2);let pool=keys.flatMap((k,i)=>Array(weights[i]).fill(k));shop=Array.from({length:4},()=>pool[ri(pool.length)]);renderUI()}
 function refreshCount(){return units.filter(u=>u.board).length}
-function purchase(i){if(phase!=='prep'||!shop[i])return;let kind=shop[i],t=TYPES[kind];if(gold<t.cost){setTip('🪙 เงินไม่พอสำหรับยูนิตนี้');return}if(units.filter(u=>!u.board).length>=9){setTip('ม้านั่งเต็มแล้ว ย้ายยูนิตลงสนามก่อน');return}gold-=t.cost;let u=newUnit(kind);units.push(u);selected=u.id;shop[i]=null;fuse(kind);renderUI();addLog('รับสมัคร '+t.e+' '+t.name+' แล้ว');toast('✦ รับสมัคร '+t.name+' แล้ว');const b=$('bench').querySelector(`[data-unit="${selected}"]`);if(b)b.classList.add('recent-purchase')}
+function purchase(i){if(phase!=='prep'||!shop[i])return;let kind=shop[i],t=TYPES[kind];if(gold<t.cost){setTip('🪙 เงินไม่พอสำหรับยูนิตนี้');return}if(units.filter(u=>!u.board).length>=9){setTip('ม้านั่งเต็มแล้ว ย้ายยูนิตลงสนามก่อน');return}gold-=t.cost;let u=newUnit(kind);units.push(u);selected=u.id;shop[i]=null;fuse(kind);renderUI();if(inspection?.kind===kind&&!modal.hidden){inspection.unitId=selected;inspection.shopIndex=null;renderHeroModal()}addLog('รับสมัคร '+t.e+' '+t.name+' แล้ว');toast('✦ รับสมัคร '+t.name+' แล้ว');const b=$('bench').querySelector(`[data-unit="${selected}"]`);if(b)b.classList.add('recent-purchase')}
 function fuse(kind){let changed=true;while(changed){changed=false;for(let lv=1;lv<=2;lv++){let matches=units.filter(u=>u.kind===kind&&u.lv===lv);if(matches.length>=3){let keep=matches.find(u=>u.board)||matches[0];for(let kill of matches.filter(x=>x!==keep).slice(0,2))units=units.filter(u=>u.id!==kill.id);keep.lv++;selected=keep.id;changed=true;burst(keep.board?pos(keep.col,keep.row).x:380,keep.board?pos(keep.col,keep.row).y:700,'#ffde8b',22);addLog('⭐ '+TYPES[kind].name+' อัปเกรดเป็น '+keep.lv+' ดาว!');break}}}}
 function setTip(s){$('tip').textContent=s}
 function toast(message,warning=false){const el=$('toast');el.textContent=message;el.className='toast show'+(warning?' warn':'');clearTimeout(toastTimer);toastTimer=setTimeout(()=>{el.className='toast'},2100)}
@@ -72,11 +72,86 @@ function removeSelected(){
  if(units.filter(u=>!u.board).length>=9){rejectDrop('ม้านั่งสำรองเต็มแล้ว');return false}
  u.board=false;u.col=-1;u.row=-1;toast('↩ เก็บ '+TYPES[u.kind].name+' กลับม้านั่ง');renderUI();return true
 }
+
+const escapeHtml=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let inspection=null,lastModalFocus=null,holdTimer=null;
+const modal=$('heroModal'), modalBody=$('heroModalContent');
+function skillDetails(t){
+  const hits=t.triggerEvery||4;
+  switch(t.effect){
+   case 'slash': return ['โจมตีเป้าหมายหลักแรง 200% ของ ATK พร้อมเอฟเฟกต์คลื่นดาบ','สามารถติดคริติคอลตามอัตราของฮีโร่ได้'];
+   case 'chain': return ['ปล่อยสายฟ้าสู่ศัตรูใกล้เคียง '+(t.id==='thunder'?4:3)+' เป้าหมาย','แต่ละเป้าหมายได้รับ '+(t.id==='thunder'?'125%':'112%')+' ATK (แทนการโจมตีปกติครั้งนั้น)'];
+   case 'triple': return ['ยิงเป้าหมายหลักแรง 200% ATK และยิงเสริมอีก 2 นัด นัดละ 85% ATK','กระสุนเสริมเลือกเป้าหมายอื่นได้ และคำนวณคริเป็นรายนัด'];
+   case 'shield': return ['ได้รับโล่เท่ากับ 30% ของ HP สูงสุด','โจมตีเป้าหมายหลักแรง 200% ATK'];
+   case 'blink': return ['เคลื่อนที่ฉับพลันไปใกล้เป้าหมาย','โจมตี 200% ATK ตามด้วยการโจมตีเสริม 50% ATK'];
+   case 'slam': return ['โจมตีพื้นที่รอบเป้าหมายในรัศมี 140 หน่วย','ศัตรูที่อยู่ในพื้นที่ได้รับ 180% ATK ต่อเป้าหมาย'];
+   default: return ['โจมตีและใช้ทักษะอัตโนมัติตามระบบต่อสู้'];
+  }
+}
+function openHero(kind,unitId=null,shopIndex=null,fighter=null){
+ if(!TYPES[kind])return;
+ lastModalFocus=modal.hidden?document.activeElement:lastModalFocus;
+ inspection={kind,unitId,shopIndex,fighter};
+ modal.hidden=false;
+ renderHeroModal();
+ $('closeHeroModal').focus();
+}
+function closeHero(){
+ if(modal.hidden)return;
+ modal.hidden=true;inspection=null;
+ if(lastModalFocus?.isConnected&&lastModalFocus.focus)lastModalFocus.focus();
+ lastModalFocus=null;
+}
+function renderHeroModal(){
+ if(!inspection||modal.hidden)return;
+ const {kind,unitId,fighter}=inspection,t=TYPES[kind];
+ if(!t){closeHero();return}
+ const u=unitId!=null?units.find(v=>v.id===unitId):null;
+ const level=u?.lv||fighter?.lv||1;
+ const hpMult=level===3?2.8:level===2?1.72:1,atkMult=level===3?2.25:level===2?1.5:1;
+ const hp=fighter?fighter.maxHp:t.hp*hpMult,atk=fighter?fighter.atk:t.dmg*atkMult;
+ const entry=phase==='prep'?shop.findIndex(x=>x===kind):-1;
+ const purchasable=entry>=0&&gold>=t.cost&&units.filter(v=>!v.board).length<9;
+ const canShop=entry>=0;
+ const selectedPosition=u?'ฮีโร่ที่มี · '+level+' ดาว':fighter?'ศัตรู · เวฟ '+wave:canShop?'อยู่ในร้านค้า':'ข้อมูลพื้นฐาน · 1 ดาว';
+ const skillLines=skillDetails(t).map(s=>'<li>'+escapeHtml(s)+'</li>').join('');
+ const stats=[
+  ['HP',Math.round(hp).toLocaleString('en-US')],['ATK',Math.round(atk).toLocaleString('en-US')],
+  ['โจมตีทุก',t.cool.toFixed(2)+' วิ'],['โจมตี/วินาที',(1/t.cool).toFixed(2)],
+  ['ระยะโจมตี',t.range.toFixed(2)+' ช่อง'],['ความเร็วเดิน',String(t.move)],
+  ['คริติคอล',Math.round((t.critChance||0)*100)+'%'],
+  ['ดาเมจคริ',t.critChance?'×'+(t.critDamage||1.5).toFixed(2):'—']
+ ].map(([k,v])=>'<div class="hero-detail-stat"><small>'+escapeHtml(k)+'</small><strong>'+escapeHtml(v)+'</strong></div>').join('');
+ const purchaseMarkup=canShop?
+  '<button class="hero-modal-buy" data-modal-buy="'+entry+'" type="button" '+(purchasable?'':'disabled')+'>✦ ซื้อ '+t.name+' — '+t.cost+' G</button>':
+  '<span class="hero-modal-note">'+(u?'มีฮีโร่ตัวนี้แล้ว':'ดูข้อมูลได้ทุกเวลา')+'</span>';
+ const pickers=Object.values(TYPES).map(o=>
+  '<button type="button" class="hero-roster-pick'+(o.id===kind?' selected':'')+'" data-modal-hero="'+escapeHtml(o.id)+'" aria-label="ดู '+escapeHtml(o.name)+'" title="'+escapeHtml(o.name)+'"><img src="'+escapeHtml(assetFor(o,'art'))+'" alt="" loading="lazy"><span>'+escapeHtml(o.name)+'</span></button>'
+ ).join('');
+ modalBody.innerHTML='<div class="hero-modal-eyebrow">✦ HERO INTELLIGENCE / '+escapeHtml((t.cost===3?'EPIC':t.cost===2?'RARE':'COMMON'))+'</div>'+
+  '<div class="hero-modal-heading"><h2 id="heroModalTitle">'+escapeHtml(t.name)+'</h2><span>'+escapeHtml(t.subtitle||'')+'</span></div>'+
+  '<div class="hero-modal-top">'+
+   '<div class="hero-modal-art" style="--hero-accent:'+escapeHtml(t.col||'#79e6dc')+'">'+portraitTag(t,'art')+'</div>'+
+   '<div class="hero-modal-info"><div class="hero-modal-tags"><span>'+escapeHtml(t.team)+'</span><span>'+escapeHtml(selectedPosition)+'</span>'+
+    (t.traits||[]).map(x=>'<span>'+escapeHtml(x)+'</span>').join('')+'</div>'+
+    '<div class="hero-modal-stats">'+stats+'</div>'+
+   '</div></div>'+
+  '<section class="hero-skill-panel"><div class="hero-modal-eyebrow">AUTO SKILL / อัตโนมัติ</div>'+
+   '<h3>⚔ '+escapeHtml(t.skill||'สกิลประจำตัว')+'</h3>'+
+   '<div class="skill-trigger">ใช้ทุก '+escapeHtml(t.triggerEvery||4)+' การโจมตี</div><ul>'+skillLines+'</ul>'+
+   '<p>ความเสียหายคำนวณจาก ATK ปัจจุบันของตัวละคร และปรับตามดาวหรือสเกลฝ่ายศัตรู</p></section>'+
+   '<div class="hero-modal-footer">'+purchaseMarkup+
+    '<span class="hero-modal-note">แตะตัวอื่นในแถวล่างเพื่อเปรียบเทียบได้เลย</span></div>'+
+   '<div class="hero-roster-label">เลือกดูฮีโร่ตัวอื่น</div><div class="hero-roster-strip">'+pickers+'</div>';
+}
+function clearHold(){if(holdTimer!==null){clearTimeout(holdTimer);holdTimer=null}}
+function openCodex(){openHero(inspection?.kind||'asuna')}
+
 function renderInspector(){
  const target=$('unitDetails'),u=units.find(v=>v.id===selected);
  if(!u){target.innerHTML='<div class="no-selection">✦ แตะฮีโร่ในสนามหรือบนม้านั่งเพื่อดูข้อมูล</div>';return}
  const t=TYPES[u.kind],mult=u.lv===3?2.8:u.lv===2?1.72:1,damage=u.lv===3?2.25:u.lv===2?1.5:1;
- target.innerHTML=`<div class="inspector-row"><div class="inspector-avatar" style="--avatar:${t.col}">${portraitTag(t)}</div><div class="inspector-content"><strong>${t.name}</strong><span>${t.subtitle} • ${t.team}${t.traits?.length?' • '+t.traits.join(' + '):''} • ${u.board?'กำลังประจำสนาม':'ม้านั่งสำรอง'}</span><span class="inspector-stars">${'★'.repeat(u.lv)}${'☆'.repeat(3-u.lv)}</span></div></div><div class="inspector-stats"><div><small>HP</small><b>${Math.round(t.hp*mult)}</b></div><div><small>ATK</small><b>${Math.round(t.dmg*damage)}</b></div><div><small>RANGE</small><b>${t.range.toFixed(1)}</b></div></div>${t.critChance?`<div class="inspector-skill">⚡ โจมตี ${(1/t.cool).toFixed(2)} ครั้ง/วิ · 🎯 CRIT ${Math.round(t.critChance*100)}% · 💥 ×${t.critDamage.toFixed(2)}</div>`:''}<div class="inspector-skill">✦ สกิลอัตโนมัติ: <b>${t.skill}</b></div>`;
+ target.innerHTML=`<div class="inspector-row"><div class="inspector-avatar" style="--avatar:${t.col}">${portraitTag(t)}</div><div class="inspector-content"><strong>${t.name}</strong><span>${t.subtitle} • ${t.team}${t.traits?.length?' • '+t.traits.join(' + '):''} • ${u.board?'กำลังประจำสนาม':'ม้านั่งสำรอง'}</span><span class="inspector-stars">${'★'.repeat(u.lv)}${'☆'.repeat(3-u.lv)}</span></div></div><div class="inspector-stats"><div><small>HP</small><b>${Math.round(t.hp*mult)}</b></div><div><small>ATK</small><b>${Math.round(t.dmg*damage)}</b></div><div><small>RANGE</small><b>${t.range.toFixed(1)}</b></div></div>${t.critChance?`<div class="inspector-skill">⚡ โจมตี ${(1/t.cool).toFixed(2)} ครั้ง/วิ · 🎯 CRIT ${Math.round(t.critChance*100)}% · 💥 ×${t.critDamage.toFixed(2)}</div>`:''}<div class="inspector-skill">✦ สกิลอัตโนมัติ: <b>${t.skill}</b></div><button class="unit-details-more" data-inspect-owned="${u.id}" type="button">ⓘ ดูสเตตัสและสกิลทั้งหมด</button>`;
 }
 function renderUI(){
  $('gold').textContent=gold;$('wave').textContent=wave;$('record').textContent=wins;
@@ -93,9 +168,9 @@ function renderUI(){
  $('prepHint').innerHTML=phase==='prep'?'<span class="live-dot"></span> ลากฮีโร่เพื่อวาง • ลากกลับม้านั่งเพื่อเก็บ':phase==='battle'?'<span class="live-dot"></span> ระบบต่อสู้ทำงานแบบอัตโนมัติ':'<span class="live-dot"></span> รับรางวัลแล้ว • เตรียมรอบใหม่';
  $('boardTooltip').textContent=phase==='prep'?'✦ ลากยูนิตมาวางหรือแตะช่องบนสนาม':phase==='battle'?'✦ ฮีโร่กำลังต่อสู้โดยอัตโนมัติ':'✦ กดไปเวฟถัดไปเพื่อจัดทีมใหม่';
  $('shop').innerHTML=shop.map((kind,i)=>{
-   if(!kind)return '<button class="shopitem sold" disabled>✓ รับสมัครแล้ว</button>';
+   if(!kind)return '<div class="shopitem sold">✓ รับสมัครแล้ว</div>';
    const t=TYPES[kind],label=t.cost===3?'EPIC':t.cost===2?'RARE':'COMMON';
-   return `<button class="shopitem rarity-r${t.cost}" data-shop="${i}" aria-label="ซื้อ ${t.name} ราคา ${t.cost} Gold" ${phase!=='prep'||gold<t.cost?'disabled':''}><div class="card-top"><span class="rarity-label">✦ ${label}</span><span class="price">◈ ${t.cost} G</span></div><div class="card-main"><div class="card-art" style="--unit-color:${t.col}">${portraitTag(t)}</div><div class="card-info"><strong>${t.name}</strong><small>${t.traits?.length?t.traits.join(' + '):t.team}</small><small>${t.skill}</small></div></div><span class="buy-chip">+ รับสมัครฮีโร่</span></button>`;
+   return `<div class="shopitem rarity-r${t.cost}"><button class="shop-preview" data-inspect-shop="${i}" type="button" aria-label="ดูข้อมูล ${t.name} ก่อนซื้อ"><div class="card-top"><span class="rarity-label">✦ ${label}</span><span class="price">◈ ${t.cost} G</span></div><div class="card-main"><div class="card-art" style="--unit-color:${t.col}">${portraitTag(t)}</div><div class="card-info"><strong>${t.name}</strong><small>${t.traits?.length?t.traits.join(' + '):t.team}</small><small>${t.skill}</small></div></div><span class="shop-inspect-tag">ⓘ แตะเพื่อดูสกิล</span></button><button class="buy-chip shop-buy" data-shop="${i}" type="button" aria-label="ซื้อ ${t.name} ราคา ${t.cost} Gold" ${phase!=='prep'||gold<t.cost||units.filter(u=>!u.board).length>=9?'disabled':''}>✦ ซื้อ ${t.name} · ${t.cost} G</button></div>`;
  }).join('');
  const reserve=units.filter(u=>!u.board);
  $('bench').innerHTML=Array.from({length:9},(_,i)=>{
@@ -266,9 +341,20 @@ function rectContains(el,x,y){const rect=el.getBoundingClientRect();return x>=re
 function startPointer(e,sourceZone,id){if(phase!=='prep'||e.button!==0||gesture)return;if(sourceZone==='bench'&&!id)return;
  gesture={pointerId:e.pointerId,sourceZone,sourceId:id??null,originX:e.clientX,originY:e.clientY,dragging:false};
  if(sourceZone==='board'&&id){selected=id;renderUI()}
+ if(id!=null){
+   clearHold();
+   const pointer=e.pointerId,sourceId=id;
+   holdTimer=setTimeout(()=>{
+     if(gesture&&gesture.pointerId===pointer&&!gesture.dragging&&gesture.sourceId===sourceId){
+       const current=units.find(u=>u.id===sourceId);
+       finishGesture();
+       if(current)openHero(current.kind,current.id);
+     }
+   },540);
+ }
  if(e.currentTarget.setPointerCapture)try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_e){}
 }
-function startDrag(e){const u=units.find(u=>u.id===gesture.sourceId);if(!u)return;
+function startDrag(e){clearHold();const u=units.find(u=>u.id===gesture.sourceId);if(!u)return;
  gesture.dragging=true;selected=u.id;ghost.innerHTML=`<span class="ghost-face">${portraitTag(TYPES[u.kind],'idle')}</span><span class="ghost-stars">${'★'.repeat(u.lv)}</span><span class="ghost-name">${TYPES[u.kind].name}</span>`;
  ghost.className='drag-ghost show';document.body.classList.add('dragging-game');renderUI();moveGhost(e)
 }
@@ -277,9 +363,22 @@ function moveGhost(e){ghost.style.left=e.clientX+'px';ghost.style.top=(e.clientY
  ghost.classList.toggle('invalid',!!hoverCell&&!valid);
  benchDrop.classList.toggle('drop-target',gesture?.sourceZone==='board'&&rectContains(benchDrop,e.clientX,e.clientY));
 }
-function finishGesture(){gesture=null;hoverCell=null;ghost.className='drag-ghost';ghost.textContent='';document.body.classList.remove('dragging-game');benchDrop.classList.remove('drop-target')}
-canvas.addEventListener('pointerdown',e=>{if(phase!=='prep')return;const p=tileAt(e),u=boardHero(p);startPointer(e,'board',u?.id||null);if(u){const point=pos(u.col,u.row);waveFX(point.x,point.y,'#a0fce6',48)}e.preventDefault()});
-$('bench').addEventListener('pointerdown',e=>{const b=e.target.closest('[data-unit]');if(!b||phase!=='prep')return;startPointer(e,'bench',Number(b.dataset.unit));e.preventDefault()});
+function finishGesture(){clearHold();gesture=null;hoverCell=null;ghost.className='drag-ghost';ghost.textContent='';document.body.classList.remove('dragging-game');benchDrop.classList.remove('drop-target')}
+canvas.addEventListener('pointerdown',e=>{
+ if(!modal.hidden)return;
+ if(phase!=='prep'){
+   const pt=pointerBoard(e);
+   const nearest=combat.filter(u=>u.alive).sort((a,b)=>Math.hypot(a.x-pt.x,a.y-pt.y)-Math.hypot(b.x-pt.x,b.y-pt.y))[0];
+   if(nearest&&Math.hypot(nearest.x-pt.x,nearest.y-pt.y)<53)openHero(nearest.kind,null,null,nearest);
+   return;
+ }
+ const p=tileAt(e),u=boardHero(p);startPointer(e,'board',u?.id||null);if(u){const point=pos(u.col,u.row);waveFX(point.x,point.y,'#a0fce6',48)}e.preventDefault()});
+$('bench').addEventListener('pointerdown',e=>{
+ const b=e.target.closest('[data-unit]');if(!b)return;
+ const u=units.find(x=>x.id===Number(b.dataset.unit));if(!u)return;
+ if(phase!=='prep'){openHero(u.kind,u.id);return}
+ startPointer(e,'bench',u.id);e.preventDefault();
+});
 window.addEventListener('pointermove',e=>{
  if(gesture&&gesture.pointerId===e.pointerId){
    if(!gesture.dragging&&gesture.sourceId&&Math.hypot(e.clientX-gesture.originX,e.clientY-gesture.originY)>9)startDrag(e);
@@ -308,13 +407,30 @@ window.addEventListener('pointerup',e=>{
 window.addEventListener('pointercancel',()=>finishGesture());
 window.addEventListener('blur',()=>finishGesture());
 // Keyboard activation for the reserve bench buttons.
-$('bench').addEventListener('click',e=>{if(e.detail!==0)return;const b=e.target.closest('[data-unit]');if(b&&phase==='prep'){selected=Number(b.dataset.unit);renderUI()}});
-$('shop').addEventListener('click',e=>{const b=e.target.closest('[data-shop]');if(b)purchase(+b.dataset.shop)});
+$('bench').addEventListener('click',e=>{if(e.detail!==0)return;const b=e.target.closest('[data-unit]');if(!b)return;const u=units.find(v=>v.id===Number(b.dataset.unit));if(!u)return;if(phase==='prep'){selected=u.id;renderUI()}else openHero(u.kind,u.id)});
+$('shop').addEventListener('click',e=>{
+ const inspect=e.target.closest('[data-inspect-shop]');
+ if(inspect){const index=Number(inspect.dataset.inspectShop);if(shop[index])openHero(shop[index],null,index);return}
+ const buy=e.target.closest('[data-shop]');if(buy)purchase(Number(buy.dataset.shop));
+});
+$('unitDetails').addEventListener('click',e=>{const b=e.target.closest('[data-inspect-owned]');if(!b)return;const u=units.find(v=>v.id===Number(b.dataset.inspectOwned));if(u)openHero(u.kind,u.id)});
+$('heroCodexBtn').addEventListener('click',openCodex);
+$('closeHeroModal').addEventListener('click',closeHero);
+modal.addEventListener('click',e=>{if(e.target.closest('[data-close-hero]'))closeHero()});
+modalBody.addEventListener('click',e=>{
+ const choose=e.target.closest('[data-modal-hero]');
+ if(choose){const kind=choose.dataset.modalHero;const owned=units.find(u=>u.kind===kind);openHero(kind,owned?.id||null);return}
+ const buy=e.target.closest('[data-modal-buy]');
+ if(buy){purchase(Number(buy.dataset.modalBuy));if(inspection&&!modal.hidden)renderHeroModal()}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.hidden){e.preventDefault();closeHero()}});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+$('bench').addEventListener('contextmenu',e=>e.preventDefault());
 $('startBtn').addEventListener('click',()=>{finishGesture();startBattle()});
 $('speedBtn').addEventListener('click',()=>{speed=speed===1?2:1;renderUI();toast('⏩ ความเร็ว ×'+speed)});
 $('rollBtn').addEventListener('click',()=>{roll(false);toast('⟳ เปลี่ยนฮีโร่ในร้านแล้ว')});
 $('removeBtn').addEventListener('click',removeSelected);
 $('restartBtn').addEventListener('click',()=>{if(!confirm('เริ่มเกมใหม่ทั้งหมดหรือไม่?'))return;reset()});
-function reset(){finishGesture();landings.clear();encounterWave=-1;encounterPlan=[];wave=1;gold=12;wins=0;units=[newUnit('knight',true,2,5),newUnit('mage',true,3,5),newUnit('archer')];selected=units[2].id;phase='prep';roundResult='';speed=1;combat=[];fx=[];bullets=[];floaters=[];messages=[];roll(true);addLog('✨ ยินดีต้อนรับสู่ AUTOCHEST');setTip('💡 มีมือปืนบนม้านั่งให้แล้ว! เลือกและวางลงสนามสีฟ้าได้เลย');renderUI()}
+function reset(){closeHero();finishGesture();landings.clear();encounterWave=-1;encounterPlan=[];wave=1;gold=12;wins=0;units=[newUnit('knight',true,2,5),newUnit('mage',true,3,5),newUnit('archer')];selected=units[2].id;phase='prep';roundResult='';speed=1;combat=[];fx=[];bullets=[];floaters=[];messages=[];roll(true);addLog('✨ ยินดีต้อนรับสู่ AUTOCHEST');setTip('💡 มีมือปืนบนม้านั่งให้แล้ว! เลือกและวางลงสนามสีฟ้าได้เลย');renderUI()}
 reset();requestAnimationFrame(loop)
 })();
