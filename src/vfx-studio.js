@@ -3,11 +3,14 @@
 const $=id=>document.getElementById(id),H=window.AUTOCHEST_CHARACTERS.HEROES,V=window.AUTOCHEST_VFX;
 const repo='kasemsuk1499-svg/AUTOCHEST',base='https://api.github.com/repos/'+repo,manifestPath='assets/effects/published.json',draftKey='AUTOCHEST_VFX_DRAFT';
 const labels={hit:'โจมตีปกติ · ตอนโดน',skillHit:'สกิล · ตอนโดน',projectile:'กระสุนปกติ',skillProjectile:'กระสุนสกิล',area:'กระแทกวงกว้าง',heal:'ฟื้นฟู HP',buff:'บัฟทีม',debuff:'ดีบัฟศัตรู',shield:'โล่',revive:'คืนชีพ',cloak:'พรางตัว'};
-let file=null,dataURL='',ext='',busy=false,sequence=0,previewAnim=null;
+let file=null,dataURL='',ext='',busy=false,sequence=0;
 const status=(id,msg,error=false)=>{$(id).textContent=msg;$(id).classList.toggle('error',error)};
 function eventsFor(h){
- const ranged=h.globalRange||h.range>1.6,events=['hit','skillHit'];
- if(ranged)events.push('projectile','skillProjectile');
+ const ranged=Number(h.range)>=1.8,events=['hit'];
+ const direct=!['heal','shield','slam','chain'].includes(h.effect);
+ if(direct)events.push('skillHit');
+ if(ranged)events.push('projectile');
+ if(ranged&&direct)events.push('skillProjectile');
  if(h.effect==='slam')events.push('area','debuff');
  if(h.effect==='heal'||h.support||h.passive?.healOnAttack)events.push('heal','buff');
  if(h.effect==='shield'||h.guard)events.push('shield');
