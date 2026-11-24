@@ -85,6 +85,16 @@
         "frames": 16,
         "size": 200,
         "ms": 500
+      },
+      "revive": {
+        "src": "./assets/effects/kirito/revive-2ce7e000f60b.png",
+        "cols": 8,
+        "rows": 3,
+        "row": 0,
+        "col": 0,
+        "frames": 24,
+        "size": 100,
+        "ms": 800
       }
     }
   }
