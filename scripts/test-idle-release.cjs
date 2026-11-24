@@ -3,11 +3,11 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const root=path.resolve(__dirname,'..');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const src=[...html.matchAll(/<script defer src="([^"]+)"><\/script>/g)].map(x=>x[1]);
-assert.equal(src.length,11,'Registry + seven SAO heroes + Idle Core + TFT Combat + Idle game');
+assert.equal(src.length,12,'Registry + seven SAO heroes + Idle Core + TFT Combat + VFX + Idle game');
 const versions=src.map(u=>new URL(u,'https://example.test/').searchParams.get('v'));
 assert(versions.every(x=>x===versions[0]),'Use one version for all scripts');
 assert(html.includes('src/idle-style.css?v='+versions[0]),'Styles must match JS release');
-assert(src[src.length-3].includes('idle-core.js')&&src[src.length-2].includes('idle-tft-combat.js')&&src[src.length-1].includes('idle-game.js'),'Correct load order');
+assert(src[src.length-4].includes('idle-core.js')&&src[src.length-3].includes('idle-tft-combat.js')&&src[src.length-2].includes('idle-vfx.js')&&src[src.length-1].includes('idle-game.js'),'Correct load order');
 assert(!src.some(u=>u.endsWith('/game.js')),'Do not load old TFT battle engine');
 for(const id of ['goldValue','heroList','teamSlots','heroDetails','monsterLayer','stageNumber','challengeBtn','summonTenBtn','claimOfflineBtn'])
  assert(html.includes('id="'+id+'"'),'Missing interface '+id);
@@ -34,7 +34,7 @@ assert(main.includes('CORE.waveCleared(state)'),'Failed boss cooldown must progr
 assert(main.includes('CORE.bossDefeated(state)'),'Failed boss must return to farm stage');
 assert(!main.includes('spawnCooldown'),'No ongoing stream/spawn timers during wave battle');
 assert(main.includes('const waveSlots='),'Wave enemies must occupy original enemy deployment tiles');
-assert(main.includes('const MAX_VISUAL_EFFECTS=65,MAX_ACTIVE_SHOTS=36'),'Projectile/FX limits should protect performance');
+assert(main.includes('const MAX_VISUAL_EFFECTS=70,MAX_ACTIVE_SHOTS=36'),'Projectile/FX limits should protect performance');
 assert(main.includes('function pickEnemy(f)'),'Allies should select enemy heroes');
 assert(main.includes('function defeatMonster(foe)'),'Kills grant Idle loot');
 assert(main.includes("function openSkill(id,source='hero'"),'Hero skills remain inspectable');
