@@ -15,7 +15,9 @@ if(!IDS.length)throw Error('No SAO heroes registered');
 const safe=(fn,alternative)=>{try{return fn()}catch(_){return alternative}};
 const fmt=v=>Math.floor(v).toLocaleString('en-US');
 const escapeText=v=>String(v).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-let loaded=safe(()=>JSON.parse(localStorage.getItem(CORE.KEY)),null);
+const studioTrialId=new URLSearchParams(location.search).get('studioTrial');
+const studioMode=!!studioTrialId&&!!HEROES[studioTrialId];
+let loaded=studioMode?null:safe(()=>JSON.parse(localStorage.getItem(CORE.KEY)),null);
 let state=CORE.normalized(loaded,HEROES);
 if(loaded){
  const newLoot=CORE.offlineLoot(Number(loaded.lastSaved)||Date.now(),Date.now(),state.stage);
@@ -180,6 +182,7 @@ const el=(tag,attrs={},inner='')=>{
  return node;
 };
 function save(){
+ if(studioMode){lastSave=performance.now();return}
  state.lastSaved=Date.now();
  safe(()=>localStorage.setItem(CORE.KEY,JSON.stringify(state)),null);
  lastSave=performance.now();
@@ -735,8 +738,8 @@ function visualEffect(event,actor,x=actor.x,y=actor.y,scale=1){
 function imageProjectile(node,actor,special=false){
  const spec=VFX?.getSpec(HEROES[actor.id],special?'skillProjectile':'projectile');if(!spec)return false;
  node.classList.add('image-projectile');
- const size=(special?58:36)*Math.min(1,arenaSize.width/540);
- node.style.width=size+'px';node.style.height=size+'px';VFX.paint(node,spec,false);return true;
+ const size=(spec.src.endsWith('/combat-atlas.svg')?(special?58:36):spec.size)*Math.min(1,arenaSize.width/540);
+ node.style.width=size+'px';node.style.height=size+'px';VFX.paint(node,spec,spec.frames>1&&!spec.src.endsWith('/combat-atlas.svg'));return true;
 }
 function ring(x,y,cloak=false){
  const node=el('span',{class:cloak?'fx-cloak':'fx-ring'});
@@ -964,12 +967,12 @@ function advanceTftShots(t){
  }
  shots=shots.filter(x=>!finished.has(x));
 }
-function showHealing(results){
+function showHealing(results,source){
  for(const {unit:u,healed} of results){
   if(healed<=0)continue;
   const bar=u.side==='enemy'?u.bar:u.hpbar;
   if(bar)bar.style.width=u.hp/u.maxHp*100+'%';
-  unitFx(u,'+'+fmt(healed)+' HP','heal');visualEffect('heal',u);
+  unitFx(u,'+'+fmt(healed)+' HP','heal');visualEffect('heal',source||u,u.x,u.y);
   if(u.node){u.node.classList.remove('healing-pulse');const node=u.node;requestAnimationFrame(()=>{if(node.isConnected)node.classList.add('healing-pulse')})}
  }
 }
@@ -980,7 +983,7 @@ function tftSkill(attacker,target){
   case 'heal':{
    const allies=attacker.side==='ally'?fighters:enemies;
    const result=TFT.applySupport(allies,hero.support,stageClock);
-   showHealing(result.healed);
+   showHealing(result.healed,attacker);
    for(const u of result.units){position(u);visualEffect('buff',attacker,u.x,u.y,.85);unitFx(u,'ATK +'+Math.round(TFT.debuffValue(u,'attackUp',stageClock)*100)+'% · SPD +'+Math.round(TFT.debuffValue(u,'speedUp',stageClock)*100)+'%','buff')}
    ring(attacker.x,attacker.y);return true;
   }
@@ -1068,7 +1071,7 @@ function tftAttack(attacker,target){
  }
  if(!special&&hero.passive?.healOnAttack){
   const allies=attacker.side==='ally'?fighters:enemies;
-  showHealing(TFT.healWeakest(allies,1,()=>attacker.atk*hero.passive.healOnAttack));
+  showHealing(TFT.healWeakest(allies,1,()=>attacker.atk*hero.passive.healOnAttack),attacker);
  }
  const bonusCrit=(ambush?(hero.cloakCritBonus||0):0)+TFT.focusCritBonus(attacker,target,hero);
  attacker.attackUntil=stageClock+(hero.visual?.attackMs||300)/1000;
@@ -1160,7 +1163,7 @@ function tick(dt){
 function frame(now){
  if(!lastFrame)lastFrame=now;
  const dt=(now-lastFrame)/1000;
- if(trial){try{if(!trial.error)tickTrial(dt)}catch(error){console.error('Hero Trial:',error);recoverTrial(error)}}else tick(dt);lastFrame=now;
+ if(trial){try{if(!trial.error)tickTrial(dt)}catch(error){console.error('Hero Trial:',error);recoverTrial(error)}}else if(!studioMode)tick(dt);lastFrame=now;
  if(now-lastHUD>340){updateResources();lastHUD=now}
  if(now-lastSave>6000){save()}
  requestAnimationFrame(frame);
@@ -1299,6 +1302,7 @@ function openTrial(id){
 }
 function closeTrial(){
  if($('trialModal').hidden)return;
+ if(studioMode){resetTrial();return}
  trial=null;$('trialModal').hidden=true;$('trialUnits').replaceChildren();$('trialFx').replaceChildren();
  if(trialReturnFocus?.isConnected)trialReturnFocus.focus();trialReturnFocus=null;
 }
@@ -1512,7 +1516,8 @@ if(pending.minutes>0)openOffline();
 refreshArenaSize();
 if(typeof ResizeObserver==='function')new ResizeObserver(refreshArenaSize).observe($('stageViewport'));
 else window.addEventListener('resize',refreshArenaSize);
-VFX?.preload(HEROES);
+if(VFX){VFX.preload(HEROES);VFX.loadPublished().then(()=>VFX.preload(HEROES))}
+if(studioMode){document.body.classList.add('studio-trial-mode');openTrial(studioTrialId)}
 // Decode sprites before their first attack so changing pose is not a network stall.
 for(const hero of Object.values(HEROES))for(const url of new Set([hero.images.idle,hero.images.attack])){const img=new Image();img.src=url;img.decode?.().catch(()=>{});}
 requestAnimationFrame(frame);
