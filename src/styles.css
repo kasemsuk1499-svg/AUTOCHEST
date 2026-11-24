@@ -132,3 +132,11 @@ body:before{content:'';position:fixed;inset:0;pointer-events:none;background-ima
 .bench-actions{flex-wrap:wrap}
 .tft-trait-bonus{display:block;color:#a4c6d9;font-size:10px;margin:2px 0 0}
 @media(max-width:660px){.shop-action-row .reroll-btn{padding:6px;font-size:10px}}
+
+/* v0.13.1 — make leveling one-click, while keeping classic +4 XP purchases */
+.tft-level-actions{display:grid;grid-template-columns:1fr 1.15fr;gap:8px;align-items:stretch}
+.tft-level-actions>button{min-width:0;min-height:41px;white-space:normal;line-height:1.25}
+.tft-buy-level{padding:8px 10px;border:1px solid #f4ce82a3;background:linear-gradient(115deg,#795d26,#58412e);color:#fff4d3;border-radius:8px;font:600 12px Kanit,sans-serif;cursor:pointer}
+.tft-buy-level:hover:not(:disabled){background:linear-gradient(115deg,#8a6a30,#67462d);box-shadow:0 0 12px #ffd87e27}
+.tft-level-hint{color:#a9c9dc;font-size:10px;line-height:1.5;min-height:14px}
+@media(max-width:380px){.tft-level-actions{grid-template-columns:1fr}}

@@ -43,7 +43,11 @@
             <div class="tft-progress-head"><span>❤️ HP ผู้เล่น</span><strong id="playerHp">100 / 100</strong></div><div class="tft-track"><i id="hpFill" class="tft-hp"></i></div>
             <div class="tft-progress-head"><span>⭐ เลเวล <b id="levelCount">3</b> · ลงสนามได้ <b id="boardLimitInfo">3</b> ตัว</span><strong id="xpCount">0 / 6 XP</strong></div><div class="tft-track"><i id="xpFill" class="tft-xp"></i></div>
             <div class="tft-economy"><span id="economyInfo">ดอกเบี้ย +1 G</span><span id="streakInfo">สตรีก 0</span></div>
-            <button id="buyXPBtn" type="button" class="tft-buy-xp">⬆ ซื้อ 4 XP · 4 G</button>
+            <div class="tft-level-actions">
+              <button id="buyXPBtn" type="button" class="tft-buy-xp" title="ซื้อค่าประสบการณ์ 4 XP เพื่อสะสมเลเวล">⬆ ซื้อ 4 XP · 4 G</button>
+              <button id="buyLevelBtn" type="button" class="tft-buy-level" title="ซื้อ XP ที่ต้องใช้ทั้งหมดเพื่อขึ้นเลเวลถัดไปในคลิกเดียว">⭐ อัปเลเวลทันที</button>
+            </div>
+            <div id="levelHint" class="tft-level-hint" aria-live="polite">ซื้อ XP ให้ครบจึงจะเลเวลอัป หรือเลือกอัปเลเวลทันที</div>
           </div>
           <div class="combat-buttons"><button id="startBtn" class="action-btn start-btn"><span class="button-symbol">⚔</span><span>เริ่มการต่อสู้</span><small>▶</small></button><button id="speedBtn" class="action-btn speed-btn">⏩ ×2</button></div>
           <div class="status-line" id="prepHint"><span class="live-dot"></span> จัดตำแหน่งฮีโร่ให้พร้อมก่อนเริ่ม</div>

@@ -4,6 +4,9 @@
  const ODDS={3:[77,20,3],4:[66,28,6],5:[55,34,11],6:[45,39,16],7:[36,41,23],8:[28,42,30]};
  const newRun=()=>({level:3,xp:0,hp:100,winsInRow:0,lossesInRow:0,shopLocked:false});
  const interest=gold=>Math.min(5,Math.max(0,Math.floor(gold/10)));
+ // 4 Gold buys 4 XP. Instant level-up bundles the minimum 4-XP purchases.
+ const xpRemaining=run=>run.level>=MAX_LEVEL?0:Math.max(0,XP_NEEDED[run.level]-run.xp);
+ const nextLevelCost=run=>Math.ceil(xpRemaining(run)/4)*4;
  function addXP(run,amount){
   let levels=0;if(run.level>=MAX_LEVEL)return 0;
   run.xp+=amount;
@@ -51,5 +54,5 @@
   }
   return counts;
  }
- window.AUTOCHEST_TFT=Object.freeze({MAX_LEVEL,XP_NEEDED,ODDS,newRun,interest,addXP,rollShop,settleRound,traitCounts,applyTraits});
+ window.AUTOCHEST_TFT=Object.freeze({MAX_LEVEL,XP_NEEDED,ODDS,newRun,interest,xpRemaining,nextLevelCost,addXP,rollShop,settleRound,traitCounts,applyTraits});
 })();

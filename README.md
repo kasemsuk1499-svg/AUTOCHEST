@@ -98,3 +98,10 @@ Old original characters were removed from active roster and repository files. Th
 - **Not implemented yet:** timed planning, hex board, loot/item crafting, augments, carousel or PvP. This is our own single-player strategy mode, not a one-to-one TFT reproduction
 
 Test solo strategy rules: `node scripts/test-tft-core.cjs`
+
+## v0.13.1 — Clear XP purchases and one-click leveling
+
+Previously a single +4 XP purchase at Level 3 did not increase level immediately because 6 XP is needed, making leveling appear broken. Two options are now displayed:
+- **ซื้อ +4 XP (4 G):** accumulates XP; a clear hint shows how many XP remain until the next level.
+- **อัปเลเวลทันที:** spends the minimum whole +4 XP purchases needed to reach the next level in one click, with the exact Gold cost shown. At 0/6 XP on Level 3, it costs 8 G and leaves 2/10 XP after upgrading to Level 4.
+Both buttons work in planning, battle, and result phases; deployment remains preparation-only. Both disable when Gold is insufficient, the player reaches Level 8, or the run has ended.

@@ -47,10 +47,27 @@ function newUnit(kind,board=false,col=-1,row=-1,lv=1){return{id:uid++,kind,board
 function roll(free=false){if(phase!=='prep')return;if(!free){if(gold<2||strategy.shopLocked)return;gold-=2}shop=TFT.rollShop(TYPES,strategy.level);renderUI()}
 function refreshCount(){return units.filter(u=>u.board).length}
 function buyXP(){
- if(phase!=='prep'||gold<4||strategy.level>=TFT.MAX_LEVEL)return;
- gold-=4;const levels=TFT.addXP(strategy,4);
+ // TFT-style purchases also work in combat or result; only placing units requires prep.
+ if(phase==='gameover'||gold<4||strategy.level>=TFT.MAX_LEVEL)return;
+ gold-=4;
+ const levels=TFT.addXP(strategy,4);
  if(levels)addLog('⭐ LEVEL '+strategy.level+'! ลงสนามได้ '+strategy.level+' ตัว');
- renderUI();toast(levels?'⭐ LEVEL '+strategy.level:'⬆ +4 XP');
+ renderUI();
+ const message=levels?'⭐ LEVEL '+strategy.level+'! เพิ่มช่องลงสนามแล้ว':
+  '⬆ +4 XP • อีก '+TFT.xpRemaining(strategy)+' XP ถึง LEVEL '+(strategy.level+1);
+ toast(message);setTip(message);
+}
+function buyLevel(){
+ if(phase==='gameover'||strategy.level>=TFT.MAX_LEVEL)return;
+ const price=TFT.nextLevelCost(strategy);
+ if(price<=0||gold<price)return;
+ gold-=price;
+ const before=strategy.level;
+ TFT.addXP(strategy,price);
+ addLog('⭐ ซื้อเลเวล '+before+' → '+strategy.level+' ในราคา '+price+' G');
+ renderUI();
+ const message='⭐ LEVEL '+strategy.level+'! จ่าย '+price+' G • ลงสนามได้ '+strategy.level+' ตัว';
+ toast(message);setTip(message);
 }
 function toggleShopLock(){
  if(phase!=='prep')return;strategy.shopLocked=!strategy.shopLocked;
@@ -237,8 +254,15 @@ function renderUI(){
  $('xpFill').style.width=requiredXP?strategy.xp/requiredXP*100+'%':'100%';
  $('economyInfo').textContent='ดอกเบี้ยรอบหน้า +'+TFT.interest(gold)+' G (สูงสุด +5)';
  $('streakInfo').textContent=strategy.winsInRow?'🔥 ชนะติด '+strategy.winsInRow:strategy.lossesInRow?'💔 แพ้ติด '+strategy.lossesInRow:'⚔ สตรีก 0';
- $('buyXPBtn').disabled=phase!=='prep'||gold<4||strategy.level>=TFT.MAX_LEVEL;
- $('buyXPBtn').textContent=strategy.level>=TFT.MAX_LEVEL?'⭐ LEVEL MAX':'⬆ ซื้อ 4 XP · 4 G';
+ const maxLevel=strategy.level>=TFT.MAX_LEVEL,canBuy=phase!=='gameover'&&!maxLevel;
+ const levelPrice=TFT.nextLevelCost(strategy);
+ $('buyXPBtn').disabled=!canBuy||gold<4;
+ $('buyXPBtn').textContent=maxLevel?'⭐ LEVEL MAX':'⬆ ซื้อ +4 XP · 4 G';
+ $('buyLevelBtn').disabled=!canBuy||gold<levelPrice||levelPrice<=0;
+ $('buyLevelBtn').textContent=maxLevel?'★ เลเวลสูงสุดแล้ว':'⭐ อัปเป็น LEVEL '+(strategy.level+1)+' · '+levelPrice+' G';
+ $('levelHint').textContent=maxLevel?'ปลดล็อกครบ 8 ตัวบนสนามแล้ว':
+  'อีก '+TFT.xpRemaining(strategy)+' XP ถึง LEVEL '+(strategy.level+1)+
+  ' • ซื้อ XP ทีละ 4 หรืออัปทันที '+levelPrice+' G'+(gold<levelPrice?' (Gold ยังไม่พอ)':'');
  $('lockShopBtn').disabled=phase!=='prep';
  $('lockShopBtn').textContent=strategy.shopLocked?'🔒 ปลดล็อกร้าน':'🔓 ล็อกร้าน';
  $('lockShopBtn').classList.toggle('is-locked',strategy.shopLocked);
@@ -617,6 +641,7 @@ $('startBtn').addEventListener('click',()=>{finishGesture();startBattle()});
 $('speedBtn').addEventListener('click',()=>{speed=speed===1?2:1;renderUI();toast('⏩ ความเร็ว ×'+speed)});
 $('rollBtn').addEventListener('click',()=>{if(phase==='prep'&&!strategy.shopLocked&&gold>=2){roll(false);toast('⟳ เปลี่ยนฮีโร่ในร้านแล้ว')}});
 $('buyXPBtn').addEventListener('click',buyXP);
+$('buyLevelBtn').addEventListener('click',buyLevel);
 $('lockShopBtn').addEventListener('click',toggleShopLock);
 $('sellBtn').addEventListener('click',sellSelected);
 $('removeBtn').addEventListener('click',removeSelected);
