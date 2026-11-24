@@ -41,5 +41,15 @@
   if(d>0){shot.x+=(shot.target.x-shot.x)*step/d;shot.y+=(shot.target.y-shot.y)*step/d}
   return {hit:false,expired:false};
  }
- window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot});
+ // Generic resurrection passive: resolve lethal damage before death or loot.
+ function tryRevive(actor,hero,clock,alreadyUsed=false){
+  const p=hero?.passive;
+  if(!actor||actor.hp>0||alreadyUsed||actor.reviveUsed||!(p?.reviveHp>0))return false;
+  actor.reviveUsed=true;
+  actor.hp=Math.max(1,Math.round(actor.maxHp*Math.min(1,p.reviveHp)));
+  actor.alive=true;actor.immortalUntil=clock+Math.max(0,p.immortalSeconds||0);
+  return true;
+ }
+ const isImmortal=(actor,clock)=>(actor?.immortalUntil||0)>clock;
+ window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,isImmortal});
 })();
