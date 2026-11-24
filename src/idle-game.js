@@ -23,7 +23,7 @@ let pending=state.offlineBank;
 let selected=state.squad[0]||Object.keys(state.owned)[0]||IDS[0];
 let skillReturnFocus=null;
 let formationMode=false,shots=[];
-let combat=null,enemies=[],fighters=[],stageClock=0,respawn=1.8,spawnCooldown=0,travel=0,travelDistance=0,encounters=0,lastFrame=0,lastSave=0,lastHUD=0,toastTimer=0;
+let combat=null,enemies=[],fighters=[],stageClock=0,respawn=1.8,waveCount=0,travel=0,travelDistance=0,encounters=0,lastFrame=0,lastSave=0,lastHUD=0,toastTimer=0;
 let logLines=['✦ เริ่มการผจญภัย SAO IDLE แล้ว!'];
 const GRID_COLS=6,GRID_ROWS=7,ALLY_START_ROW=4;
 const boardPoint=(col,row)=>({x:(col+.5)*100/GRID_COLS,y:(row+.5)*100/GRID_ROWS});
@@ -39,7 +39,7 @@ let boardGesture=null,ignoreInspectUntil=0;
 // Hero-shaped enemies share art and skills with the player's SAO roster.
 const bosses=IDS.filter(id=>HEROES[id].cost===3);
 const enemyLimit=()=>Math.min(5,3+Math.floor((state.stage-1)/5));
-const enemyInterval=()=>Math.max(.68,1.05-(state.stage-1)*.022);
+const waveSlots=[[1,0],[4,0],[2,1],[0,1],[5,1]]; // finite TFT wave formation
 const near=(a,b)=>Math.hypot(a.x-b.x,(a.y-b.y)*.65);
 const reach=id=>Math.min(41,Math.max(10,HEROES[id].range*8.1+2));
 function moveTo(actor,target,r,dt){
@@ -189,7 +189,7 @@ function updateResources(){
  $('challengeBtn').textContent=combat?.boss?'👑 กำลังต่อสู้กับบอส':state.kills<need?'👑 ปลดล็อกบอส '+state.kills+'/'+need:'👑 ท้าทายบอส!';
  $('bossTimer').hidden=!combat?.boss;
  $('fightLabel').classList.toggle('boss-mode',!!combat?.boss);
- $('fightLabel').textContent=combat?.boss?'BOSS BATTLE':combat?'HERO BATTLE':'EXPLORING';
+ $('fightLabel').textContent=combat?.boss?'BOSS BATTLE':combat?'WAVE '+waveCount:'WAVE READY';
  if(combat?.boss){$('bossCountdown').textContent=Math.max(0,Math.ceil(combat.timeout))}
  const farm=CORE.farmReward(state.stage);
  $('farmGain').textContent='ศัตรูที่ชนะ +'+fmt(farm.gold)+' G / +'+fmt(farm.exp)+' EXP';
@@ -446,7 +446,8 @@ function renderQuest(){
  else if(state.stage<12)task='ผ่านด่าน <b>12</b> เพื่อปลดล็อกช่องทีมที่ 6';
  else if(state.stage<20)task='ผ่านด่าน <b>20</b> เพื่อปลดล็อกช่องทีมที่ 7';
  else task='พิชิตด่าน <b>'+(state.stage+5)+'</b> และสะสมดาวฮีโร่';
- $('guideQuest').innerHTML='✧ '+task+'<br><small>กำจัดฮีโร่เงาที่วิ่งบุกมาเพื่อปลดล็อกบอส</small>';
+ const extra=state.bossRetryWaves?' · ฟาร์มอีก '+state.bossRetryWaves+' เวฟก่อนลองบอสใหม่':'';
+ $('guideQuest').innerHTML='✧ '+task+'<br><small>เวฟเป็นชุด • Auto ฟาร์ม • แพ้บอสไม่ตกด่าน'+extra+'</small>';
 }
 function renderPanels(){
  renderGrid();updateResources();renderTeam();renderHeroes();renderSelected();renderQuest();
@@ -641,24 +642,27 @@ function buildFighters(preserve=false){
  }
 }
 function beginTravel(seconds=1.6){
- combat=null;enemies=[];spawnCooldown=0;respawn=seconds;travel=0;
+ combat=null;enemies=[];respawn=seconds;travel=0;
  clearTftShots();
  $('monsterLayer').replaceChildren();clearFx();buildFighters();travelScene();
- $('battleMessage').textContent='♟️ ตั้งรับศัตรูระลอกถัดไป...';
- updateResources();
+ $('battleMessage').textContent=state.bossRetryWaves?
+  '🪙 ฟาร์มด่าน '+state.stage+' • อีก '+state.bossRetryWaves+' เวฟจะท้าบอสใหม่':
+  '♟️ เตรียมรับเวฟ '+(waveCount+1)+'...';
+ renderQuest();updateResources();
 }
-function spawnMonster(boss=false){
- if(boss){enemies=[];$('monsterLayer').replaceChildren()}
+function spawnMonster(boss=false,cell=null,quiet=false){
+ if(boss){enemies=[];$('monsterLayer').replaceChildren();clearTftShots()}
  else if(enemies.length>=enemyLimit())return;
  const id=boss&&bosses.length?bosses[Math.floor((state.stage-1)/3)%bosses.length]:
-   IDS[(state.stage+state.kills+encounters++)%IDS.length];
+  IDS[(state.stage+state.kills+encounters++)%IDS.length];
  const hero=HEROES[id],stat=CORE.monster(state.stage,boss);
  const hp=Math.max(1,Math.round(stat.hp*(.8+hero.hp/3000)));
- const entry=boardPoint(boss?2:(encounters+2)%GRID_COLS,boss?1:(encounters%3));
+ const entry=cell?boardPoint(cell[0],cell[1]):
+  boardPoint(boss?2:(encounters+2)%GRID_COLS,boss?1:encounters%3);
  const foe={id,side:'enemy',boss,hp,maxHp:hp,atk:Math.round(stat.atk*(.9+hero.dmg/900)),
   remaining:.65+Math.random()*.35,delay:Math.max(.75,hero.cool*1.2),move:hero.move,
   shield:0,attacks:0,crit:hero.critChance||.05,critDamage:hero.critDamage||1.5,
-  cloakUntil:0,ambush:false,attackUntil:0,walking:true,alive:true,
+  cloakUntil:0,ambush:false,attackUntil:0,walking:false,alive:true,
   timeout:boss?35:0,x:entry.x,y:entry.y,strideSeed:encounters};
  const node=el('div',{class:'fighter enemy-unit'+(boss?' boss-unit':'')});
  node.dataset.inspectId=id;node.dataset.inspectSide='enemy';
@@ -673,9 +677,19 @@ function spawnMonster(boss=false){
  foe.sprite=hero.images.idle;
  enemies.push(foe);combat=enemies[0];
  position(foe);travelScene();
- spawnCooldown=enemies.length===1?.14:enemyInterval();
- $('battleMessage').textContent=boss?'👑 บอส '+hero.name+' ปรากฏตัว!':
-  '⚔️ ฮีโร่เงาบุกมา '+enemies.length+' / '+enemyLimit();
+ if(!quiet){
+  $('battleMessage').textContent=boss?'👑 บอส '+hero.name+' ปรากฏตัว!':
+   '⚔️ เวฟ '+waveCount+' · ศัตรู '+enemies.length+' ตัว';
+  updateResources();
+ }
+}
+function spawnWave(){
+ if(combat||enemies.length)return;
+ waveCount++;
+ const count=enemyLimit(),shift=waveCount%2;
+ for(let i=0;i<count;i++)spawnMonster(false,waveSlots[(i+shift)%waveSlots.length],true);
+ $('battleMessage').textContent='⚔️ เวฟ '+waveCount+' • ศัตรู '+count+' ตัวพร้อมกัน';
+ log('⚔️ เวฟ '+waveCount+' · ศัตรู '+count+' ตัว');
  updateResources();
 }
 function resetCombat(){beginTravel(.8)}
@@ -684,16 +698,17 @@ function victoryBoss(){
  state.gold+=reward.gold;state.heroExp+=reward.exp;
  state.rubies+=reward.rubies;state.tickets+=reward.tickets;state.bossWins++;
  log('🏆 ผ่านด่าน '+state.stage+'! +'+fmt(reward.gold)+' G และ +'+fmt(reward.rubies)+' 💎');
- state.stage++;state.kills=0;save();
+ state.stage++;state.kills=0;state.bossRetryWaves=0;waveCount=0;save();
  $('battleMessage').textContent='🏆 ผ่านบอส! เข้าสู่ด่าน '+state.stage;
  beginTravel(1.5);
  renderPanels();toast('🏆 ผ่านบอส! ด่าน '+state.stage+' • ได้ Rubies และตั๋ว!');
 }
 function failBoss(){
- log('💥 บอสแข็งแกร่งเกินไป! อัปเกรดฮีโร่แล้วลองอีกครั้ง');
- $('battleMessage').textContent='💥 บอสยังไม่ผ่าน • ฟาร์มต่อเพื่อเสริมพลัง';
- state.autoBoss=false;beginTravel(1.7);updateResources();save();
- toast('💥 ยังโค่นบอสไม่ได้! อัปเลเวลแล้วท้าทายใหม่ได้');
+ const stage=state.stage;
+ state.bossRetryWaves=3;
+ log('💥 ยังไม่ชนะบอสด่าน '+stage+' · ฟาร์มอีก 3 เวฟแล้ว AUTO จะลองใหม่');
+ beginTravel(1.1);save();
+ toast('💪 แพ้บอสแต่ยังอยู่ด่าน '+stage+' · Auto ฟาร์ม Gold/EXP ต่อ!');
 }
 function defeatMonster(foe){
  if(!foe||!enemies.includes(foe))return;
@@ -703,9 +718,14 @@ function defeatMonster(foe){
  state.kills=Math.min(CORE.killsNeeded(state.stage),state.kills+1);
  enemies=enemies.filter(x=>x!==foe);foe.node?.remove();
  combat=enemies[0]||null;
- if(!combat)beginTravel(state.autoBoss&&state.kills>=CORE.killsNeeded(state.stage)?.65:.38);
- else spawnCooldown=Math.min(spawnCooldown,.17);
- updateResources();
+ if(!combat){
+  // Only spawn a fresh group AFTER the entire wave is defeated.
+  if(state.bossRetryWaves>0)state.bossRetryWaves--;
+  beginTravel(.95);save();
+ }else{
+  $('battleMessage').textContent='⚔️ เวฟ '+waveCount+' · เหลือ '+enemies.length+' ตัว';
+  updateResources();
+ }
 }
 function pickEnemy(f){return TFT.findTarget(f,enemies,stageClock)}
 function targetHero(enemy){return TFT.findTarget(enemy,fighters,stageClock)}
@@ -860,15 +880,16 @@ function tick(dt){
  stageClock+=t;
  if(!combat){
   respawn-=t;
-  if(respawn<=0)spawnMonster(state.kills>=CORE.killsNeeded(state.stage)&&state.autoBoss);
+  if(respawn<=0){
+   const bossReady=state.kills>=CORE.killsNeeded(state.stage);
+   if(state.autoBoss&&bossReady&&state.bossRetryWaves===0)spawnMonster(true);
+   else spawnWave();
+  }
   return;
  }
  if(combat.boss){
   combat.timeout-=t;
   if(combat.timeout<=0){failBoss();return}
- }else{
-  spawnCooldown-=t;
-  if(spawnCooldown<=0&&enemies.length<enemyLimit()&&(state.kills<CORE.killsNeeded(state.stage)||!state.autoBoss))spawnMonster(false);
  }
  for(const f of fighters){
   if(!f.alive)continue;
@@ -985,7 +1006,8 @@ $('autoBossBtn').addEventListener('click',()=>{
 });
 $('challengeBtn').addEventListener('click',()=>{
  if(state.kills<CORE.killsNeeded(state.stage)||combat?.boss)return;
- beginTravel(.2);spawnMonster(true);updateResources();
+ state.bossRetryWaves=0;
+ beginTravel(.2);spawnMonster(true);updateResources();save();
 });
 $('speedBtn').addEventListener('click',()=>{
  state.speed=state.speed===1?2:1;updateResources();save();
