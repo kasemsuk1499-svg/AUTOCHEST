@@ -621,6 +621,7 @@ function buildFighters(preserve=false){
 }
 function beginTravel(seconds=1.6){
  combat=null;enemies=[];spawnCooldown=0;respawn=seconds;travel=0;
+ clearTftShots();
  $('monsterLayer').replaceChildren();clearFx();buildFighters();travelScene();
  $('battleMessage').textContent='♟️ ตั้งรับศัตรูระลอกถัดไป...';
  updateResources();
@@ -687,71 +688,152 @@ function defeatMonster(foe){
 }
 function pickEnemy(f){return TFT.findTarget(f,enemies,stageClock)}
 function targetHero(enemy){return TFT.findTarget(enemy,fighters,stageClock)}
-function enemyAttack(enemy,target){
- const base=HEROES[enemy.id],effect=base.effect;
- const ambush=enemy.ambush&&stageClock>=enemy.cloakUntil;
- if(ambush)enemy.ambush=false;
- enemy.attacks++;
- const special=enemy.attacks%(base.triggerEvery||4)===0;
- let mult=ambush?(base.cloakShotMultiplier||1.7):1;
- if(special){
-  if(['slash','blink','triple','chain','slam'].includes(effect))mult*=1.65;
-  else if(effect==='shield'){enemy.shield+=Math.round(enemy.maxHp*.23);ring(enemy.x,enemy.y)}
-  else if(effect==='cloakshot'){
-   enemy.cloakUntil=stageClock+(base.cloakDuration||2);
-   enemy.ambush=true;ring(enemy.x,enemy.y,true);
-  }
- }
- const critical=Math.random()<Math.min(1,enemy.crit+(ambush?(base.cloakCritBonus||0):0));
- let raw=enemy.atk*mult*(critical?enemy.critDamage:1);
- if(ambush&&target.hp/target.maxHp<(base.executeThreshold||.35))raw*=base.executeMultiplier||1.2;
- const blocked=Math.min(target.shield,raw);target.shield-=blocked;
- const dmg=Math.max(0,Math.round(raw-blocked));
- target.hp=Math.max(0,target.hp-dmg);
- if(target.hp===0)target.alive=false;
- spawnFx((critical?'CRIT ':'')+'-'+fmt(dmg),target.x,target.y-20,critical);
- if(base.range>=1.8)projectile(enemy.x,enemy.y,target.x,target.y,base.col);
- else ring(target.x,target.y);
- target.hpbar.style.width=target.hp/target.maxHp*100+'%';
- enemy.attackUntil=stageClock+.32;pose(enemy,true);
- enemy.node.classList.remove('burst');void enemy.node.offsetWidth;enemy.node.classList.add('burst');
-}
-function heroAttack(hero,target){
- if(!target||target.hp<=0||target.cloakUntil>stageClock)return;
- const base=HEROES[hero.id],effect=base.effect;
- const ambush=hero.ambush&&stageClock>=hero.cloakUntil;
- if(ambush)hero.ambush=false;
- hero.attacks++;
- let multiplier=ambush?(base.cloakShotMultiplier||1.7):1;
- const special=hero.attacks%(base.triggerEvery||4)===0;
- if(special){
-  if(['slash','blink','triple','chain','slam'].includes(effect))multiplier*=1.7;
-  else if(effect==='shield'){
-   hero.shield+=Math.round(hero.maxHp*.3);ring(hero.x,hero.y);spawnFx('🛡',hero.x,hero.y-20);
-  }else if(effect==='cloakshot'){
-   hero.cloakUntil=stageClock+(base.cloakDuration||2);hero.ambush=true;ring(hero.x,hero.y,true);
-  }
- }
- const critical=Math.random()<Math.min(1,hero.crit+(ambush?(base.cloakCritBonus||0):0));
- let raw=hero.atk*multiplier*(critical?hero.critDamage:1);
- if(ambush&&target.hp/target.maxHp<(base.executeThreshold||.35))raw*=base.executeMultiplier||1.2;
- const blocked=Math.min(target.shield,raw);target.shield-=blocked;
- const damage=Math.max(0,Math.round(raw-blocked));
+// TFT-style shared damage pipeline. No damage is applied to ranged targets until the bullet lands.
+function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false){
+ if(!target||target.hp<=0||target.alive===false)return false;
+ const hero=HEROES[attacker.id];
+ const chance=Math.min(1,Math.max(0,(attacker.crit||0)+bonusCrit));
+ const critical=forcedCrit||(chance>0&&Math.random()<chance);
+ const raw=power*(critical?(attacker.critDamage||hero.critDamage||1.5):1);
+ const absorbed=Math.min(target.shield||0,raw);
+ target.shield=Math.max(0,(target.shield||0)-absorbed);
+ const damage=Math.max(0,Math.round(raw-absorbed));
  target.hp=Math.max(0,target.hp-damage);
- hero.attackUntil=stageClock+.3;pose(hero,true);
- hero.node.classList.remove('burst');void hero.node.offsetWidth;hero.node.classList.add('burst');
- spawnFx((critical?'CRIT ':'')+fmt(damage),target.x+(Math.random()-.5)*9,target.y-29,critical);
- if(base.range>=1.8)projectile(hero.x,hero.y,target.x,target.y,base.col);
- else if(special)ring(target.x,target.y);
- target.bar.style.width=target.hp/target.maxHp*100+'%';
- if(target.hp<=0)defeatMonster(target);
+ spawnFx((critical?'CRIT ':'')+'-'+fmt(damage),target.x+(Math.random()-.5)*5,target.y-21,critical);
+ if(critical)ring(target.x,target.y);
+ const bar=target.side==='enemy'?target.bar:target.hpbar;
+ if(bar)bar.style.width=Math.max(0,target.hp/target.maxHp*100)+'%';
+ if(target.hp===0){
+  target.alive=false;
+  if(target.side==='enemy')defeatMonster(target);
+  else if(target.node)target.node.style.opacity='.2';
+ }
+ return true;
 }
+function tftShot(attacker,target,mult=1,bonusCrit=0,execute=false,heavy=false,color){
+ if(!target||target.hp<=0)return;
+ const palette=color||HEROES[attacker.id].col||'#c3f7ff';
+ const node=el('span',{class:'tft-bullet'+(heavy?' heavy':'')});
+ node.style.left=attacker.x+'%';node.style.top=attacker.y+'%';
+ node.style.setProperty('--bullet-color',palette);
+ $('fxLayer').appendChild(node);
+ shots.push({
+  owner:attacker,side:attacker.side,x:attacker.x,y:attacker.y,target,
+  life:1.8,speed:HEROES[attacker.id].effect==='triple'?450:340,
+  power:attacker.atk*mult,bonusCrit,execute,color:palette,node
+ });
+}
+function clearTftShots(){
+ for(const b of shots)if(b.node)b.node.remove();
+ shots=[];
+}
+function advanceTftShots(t){
+ if(!shots.length)return;
+ const batch=shots.slice(),finished=new Set();
+ for(const bullet of batch){
+  if(!shots.includes(bullet))break; // a boss victory or full enemy clear reset the encounter
+  const r=TFT.advanceShot(bullet,t);
+  if(r.expired){
+   finished.add(bullet);bullet.node?.remove();
+   if(r.hit){
+    let mul=1;
+    const h=HEROES[bullet.owner.id];
+    if(bullet.execute&&bullet.target.hp/bullet.target.maxHp<(h.executeThreshold||.35))
+     mul=h.executeMultiplier||1.2;
+    tftDamage(bullet.owner,bullet.target,bullet.power*mul,bullet.bonusCrit);
+    if(bullet.target.hp>0)ring(bullet.target.x,bullet.target.y);
+   }
+  }else if(bullet.node){
+   bullet.node.style.left=bullet.x+'%';bullet.node.style.top=bullet.y+'%';
+  }
+ }
+ shots=shots.filter(x=>!finished.has(x));
+}
+function tftSkill(attacker,target){
+ const hero=HEROES[attacker.id],effect=hero.effect;
+ const foes=()=>attacker.side==='ally'?enemies.filter(x=>x.hp>0):fighters.filter(x=>x.alive);
+ switch(effect){
+  case 'slam':{
+   const nearby=foes().filter(x=>TFT.pxDist(x,target)<140);
+   ring(target.x,target.y);
+   for(const e of nearby)tftDamage(attacker,e,attacker.atk*1.8,0,false);
+   return true;
+  }
+  case 'chain':{
+   const sorted=foes().sort((a,b)=>TFT.pxDist(a,target)-TFT.pxDist(b,target))
+    .slice(0,hero.chainTargets||3);
+   let prev=attacker;
+   for(const e of sorted){
+    projectile(prev.x,prev.y,e.x,e.y,hero.col||'#cfa9f8');
+    tftDamage(attacker,e,attacker.atk*(hero.chainPower||1.12),0,false);
+    prev=e;
+   }
+   return true;
+  }
+  case 'shield':
+   attacker.shield+=attacker.maxHp*.30;
+   ring(attacker.x,attacker.y);
+   spawnFx('🛡 +SHIELD',attacker.x,attacker.y-20);
+   break;
+  case 'blink':
+   attacker.x=Math.max(5.5,Math.min(94.5,target.x+(Math.random()-.5)*5));
+   attacker.y=Math.max(8,Math.min(92,target.y+(Math.random()-.5)*4));
+   position(attacker);ring(attacker.x,attacker.y);
+   break;
+  case 'slash':ring(attacker.x,attacker.y);break;
+  case 'cloakshot':
+   attacker.cloakUntil=stageClock+(hero.cloakDuration||2);
+   attacker.ambush=true;
+   ring(attacker.x,attacker.y,true);
+   spawnFx('พรางตัว',attacker.x,attacker.y-18);
+   break;
+ }
+ return false;
+}
+function tftAttack(attacker,target){
+ if(!target||target.hp<=0)return;
+ const hero=HEROES[attacker.id],effect=hero.effect||'';
+ const ambush=attacker.ambush&&attacker.cloakUntil<=stageClock;
+ if(ambush)attacker.ambush=false;
+ attacker.attacks++;
+ const special=attacker.attacks%(hero.triggerEvery||4)===0;
+ let mul=ambush?(hero.cloakShotMultiplier||1.7):1;
+ if(special){
+  if(effect!=='cloakshot')mul*=2;
+  if(tftSkill(attacker,target))return;
+ }
+ const bonusCrit=ambush?(hero.cloakCritBonus||0):0;
+ attacker.attackUntil=stageClock+(hero.visual?.attackMs||300)/1000;
+ pose(attacker,true);
+ attacker.node?.classList.remove('burst');
+ if(attacker.node){void attacker.node.offsetWidth;attacker.node.classList.add('burst')}
+ if(TFT.isRanged(hero)){
+  tftShot(attacker,target,mul,bonusCrit,ambush,special||ambush);
+  if(special&&effect==='triple'){
+   const extra=(attacker.side==='ally'?enemies:fighters)
+    .filter(x=>x.hp>0&&x.alive!==false&&x!==target)
+    .sort((a,b)=>TFT.pxDist(a,attacker)-TFT.pxDist(b,attacker));
+   for(let i=0;i<2;i++){
+    const second=extra[i]||target;
+    tftShot(attacker,second,.85,0,false,false,'#b4ffe5');
+   }
+  }
+ }else{
+  let actual=mul;
+  if(ambush&&target.hp/target.maxHp<(hero.executeThreshold||.35))
+   actual*=hero.executeMultiplier||1.2;
+  tftDamage(attacker,target,attacker.atk*actual,bonusCrit);
+  if(special&&effect==='blink'&&target.hp>0)tftDamage(attacker,target,attacker.atk*.5);
+ }
+}
+function enemyAttack(enemy,target){tftAttack(enemy,target)}
+function heroAttack(hero,target){tftAttack(hero,target)}
 function tick(dt){
  if(!$('rewardModal').hidden||!$('skillModal').hidden||formationMode||!state.autoBattle)return;
  const t=Math.max(0,Math.min(.08,dt))*state.speed;
  stageClock+=t;
  if(!combat){
-  respawn-=t; // Waves arrive continuously on the original fixed board, even with old saves.
+  respawn-=t;
   if(respawn<=0)spawnMonster(state.kills>=CORE.killsNeeded(state.stage)&&state.autoBoss);
   return;
  }
@@ -795,6 +877,8 @@ function tick(dt){
   }else{foe.walking=false;position(foe)}
   foe.bar.style.width=foe.hp/foe.maxHp*100+'%';
  }
+ advanceTftShots(t);
+ if(!combat)return;
  if(!fighters.some(f=>f.alive)){
   if(combat?.boss){failBoss();return}
   log('💔 ทีมฟื้นตัวก่อนต้านมอนระลอกใหม่');beginTravel(1.2);return;
