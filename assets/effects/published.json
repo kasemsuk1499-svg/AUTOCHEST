@@ -323,6 +323,22 @@
         "rotation": 0,
         "thickness": 48,
         "orientation": "horizontal"
+      },
+      "buff": {
+        "src": "./assets/effects/silica/buff-8d1d7ec2693f.png",
+        "cols": 8,
+        "rows": 2,
+        "row": 0,
+        "col": 0,
+        "frames": 16,
+        "size": 150,
+        "ms": 800,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "thickness": 48,
+        "orientation": "horizontal"
       }
     }
   }
