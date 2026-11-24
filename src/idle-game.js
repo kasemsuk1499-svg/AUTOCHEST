@@ -271,7 +271,9 @@ function renderTeam(){
   const id=state.squad[i];
   if(!id)return '<button type="button" class="team-slot empty" data-slot="empty" aria-label="ช่องทีมว่าง">＋<small>ว่าง</small></button>';
   const t=HEROES[id],p=state.owned[id],ready=readyUpgrade(id);
-  return '<button type="button" class="team-slot '+(selected===id?'active ':'')+(ready?'is-upgrade-ready':'')+
+  return '<button type="button" class="team-slot '+(selected===id?'active ':'')+
+   (ready?'is-upgrade-ready ':'')+
+   (formationMode&&state.owned[selected]&&!state.squad.includes(selected)?'swap-target':'')+
    '" data-slot="'+id+'" aria-label="เลือก '+escapeText(t.name)+' เลเวล '+p.level+' '+p.stars+' ดาว">'+
    '<span class="team-level">Lv.'+p.level+'</span>'+
    '<img loading="lazy" src="'+t.images.idle+'" alt="">'+
@@ -355,8 +357,8 @@ function renderSelected(){
    '<button type="button" id="rankHeroBtn" class="star-upgrade-button"'+(!starGood?' disabled':'')+'>'+
    (atStarMax?'★ ดาวสูงสุด':'⭐ เพิ่มเป็น '+(p.stars+1)+' ดาว')+'</button>'+
   '</section>'+
-  '<div class="upgrade-footer-actions"><button type="button" id="deployHeroBtn" class="deploy-action"'+(!inTeam&&full?' disabled':'')+'>'+
-   (inTeam?'↩ ถอนฮีโร่ออกจากทีม':'⚔️ เพิ่มเข้าทีม')+'</button>'+
+  '<div class="upgrade-footer-actions"><button type="button" id="deployHeroBtn" class="deploy-action"'+'>'+
+   (inTeam?'↩ ถอนฮีโร่ออกจากทีม':full?'↔️ เลือกสมาชิกในทีมเพื่อสลับ':'⚔️ เพิ่มเข้าทีม')+'</button>'+
    '<button type="button" id="openSkillBtn" class="inspect-skill-btn">ⓘ ดูสกิลทั้งหมด</button></div>';
 }
 function skillDescription(t,enemy=false){
@@ -430,7 +432,7 @@ function renderPanels(){
 }
 function choose(id){
  if(!HEROES[id])return;
- selected=id;renderGrid();renderTeam();renderHeroes();renderSelected();
+ selected=id;renderGrid();renderTeam();renderHeroes();renderSelected();refreshFormationControls();
 }
 function refreshUpgradeAvailability(){
  const ready=Object.keys(state.owned).filter(id=>readyUpgrade(id));
@@ -506,11 +508,15 @@ function toggleHero(){
   if(state.squad.length<=1){toast('ต้องมีฮีโร่ในทีมอย่างน้อย 1 คน');return}
   state.squad=state.squad.filter(x=>x!==id);
  }else{
-  if(state.squad.length>=CORE.maxSquad(state.stage)){toast('ช่องทีมเต็มแล้ว ผ่านด่านเพื่อเพิ่มช่องได้จ้า');return}
+  if(state.squad.length>=CORE.maxSquad(state.stage)){
+   if(!formationMode)setFormationMode(true);
+   renderTeam();toast('↔️ ทีมเต็ม · แตะสมาชิกทีมที่จะให้ '+HEROES[id].name+' ลงแทน');
+   return;
+  }
   state.squad.push(id);
  }
  CORE.fillPlacements(state,state.placements);
- resetCombat();renderPanels();save();
+ syncFormationRoster();
 }
 function autoTeam(){
  const owned=Object.keys(state.owned);
@@ -521,8 +527,22 @@ function autoTeam(){
   return y.atk*10+y.hp/4-(x.atk*10+x.hp/4);
  });
  state.squad=ranked.slice(0,CORE.maxSquad(state.stage));
+ const front=[[2,4],[3,4],[1,4],[4,4],[0,4],[5,4]];
+ const mid=[[2,5],[3,5],[1,5],[4,5],[0,5],[5,5]];
+ const back=[[2,6],[3,6],[1,6],[4,6],[0,6],[5,6]];
+ const occupied=new Set();state.placements={};
+ const order=[...state.squad].sort((a,b)=>{
+  const priority=id=>HEROES[id].team==='ป้องกัน'?0:TFT.isRanged(HEROES[id])?2:1;
+  return priority(a)-priority(b);
+ });
+ for(const id of order){
+  const h=HEROES[id],options=h.team==='ป้องกัน'?[...front,...mid,...back]:
+    TFT.isRanged(h)?[...back,...mid,...front]:[...mid,...front,...back];
+  const c=options.find(([col,row])=>!occupied.has(col+':'+row));
+  if(c){state.placements[id]={col:c[0],row:c[1]};occupied.add(c.join(':'))}
+ }
  CORE.fillPlacements(state,state.placements);
- resetCombat();renderPanels();save();toast('✦ จัดทีมให้แล้ว!');
+ syncFormationRoster();toast('♟️ จัดทีม TFT · แทงก์หน้า / ตัวประชิดกลาง / สไนเปอร์หลัง!');
 }
 function summon(count){
  const before=new Set(Object.keys(state.owned));
@@ -802,8 +822,16 @@ $('heroList').addEventListener('click',e=>{
 });
 $('teamSlots').addEventListener('click',e=>{
  const n=e.target.closest('[data-slot]');if(!n)return;
- if(n.dataset.slot==='empty'){toast('เลือกฮีโร่ด้านล่าง แล้วกดเพิ่มเข้าทีมนะ');return}
- choose(n.dataset.slot);
+ if(n.dataset.slot==='empty'){
+  if(state.owned[selected]&&!state.squad.includes(selected))toggleHero();
+  else toast('เลือกฮีโร่จากคลังแล้วกดเพิ่มเข้าทีมได้เลย');
+  return;
+ }
+ const target=n.dataset.slot;
+ if(formationMode&&state.owned[selected]&&!state.squad.includes(selected)){
+  const newId=selected;if(swapSquadMember(target,newId))choose(newId);return;
+ }
+ choose(target);
 });
 $('heroDetails').addEventListener('click',e=>{
  if(e.target.closest('#openSkillBtn'))openSkill(selected);
@@ -816,6 +844,7 @@ for(const layerId of ['heroLayer','monsterLayer']){
  const layer=$(layerId);
  layer.addEventListener('click',e=>{
   const n=e.target.closest('[data-inspect-id]');if(!n||performance.now()<ignoreInspectUntil)return;
+  if(formationMode&&n.dataset.inspectSide==='ally'){choose(n.dataset.inspectId);return}
   selected=n.dataset.inspectSide==='ally'?n.dataset.inspectId:selected;
   openSkill(n.dataset.inspectId,n.dataset.inspectSide==='enemy'?'enemy':'hero');
  });
@@ -833,6 +862,11 @@ document.addEventListener('keydown',e=>{
 $('autoTeamBtn').addEventListener('click',autoTeam);
 $('summonOneBtn').addEventListener('click',()=>summon(1));
 $('summonTenBtn').addEventListener('click',()=>summon(10));
+$('formationBtn').addEventListener('click',()=>setFormationMode(!formationMode));
+$('autoBattleBtn').addEventListener('click',()=>{
+ state.autoBattle=!state.autoBattle;save();refreshFormationControls();
+ toast(state.autoBattle?'⚔️ TFT Auto ON · สู้ต่อเนื่อง':'⏸ AUTO OFF · หยุดต่อสู้');
+});
 $('autoBossBtn').addEventListener('click',()=>{
  state.autoBoss=!state.autoBoss;updateResources();save();
  toast(state.autoBoss?'🔄 เรียกบอสอัตโนมัติ ON':'⏸ เรียกบอสอัตโนมัติ OFF');
