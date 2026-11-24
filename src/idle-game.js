@@ -19,11 +19,13 @@ if(loaded){
 }
 let pending=state.offlineBank;
 let selected=state.squad[0]||Object.keys(state.owned)[0]||IDS[0];
-let combat=null,fighters=[],stageClock=0,respawn=1.8,travel=0,travelDistance=0,encounters=0,lastFrame=0,lastSave=0,lastHUD=0,toastTimer=0;
+let combat=null,enemies=[],fighters=[],stageClock=0,respawn=1.8,spawnCooldown=0,travel=0,travelDistance=0,encounters=0,lastFrame=0,lastSave=0,lastHUD=0,toastTimer=0;
 let logLines=['✦ เริ่มการผจญภัย SAO IDLE แล้ว!'];
 const slots=[[20,71],[28,52],[19,35],[35,76],[34,28],[42,48],[42,67]];
 // Hero-shaped enemies share art and skills with the player's SAO roster.
 const bosses=IDS.filter(id=>HEROES[id].cost===3);
+const enemyLimit=()=>Math.min(5,3+Math.floor((state.stage-1)/5));
+const enemyInterval=()=>Math.max(.68,1.05-(state.stage-1)*.022);
 const near=(a,b)=>Math.hypot(a.x-b.x,(a.y-b.y)*.65);
 const reach=id=>Math.min(41,Math.max(10,HEROES[id].range*8.1+2));
 function moveTo(actor,target,r,dt){
@@ -127,7 +129,7 @@ function updateResources(){
  $('fightLabel').textContent=combat?.boss?'BOSS BATTLE':combat?'HERO BATTLE':'EXPLORING';
  if(combat?.boss){$('bossCountdown').textContent=Math.max(0,Math.ceil(combat.timeout))}
  const farm=CORE.farmReward(state.stage);
- $('farmGain').textContent='มอนสเตอร์ +'+fmt(farm.gold)+' G / +'+fmt(farm.exp)+' EXP';
+ $('farmGain').textContent='ศัตรูที่ชนะ +'+fmt(farm.gold)+' G / +'+fmt(farm.exp)+' EXP';
  $('summonOneBtn').disabled=state.tickets<1&&state.rubies<120;
  $('summonTenBtn').disabled=state.rubies<Math.max(0,10-state.tickets)*120;
 }
@@ -189,7 +191,7 @@ function renderQuest(){
  else if(state.stage<12)task='ผ่านด่าน <b>12</b> เพื่อปลดล็อกช่องทีมที่ 6';
  else if(state.stage<20)task='ผ่านด่าน <b>20</b> เพื่อปลดล็อกช่องทีมที่ 7';
  else task='พิชิตด่าน <b>'+(state.stage+5)+'</b> และสะสมดาวฮีโร่';
- $('guideQuest').innerHTML='✧ '+task+'<br><small>กำจัดมอนสเตอร์ให้ครบ แล้วเรียกบอสเพื่อผ่านด่าน</small>';
+ $('guideQuest').innerHTML='✧ '+task+'<br><small>กำจัดฮีโร่เงาที่วิ่งบุกมาเพื่อปลดล็อกบอส</small>';
 }
 function renderPanels(){
  updateResources();renderTeam();renderHeroes();renderSelected();renderQuest();
@@ -295,31 +297,40 @@ function buildFighters(){
  }
 }
 function beginTravel(seconds=1.6){
- combat=null;respawn=seconds;travel=0;
+ combat=null;enemies=[];spawnCooldown=0;respawn=seconds;travel=0;
  $('monsterLayer').replaceChildren();clearFx();buildFighters();travelScene();
  $('battleMessage').textContent='🏃 ทีม SAO กำลังเดินสำรวจ...';
  updateResources();
 }
 function spawnMonster(boss=false){
+ if(boss){enemies=[];$('monsterLayer').replaceChildren()}
+ else if(enemies.length>=enemyLimit())return;
  const id=boss&&bosses.length?bosses[Math.floor((state.stage-1)/3)%bosses.length]:
-  IDS[(state.stage+state.kills+encounters++)%IDS.length];
+   IDS[(state.stage+state.kills+encounters++)%IDS.length];
  const hero=HEROES[id],stat=CORE.monster(state.stage,boss);
- const hp=Math.round(stat.hp*(.8+hero.hp/3000));
- combat={id,boss,hp,maxHp:hp,atk:Math.round(stat.atk*(.9+hero.dmg/900)),
-  remaining:.7,delay:Math.max(.75,hero.cool*1.2),move:hero.move,
+ const hp=Math.max(1,Math.round(stat.hp*(.8+hero.hp/3000)));
+ const foe={id,boss,hp,maxHp:hp,atk:Math.round(stat.atk*(.9+hero.dmg/900)),
+  remaining:.65+Math.random()*.35,delay:Math.max(.75,hero.cool*1.2),move:hero.move,
   shield:0,attacks:0,crit:hero.critChance||.05,critDamage:hero.critDamage||1.5,
-  cloakUntil:0,ambush:false,attackUntil:0,walking:true,
-  timeout:boss?35:0,x:90,y:boss?51:55};
+  cloakUntil:0,ambush:false,attackUntil:0,walking:true,alive:true,
+  timeout:boss?35:0,x:boss?88:87+Math.random()*6,
+  y:boss?53:Math.max(26,Math.min(78,32+((encounters)%4)*13+Math.random()*5))};
  const node=el('div',{class:'fighter enemy-unit'+(boss?' boss-unit':'')});
+ node.dataset.inspectId=id;node.dataset.inspectSide='enemy';
+ node.tabIndex=0;node.setAttribute('role','button');
+ node.setAttribute('aria-label','ดูสกิลศัตรู '+hero.name);
  node.innerHTML='<span class="mini-stars">'+(boss?'👑 BOSS':'⚔ ENEMY')+'</span>'+
   '<img src="'+hero.images.idle+'" alt="">'+
   '<div class="mini-hp enemy-hp"><i></i></div>'+
   '<span class="fighter-name">'+(boss?'👑 ':'⚔ เงา')+escapeText(hero.name)+'</span>';
- $('monsterLayer').replaceChildren(node);
- combat.node=node;combat.img=node.querySelector('img');combat.bar=node.querySelector('.enemy-hp i');
- combat.sprite=hero.images.idle;
- position(combat);travelScene();
- $('battleMessage').textContent=boss?'👑 บอส '+hero.name+' ปรากฏตัว!':'⚔️ พบเงาของ '+hero.name;
+ $('monsterLayer').appendChild(node);
+ foe.node=node;foe.img=node.querySelector('img');foe.bar=node.querySelector('.enemy-hp i');
+ foe.sprite=hero.images.idle;
+ enemies.push(foe);combat=enemies[0];
+ position(foe);travelScene();
+ spawnCooldown=enemies.length===1?.14:enemyInterval();
+ $('battleMessage').textContent=boss?'👑 บอส '+hero.name+' ปรากฏตัว!':
+  '⚔️ ฮีโร่เงาบุกมา '+enemies.length+' / '+enemyLimit();
  updateResources();
 }
 function resetCombat(){beginTravel(.8)}
@@ -339,18 +350,21 @@ function failBoss(){
  state.autoBoss=false;beginTravel(1.7);updateResources();save();
  toast('💥 ยังโค่นบอสไม่ได้! อัปเลเวลแล้วท้าทายใหม่ได้');
 }
-function defeatMonster(){
- if(!combat)return;
- if(combat.boss){victoryBoss();return}
- const loot=CORE.farmReward(state.stage);
- state.gold+=loot.gold;state.heroExp+=loot.exp;
+function defeatMonster(foe){
+ if(!foe||!enemies.includes(foe))return;
+ if(foe.boss){victoryBoss();return}
+ const reward=CORE.farmReward(state.stage);
+ state.gold+=reward.gold;state.heroExp+=reward.exp;
  state.kills=Math.min(CORE.killsNeeded(state.stage),state.kills+1);
- beginTravel(1.6);
- if(state.kills>=CORE.killsNeeded(state.stage)){
-  $('battleMessage').textContent='👑 บอสพร้อมแล้ว!';
-  if(state.autoBoss)respawn=Math.max(respawn,1.6);
- }
+ enemies=enemies.filter(x=>x!==foe);foe.node?.remove();
+ combat=enemies[0]||null;
+ if(!combat)beginTravel(state.autoBoss&&state.kills>=CORE.killsNeeded(state.stage)?.65:.38);
+ else spawnCooldown=Math.min(spawnCooldown,.17);
  updateResources();
+}
+function pickEnemy(f){
+ return enemies.filter(e=>e.hp>0&&e.cloakUntil<=stageClock)
+  .sort((a,b)=>near(a,f)-near(b,f))[0]||null;
 }
 function targetHero(enemy){
  const targets=fighters.filter(f=>f.alive&&f.cloakUntil<=stageClock);
@@ -387,34 +401,38 @@ function enemyAttack(enemy,target){
  enemy.attackUntil=stageClock+.32;pose(enemy,true);
  enemy.node.classList.remove('burst');void enemy.node.offsetWidth;enemy.node.classList.add('burst');
 }
-function heroAttack(hero){
- if(!combat||combat.hp<=0||combat.cloakUntil>stageClock)return;
+function heroAttack(hero,target){
+ if(!target||target.hp<=0||target.cloakUntil>stageClock)return;
  const base=HEROES[hero.id],effect=base.effect;
- const wasAmbush=hero.ambush&&stageClock>=hero.cloakUntil;
- if(wasAmbush)hero.ambush=false;
+ const ambush=hero.ambush&&stageClock>=hero.cloakUntil;
+ if(ambush)hero.ambush=false;
  hero.attacks++;
- let mult=wasAmbush?(base.cloakShotMultiplier||1.7):1;
+ let multiplier=ambush?(base.cloakShotMultiplier||1.7):1;
  const special=hero.attacks%(base.triggerEvery||4)===0;
  if(special){
-  if(['slash','blink','triple','chain','slam'].includes(effect))mult*=1.7;
-  else if(effect==='shield'){hero.shield+=Math.round(hero.maxHp*.3);ring(hero.x,hero.y);spawnFx('🛡',hero.x,hero.y-20)}
-  else if(effect==='cloakshot'){hero.cloakUntil=stageClock+(base.cloakDuration||2);hero.ambush=true;ring(hero.x,hero.y,true)}
+  if(['slash','blink','triple','chain','slam'].includes(effect))multiplier*=1.7;
+  else if(effect==='shield'){
+   hero.shield+=Math.round(hero.maxHp*.3);ring(hero.x,hero.y);spawnFx('🛡',hero.x,hero.y-20);
+  }else if(effect==='cloakshot'){
+   hero.cloakUntil=stageClock+(base.cloakDuration||2);hero.ambush=true;ring(hero.x,hero.y,true);
+  }
  }
- const critical=Math.random()<Math.min(1,hero.crit+(wasAmbush?(base.cloakCritBonus||0):0));
- let raw=hero.atk*mult*(critical?hero.critDamage:1);
- if(wasAmbush&&combat.hp/combat.maxHp<(base.executeThreshold||.35))raw*=base.executeMultiplier||1.2;
- const blocked=Math.min(combat.shield,raw);combat.shield-=blocked;
+ const critical=Math.random()<Math.min(1,hero.crit+(ambush?(base.cloakCritBonus||0):0));
+ let raw=hero.atk*multiplier*(critical?hero.critDamage:1);
+ if(ambush&&target.hp/target.maxHp<(base.executeThreshold||.35))raw*=base.executeMultiplier||1.2;
+ const blocked=Math.min(target.shield,raw);target.shield-=blocked;
  const damage=Math.max(0,Math.round(raw-blocked));
- combat.hp=Math.max(0,combat.hp-damage);
+ target.hp=Math.max(0,target.hp-damage);
  hero.attackUntil=stageClock+.3;pose(hero,true);
  hero.node.classList.remove('burst');void hero.node.offsetWidth;hero.node.classList.add('burst');
- spawnFx((critical?'CRIT ':'')+fmt(damage),combat.x+(Math.random()-.5)*9,combat.y-30,critical);
- if(base.range>=1.8)projectile(hero.x,hero.y,combat.x,combat.y,base.col);
- else if(special)ring(combat.x,combat.y);
- combat.bar.style.width=combat.hp/combat.maxHp*100+'%';
+ spawnFx((critical?'CRIT ':'')+fmt(damage),target.x+(Math.random()-.5)*9,target.y-29,critical);
+ if(base.range>=1.8)projectile(hero.x,hero.y,target.x,target.y,base.col);
+ else if(special)ring(target.x,target.y);
+ target.bar.style.width=target.hp/target.maxHp*100+'%';
+ if(target.hp<=0)defeatMonster(target);
 }
 function tick(dt){
- if(!$('rewardModal').hidden)return;
+ if(!$('rewardModal').hidden||!$('skillModal').hidden)return;
  const t=Math.max(0,Math.min(.08,dt))*state.speed;
  stageClock+=t;
  if(!combat){
@@ -422,68 +440,69 @@ function tick(dt){
   if(!moved&&state.autoWalk){
    travel+=t;travelDistance+=t*54;
    for(const f of fighters){
-    f.walking=true;f.x=Math.min(f.startX+9,f.x+f.move*t*.18);
-    position(f);
+    f.walking=true;f.x=Math.min(f.startX+9,f.x+f.move*t*.18);position(f);
    }
   }else if(!moved){
    for(const f of fighters){f.walking=false;position(f)}
   }
   travelScene();
   if(moved||state.autoWalk)respawn-=t;
-  if(respawn<=0){
-   const ready=state.kills>=CORE.killsNeeded(state.stage);
-   spawnMonster(ready&&state.autoBoss);
-  }
+  if(respawn<=0)spawnMonster(state.kills>=CORE.killsNeeded(state.stage)&&state.autoBoss);
   return;
  }
  if(combat.boss){
   combat.timeout-=t;
   if(combat.timeout<=0){failBoss();return}
+ }else{
+  spawnCooldown-=t;
+  if(spawnCooldown<=0&&enemies.length<enemyLimit())spawnMonster(false);
  }
- // A manual direction temporarily overrides auto-chase for the full party.
  const manuallyMoving=moveManually(t);
- // Each allied hero approaches its own attack reach, then performs its skill cycle.
  for(const f of fighters){
   if(!f.alive)continue;
   f.remaining-=t;
   if(f.attackUntil<stageClock&&f.sprite!==HEROES[f.id].images.idle){
    pose(f,false);f.node.classList.remove('burst');
   }
+  const target=pickEnemy(f);
+  if(!target){f.walking=false;position(f);continue}
   const close=(!manuallyMoving&&state.autoWalk)?
-   moveTo(f,combat,reach(f.id),t):near(f,combat)<=reach(f.id)+.3;
+   moveTo(f,target,reach(f.id),t):near(f,target)<=reach(f.id)+.3;
   if(!manuallyMoving&&!state.autoWalk)f.walking=false;
   position(f);
-  if(close&&f.remaining<=0&&combat.hp>0&&f.cloakUntil<=stageClock&&combat.cloakUntil<=stageClock){
-   heroAttack(f);
+  if(close&&f.remaining<=0&&f.cloakUntil<=stageClock){
+   heroAttack(f,target);
    f.remaining=Math.max(.06,f.remaining+f.cool);
+   if(!combat)return;
   }
  }
- if(combat.hp<=0){defeatMonster();return}
- // Opposing hero moves and attacks by the same class range/attack cadence rules.
- if(combat.attackUntil<stageClock&&combat.sprite!==HEROES[combat.id].images.idle){
-  pose(combat,false);combat.node.classList.remove('burst');
- }
- const target=targetHero(combat);
- combat.remaining-=t;
- if(target){
-  const close=moveTo(combat,target,reach(combat.id),t);
-  position(combat);
-  if(close&&combat.remaining<=0&&combat.cloakUntil<=stageClock){
-   enemyAttack(combat,target);
-   combat.remaining=Math.max(.06,combat.remaining+combat.delay);
+ for(const foe of enemies.slice()){
+  if(foe.hp<=0)continue;
+  if(foe.attackUntil<stageClock&&foe.sprite!==HEROES[foe.id].images.idle){
+   pose(foe,false);foe.node.classList.remove('burst');
   }
- }else{combat.walking=false;position(combat)}
+  const target=targetHero(foe);
+  foe.remaining-=t;
+  if(target){
+   const close=moveTo(foe,target,reach(foe.id),t);
+   position(foe);
+   if(close&&foe.remaining<=0&&foe.cloakUntil<=stageClock){
+    enemyAttack(foe,target);
+    foe.remaining=Math.max(.06,foe.remaining+foe.delay);
+   }
+  }else{foe.walking=false;position(foe)}
+  foe.bar.style.width=foe.hp/foe.maxHp*100+'%';
+ }
  if(!fighters.some(f=>f.alive)){
-  if(combat.boss){failBoss();return}
-  log('💔 ทีมพักฟื้นก่อนเดินทางต่อ');beginTravel(1.8);return;
+  if(combat?.boss){failBoss();return}
+  log('💔 ทีมฟื้นตัวก่อนต้านมอนระลอกใหม่');beginTravel(1.2);return;
  }
- combat.bar.style.width=combat.hp/combat.maxHp*100+'%';
  for(const f of fighters){
-  if(f.hpbar)f.hpbar.style.width=Math.max(0,f.hp/f.maxHp*100)+'%';
+  f.hpbar.style.width=Math.max(0,f.hp/f.maxHp*100)+'%';
   f.node.style.opacity=f.alive?'1':'.2';
  }
- $('bossTimer').hidden=!combat.boss;
- if(combat.boss)$('bossCountdown').textContent=Math.ceil(combat.timeout);
+ $('bossTimer').hidden=!combat?.boss;
+ if(combat?.boss)$('bossCountdown').textContent=Math.ceil(combat.timeout);
 }
 function frame(now){
  if(!lastFrame)lastFrame=now;
