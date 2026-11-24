@@ -20,6 +20,11 @@ assert(main.includes('const hero=HEROES[id],stat=CORE.monster'),'Enemies must re
 assert(main.includes("class:'fighter enemy-unit'"),'Enemy character must render as a hero sprite');
 assert(main.includes('const GRID_COLS=6,GRID_ROWS=7,ALLY_START_ROW=4'),'Original 6x7 tactical board is required');
 assert(main.includes('function moveHeroToCell(id,col,row)'),'Interactive hero deployment is required');
+assert(main.includes('function defenderApproach(actor,target,t)'),'Allied fighters must hold their deployment half');
+assert(main.includes('function invaderApproach(foe,target,t)'),'Enemy rush and active ranged strafing required');
+assert(main.includes('function invaderPatrol(foe,t)'),'Enemies must move even if no target is visible');
+assert(main.includes('const close=invaderApproach(foe,target,t)'),'Enemy movement logic must execute every frame');
+assert(main.includes('const close=defenderApproach(f,target,t)'),'Defending team should not rush into enemy spawns');
 assert(main.includes('function renderGrid()'),'Original board grid render is required');
 assert(main.includes('function refreshUpgradeAvailability()'),'Live upgrade affordance must reflect rewards');
 assert(main.includes('function applyLiveHeroStats(id)'),'Level/star gains must affect live combat');

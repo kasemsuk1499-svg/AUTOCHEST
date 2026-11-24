@@ -305,3 +305,11 @@ footer{margin:20px 0 0;display:flex;justify-content:space-between;color:#789db8;
  .stage-header h2{font-size:15px}
  .stage-badge{min-width:70px}
 }
+
+/* v0.17.2 — actual attackers advance into friendly territory; make motion readable */
+.stage-viewport .fighter.enemy-unit.walking img{animation:enemy-running .22s ease-in-out infinite alternate}
+.stage-viewport .fighter.enemy-unit.burst img{animation:enemy-strike .3s ease-out!important}
+@keyframes enemy-strike{
+  0%,100%{transform:scaleX(-1) translateX(0) scale(1)}
+  48%{transform:scaleX(-1) translateX(9px) scale(1.10);filter:brightness(1.55)}
+}

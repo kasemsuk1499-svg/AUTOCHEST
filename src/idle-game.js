@@ -49,6 +49,50 @@ function moveTo(actor,target,r,dt){
  actor.walking=step>.04;
  return false;
 }
+
+// On the original 6x7 board the defending team stays on its own half.
+// This lets attackers advance into the battlefield instead of being intercepted at spawn.
+const DEFENDER_FRONT_Y=(ALLY_START_ROW+.07)*100/GRID_ROWS; // just inside allied territory
+const INVADER_FRONT_Y=(ALLY_START_ROW-.42)*100/GRID_ROWS;   // move past enemy spawn lanes
+function defenderApproach(actor,target,t){
+ const x=actor.x,y=actor.y;
+ if(near(actor,target)>reach(actor.id)+.3)moveTo(actor,target,reach(actor.id),t);
+ actor.y=Math.max(DEFENDER_FRONT_Y,actor.y);
+ actor.walking=Math.hypot(actor.x-x,actor.y-y)>.045;
+ return near(actor,target)<=reach(actor.id)+.3;
+}
+// Enemy melee units rush to the actual target. Ranged units must first approach
+// the front line instead of camping at a spawn tile, then strafe while shooting.
+function invaderApproach(foe,target,t){
+ const base=HEROES[foe.id],isRanged=base.range>=1.8;
+ const x=foe.x,y=foe.y;
+ const r=reach(foe.id);
+ const advancing=foe.y<INVADER_FRONT_Y&&target.y>foe.y+6;
+ if(advancing){
+  const goal={x:Math.max(9,Math.min(91,target.x)),y:Math.min(INVADER_FRONT_Y+3,target.y-6)};
+  moveTo(foe,goal,1.5,t);
+ }else{
+  const closerRange=isRanged?Math.min(r,23):r;
+  moveTo(foe,target,closerRange,t);
+  if(isRanged&&near(foe,target)<=closerRange+.35){
+   // Active strafing gives ranged attackers visible motion between shots.
+   const phase=foe.strideSeed||0;
+   const desired=Math.max(12,Math.min(88,target.x+Math.sin(stageClock*1.25+phase*1.8)*8));
+   const drift=Math.max(-foe.move*t*.035,Math.min(foe.move*t*.035,desired-foe.x));
+   foe.x=Math.max(6,Math.min(94,foe.x+drift));
+  }
+ }
+ foe.walking=Math.hypot(foe.x-x,foe.y-y)>.035;
+ // Stop movement briefly for the attack pose, then resume pursuit.
+ if(foe.attackUntil>stageClock)foe.walking=false;
+ return near(foe,target)<=r+.3;
+}
+function invaderPatrol(foe,t){
+ // If every allied hero is cloaked, search toward the last known frontline.
+ const fallback={x:50,y:DEFENDER_FRONT_Y+3};
+ if(foe.y<INVADER_FRONT_Y)moveTo(foe,fallback,3,t);
+ else foe.walking=false;
+}
 function pose(actor,attack){
  if(!actor.img)return;
  const image=HEROES[actor.id].images[attack?'attack':'idle'];
@@ -514,7 +558,7 @@ function spawnMonster(boss=false){
   remaining:.65+Math.random()*.35,delay:Math.max(.75,hero.cool*1.2),move:hero.move,
   shield:0,attacks:0,crit:hero.critChance||.05,critDamage:hero.critDamage||1.5,
   cloakUntil:0,ambush:false,attackUntil:0,walking:true,alive:true,
-  timeout:boss?35:0,x:entry.x,y:entry.y};
+  timeout:boss?35:0,x:entry.x,y:entry.y,strideSeed:encounters};
  const node=el('div',{class:'fighter enemy-unit'+(boss?' boss-unit':'')});
  node.dataset.inspectId=id;node.dataset.inspectSide='enemy';
  node.tabIndex=0;node.setAttribute('role','button');
@@ -655,7 +699,7 @@ function tick(dt){
   }
   const target=pickEnemy(f);
   if(!target){f.walking=false;position(f);continue}
-  const close=moveTo(f,target,reach(f.id),t);
+  const close=defenderApproach(f,target,t);
   position(f);
   if(close&&f.remaining<=0&&f.cloakUntil<=stageClock){
    heroAttack(f,target);
@@ -671,13 +715,13 @@ function tick(dt){
   const target=targetHero(foe);
   foe.remaining-=t;
   if(target){
-   const close=moveTo(foe,target,reach(foe.id),t);
+   const close=invaderApproach(foe,target,t);
    position(foe);
    if(close&&foe.remaining<=0&&foe.cloakUntil<=stageClock){
     enemyAttack(foe,target);
     foe.remaining=Math.max(.06,foe.remaining+foe.delay);
    }
-  }else{foe.walking=false;position(foe)}
+  }else{invaderPatrol(foe,t);position(foe)}
   foe.bar.style.width=foe.hp/foe.maxHp*100+'%';
  }
  if(!fighters.some(f=>f.alive)){

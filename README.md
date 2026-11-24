@@ -85,3 +85,10 @@ This is a simplified two-dimensional field with responsive camera/parallax and a
 - Both formation slots and collection cards show **Lv, Stars, and an upgrade-ready mark**. Buttons automatically become enabled when monster rewards make upgrades affordable. Newly leveled/starred heroes gain combat stats immediately without having to restart a run.
 - Improves narrow-screen layout with 2-column currency resources, 6 fully visible board columns (no side scrolling), and a **mobile shortcut to the upgrade panel**, including a live number of upgrade-ready heroes. All scripts and CSS share version `0.17.1`.
 - Tests: original grid 42 cells/18 allied cells, click deployment and saved coordinates, level +1 reflected on formation cards, star 1→2 with shard cost and visible output, hero inspector and no Chrome JavaScript exceptions.
+
+## v0.17.2 — enemy AI rush fix
+
+- The allied team now stays on its own side of the original fixed **6×7** board while it auto-attacks. This prevents allied melee heroes from racing into enemy spawn rows and intercepting enemies before they can charge.
+- Enemy heroes actually **run out of the spawn lanes and approach the allied frontline**. Ranged/sniper types must reach an engagement line before camping and will **strafe between attacks**. Melee pursuers keep chasing into attack range. Both pause very briefly during their attack animation.
+- If all defenders are temporarily invisible (e.g. Death Gun cloak), attackers continue moving toward the last known front line to avoid freezing in place.
+- Bosses use the same pursuing AI. Movement and attacks still obey the ×1/×2 speed option. Existing saves, star/level progress, and manual tile deployment are unaffected.
