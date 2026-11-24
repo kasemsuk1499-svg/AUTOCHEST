@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="180" height="210" viewBox="0 0 180 210">
- <defs><linearGradient id="coat" x2=".95" y2="1"><stop stop-color="#ffffff" stop-opacity=".3"/><stop offset=".25" stop-color="#ffffff" stop-opacity="0"/><stop offset="1" stop-color="#040719" stop-opacity=".45"/></linearGradient>
- <radialGradient id="skin"><stop stop-color="#ffffff" stop-opacity=".18"/><stop offset="1" stop-color="#000000" stop-opacity=".1"/></radialGradient>
- <linearGradient id="metal" x2="1" y2="1"><stop stop-color="#ffffff"/><stop offset=".42" stop-color="#c0d4ed"/><stop offset="1" stop-color="#57728e"/></linearGradient>
- <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#09122e" flood-opacity=".5"/></filter></defs>
- <g filter="url(#shadow)"><ellipse cx="90" cy="176" rx="57" ry="9" fill="#081b33" opacity=".4"/><path d="M34 144Q20 103 58 79Q61 50 92 45Q116 55 124 78Q161 100 145 145Q121 172 86 160Q54 171 34 144Z" fill="#e48ac8" stroke="#7b427f" stroke-width="6"/><ellipse cx="68" cy="109" rx="9" ry="12" fill="#263347"/><ellipse cx="110" cy="109" rx="9" ry="12" fill="#263347"/><circle cx="64" cy="105" r="3" fill="white"/><circle cx="106" cy="105" r="3" fill="white"/><path d="M83 133Q92 140 99 132" stroke="#7b427f" stroke-width="4" fill="none" stroke-linecap="round"/></g>
- </svg>
