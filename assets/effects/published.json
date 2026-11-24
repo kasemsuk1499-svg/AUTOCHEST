@@ -1,4 +1,17 @@
 {
   "version": 1,
-  "heroes": {}
+  "heroes": {
+    "asuna": {
+      "skillHit": {
+        "src": "./assets/effects/asuna/skillHit-06471cdbe36b.png",
+        "cols": 8,
+        "rows": 2,
+        "row": 0,
+        "col": 0,
+        "frames": 16,
+        "size": 150,
+        "ms": 1000
+      }
+    }
+  }
 }
