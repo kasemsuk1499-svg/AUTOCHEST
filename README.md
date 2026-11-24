@@ -66,3 +66,11 @@ scripts/verify-roster.cjs        ตรวจความถูกต้อง�
 อ่าน [docs/CHARACTER_SYSTEM.md](docs/CHARACTER_SYSTEM.md) — แต่ละตัวละครมี ID, stats, team, skill effect, รูป PNG/SVG และ animation visual settings แยกจากกัน
 
 > **ข้อจำกัด:** ภาพ v0.3 เป็นภาพจิบิต้นแบบที่สร้างใหม่สำหรับโปรเจกต์ ไม่ใช่งาน sprite sheet frame-by-frame, ยังไม่มี multiplayer, การบันทึกเกม และระบบ skill editor ในหน้าเว็บ
+
+## Asuna — Fast Critical Rapier (v0.5)
+
+- New `asuna` hero: cost 3, HP 470, ATK 66, attack interval 0.58s, movement 140
+- 35% critical-hit chance, 190% critical damage; actual combat damage is multiplied and a golden `CRIT!` popup appears
+- `แฟลชสไตรค์` activates every 3 normal attacks, using the existing `slash` effect and critical-hit rules
+- Source art is normalized to `assets/heroes/asuna/{art,idle,attack}.png` (same image bytes, removed duplicated `.png` filename endings)
+- UI inspector shows attack speed and critical stats; `traits` are descriptive labels only, not yet separate synergy mechanics

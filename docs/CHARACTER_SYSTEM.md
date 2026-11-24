@@ -84,3 +84,7 @@ window.AUTOCHEST_CHARACTERS.registerHero({
 - กำหนด skill payload หลายขั้น (hit count, target rule, status) เป็นข้อมูล แทนเงื่อนไขแบบตายตัว
 - แยก combat engine ไปเป็นโมดูล ลดความยาว `src/game.js`
 - หน้า Character Lab สำหรับเพิ่มตัวละครโดยไม่ต้องเขียนโค้ด
+
+## Fast / Crit Unit Contract (Asuna)
+
+`src/characters/heroes/asuna.js` sets optional `critChance: 0.35` (probability), `critDamage: 1.9` (multiplier), `cool: 0.58` (seconds between attacks), `move: 140` (movement speed) and `traits: ['ว่องไว','คริติคอล']`. These traits are labels only; combat crit checks happen when a hit lands. Art/Idle/Attack continue supporting both PNG and GIF.

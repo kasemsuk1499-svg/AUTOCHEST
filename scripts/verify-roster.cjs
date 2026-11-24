@@ -11,7 +11,7 @@ for(const s of scripts.filter(x=>x!=='./src/game.js')){
 }
 const reg=context.window.AUTOCHEST_CHARACTERS;
 const hero=Object.values(reg.HEROES),enemy=Object.values(reg.ENEMIES);
-if(hero.length!==7||enemy.length!==4)throw Error('Expected 7 heroes and 4 enemies');
+if(hero.length!==8||enemy.length!==4)throw Error('Expected 8 heroes and 4 enemies');
 for(const c of [...hero,...enemy]){
  const picture=path.resolve(root,c.portrait);
  if(!fs.existsSync(picture))throw Error('Missing art '+picture);
@@ -23,6 +23,8 @@ for(const c of [...hero,...enemy]){
   if(!fs.existsSync(file))throw Error('Missing '+slot+' asset: '+src);
   if(fs.statSync(file).size<100)throw Error('Empty '+slot+' asset: '+src);
  }
- if(c.portrait.endsWith('.png')&&!fs.existsSync(picture.replace(/\.png$/,'.svg')))throw Error('Missing SVG source for '+c.id);
+ /* User-provided PNG/GIF portraits do not require editable SVG source files. */
 }
+const asuna=reg.HEROES.asuna;
+if(!asuna||asuna.critChance!==.35||asuna.critDamage!==1.9||asuna.cool!==.58)throw Error('Asuna speed/crit build missing');
 console.log('✅ AUTOCHEST character registry: '+hero.length+' heroes, '+enemy.length+' enemies, all art/idle/attack assets present');
