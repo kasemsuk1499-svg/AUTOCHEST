@@ -11,6 +11,16 @@
         "frames": 16,
         "size": 150,
         "ms": 1000
+      },
+      "hit": {
+        "src": "./assets/effects/asuna/hit-bff06fa9b80e.png",
+        "cols": 8,
+        "rows": 1,
+        "row": 0,
+        "col": 0,
+        "frames": 7,
+        "size": 105,
+        "ms": 500
       }
     },
     "megumin": {
