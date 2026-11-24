@@ -1141,7 +1141,7 @@ function tick(dt){
 function frame(now){
  if(!lastFrame)lastFrame=now;
  const dt=(now-lastFrame)/1000;
- if(trial){try{tickTrial(dt)}catch(error){console.error('Hero Trial:',error);recoverTrial(error)}}else tick(dt);lastFrame=now;
+ if(trial){try{if(!trial.error)tickTrial(dt)}catch(error){console.error('Hero Trial:',error);recoverTrial(error)}}else tick(dt);lastFrame=now;
  if(now-lastHUD>340){updateResources();lastHUD=now}
  if(now-lastSave>6000){save()}
  requestAnimationFrame(frame);
@@ -1198,7 +1198,7 @@ function renderTrial(){
   if(u.values.textContent!==value)u.values.textContent=value;
  }
  const scene=trialContext;
- const busy=!!scene.active||scene.queue.length>0||shots.length>0||scene.clock<scene.nextAt;
+ const busy=!!scene.error||!!scene.active||scene.queue.length>0||shots.length>0||scene.clock<scene.nextAt;
  $('trialNormal').disabled=busy||!scene.hero.alive;
  $('trialSkill').disabled=busy||!scene.hero.alive;
  $('trialHit').disabled=busy||!scene.hero.alive;
@@ -1211,7 +1211,7 @@ function renderTrial(){
  }
 }
 function queueTrial(mode){
- if(!trial||trial.active||trial.queue.length||trial.shots.length||trial.clock<trial.nextAt)return;
+ if(!trial||trial.error||trial.active||trial.queue.length||trial.shots.length||trial.clock<trial.nextAt)return;
  const h=HEROES[trial.id];
  if(mode==='passive'){
   if(h.passive?.reviveHp)trial.queue=['lethal','hit'];
@@ -1266,7 +1266,7 @@ function tickTrial(dt){
 }
 function recoverTrial(error){
  if(!trial)return;
- trial.active=null;trial.queue=[];trial.shots=[];trial.nextAt=trial.clock;trial.deadline=0;
+ trial.error=true;trial.active=null;trial.queue=[];trial.shots=[];trial.nextAt=trial.clock;trial.deadline=0;
  $('trialFx').replaceChildren();
  trial.note='เกิดข้อผิดพลาดในการทดลอง · กดรีเซ็ตสนามเพื่อเริ่มใหม่';
  $('trialNote').textContent=trial.note;
