@@ -53,6 +53,31 @@ function travelScene(){
  v.style.setProperty('--walk-x',-Math.round(travelDistance*3)+'px');
  v.style.setProperty('--walk-far',-Math.round(travelDistance*.8)+'px');
 }
+// Keyboard and hold-to-walk D-pad allow manual exploration while combat remains automatic.
+const WALK_BUTTONS=new Set();
+const KEY_MAP={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',
+ KeyW:'up',KeyS:'down',KeyA:'left',KeyD:'right'};
+function moveManually(t){
+ const dx=Number(WALK_BUTTONS.has('right'))-Number(WALK_BUTTONS.has('left'));
+ const dy=Number(WALK_BUTTONS.has('down'))-Number(WALK_BUTTONS.has('up'));
+ if(!dx&&!dy)return false;
+ const norm=Math.hypot(dx,dy);
+ for(const f of fighters){
+  if(!f.alive)continue;
+  const speed=(f.move||80)*t*.2;
+  f.x=Math.max(10,Math.min(89,f.x+dx/norm*speed));
+  f.y=Math.max(18,Math.min(81,f.y+dy/norm*speed));
+  f.walking=true;
+  position(f);
+ }
+ travelDistance+=(dx/norm)*t*54;
+ return true;
+}
+function setWalkingDirection(dir,on){
+ if(on)WALK_BUTTONS.add(dir);else WALK_BUTTONS.delete(dir);
+ for(const btn of $('walkPad').querySelectorAll('[data-walk]'))
+  btn.classList.toggle('pressed',WALK_BUTTONS.has(btn.dataset.walk));
+}
 
 const el=(tag,attrs={},inner='')=>{
  const node=document.createElement(tag);
@@ -93,6 +118,8 @@ function updateResources(){
  $('autoBossBtn').textContent=state.autoBoss?'🔄 AUTO BOSS ON':'⏸ AUTO BOSS OFF';
  $('autoBossBtn').classList.toggle('selected',state.autoBoss);
  $('speedBtn').textContent='⏩ ×'+state.speed;
+ $('autoWalkBtn').textContent=state.autoWalk?'🏃 AUTO WALK ON':'🕹️ MANUAL WALK';
+ $('autoWalkBtn').classList.toggle('selected',state.autoWalk);
  $('challengeBtn').disabled=!!combat?.boss||state.kills<need;
  $('challengeBtn').textContent=combat?.boss?'👑 กำลังต่อสู้กับบอส':state.kills<need?'👑 ปลดล็อกบอส '+state.kills+'/'+need:'👑 ท้าทายบอส!';
  $('bossTimer').hidden=!combat?.boss;
@@ -391,12 +418,18 @@ function tick(dt){
  const t=Math.max(0,Math.min(.08,dt))*state.speed;
  stageClock+=t;
  if(!combat){
-  travel+=t;travelDistance+=t*54;travelScene();
-  for(const f of fighters){
-   f.walking=true;f.x=Math.min(f.startX+9,f.x+f.move*t*.18);
-   position(f);
+  const moved=moveManually(t);
+  if(!moved&&state.autoWalk){
+   travel+=t;travelDistance+=t*54;
+   for(const f of fighters){
+    f.walking=true;f.x=Math.min(f.startX+9,f.x+f.move*t*.18);
+    position(f);
+   }
+  }else if(!moved){
+   for(const f of fighters){f.walking=false;position(f)}
   }
-  respawn-=t;
+  travelScene();
+  if(moved||state.autoWalk)respawn-=t;
   if(respawn<=0){
    const ready=state.kills>=CORE.killsNeeded(state.stage);
    spawnMonster(ready&&state.autoBoss);
@@ -407,14 +440,19 @@ function tick(dt){
   combat.timeout-=t;
   if(combat.timeout<=0){failBoss();return}
  }
- // Each allied hero approaches its own attack reach, then performs the normal skill cycle.
+ // A manual direction temporarily overrides auto-chase for the full party.
+ const manuallyMoving=moveManually(t);
+ // Each allied hero approaches its own attack reach, then performs its skill cycle.
  for(const f of fighters){
   if(!f.alive)continue;
   f.remaining-=t;
   if(f.attackUntil<stageClock&&f.sprite!==HEROES[f.id].images.idle){
    pose(f,false);f.node.classList.remove('burst');
   }
-  const close=moveTo(f,combat,reach(f.id),t);position(f);
+  const close=(!manuallyMoving&&state.autoWalk)?
+   moveTo(f,combat,reach(f.id),t):near(f,combat)<=reach(f.id)+.3;
+  if(!manuallyMoving&&!state.autoWalk)f.walking=false;
+  position(f);
   if(close&&f.remaining<=0&&combat.hp>0&&f.cloakUntil<=stageClock&&combat.cloakUntil<=stageClock){
    heroAttack(f);
    f.remaining=Math.max(.06,f.remaining+f.cool);
@@ -481,6 +519,25 @@ $('speedBtn').addEventListener('click',()=>{
  state.speed=state.speed===1?2:1;updateResources();save();
  toast('⏩ ความเร็วต่อสู้ ×'+state.speed);
 });
+$('autoWalkBtn').addEventListener('click',()=>{
+ state.autoWalk=!state.autoWalk;updateResources();save();
+ toast(state.autoWalk?'🏃 เดินอัตโนมัติ ON':'🕹️ เดินเองด้วย WASD หรือแป้นทิศทาง');
+});
+document.addEventListener('keydown',e=>{
+ const dir=KEY_MAP[e.code];if(!dir)return;
+ if(e.target?.matches?.('input,textarea,select,[contenteditable]'))return;
+ e.preventDefault();setWalkingDirection(dir,true);
+});
+document.addEventListener('keyup',e=>{const dir=KEY_MAP[e.code];if(dir)setWalkingDirection(dir,false)});
+window.addEventListener('blur',()=>{WALK_BUTTONS.clear();setWalkingDirection('up',false)});
+for(const btn of $('walkPad').querySelectorAll('[data-walk]')){
+ const dir=btn.dataset.walk;
+ btn.addEventListener('pointerdown',e=>{
+  e.preventDefault();setWalkingDirection(dir,true);btn.setPointerCapture?.(e.pointerId);
+ });
+ for(const event of ['pointerup','pointercancel','lostpointercapture'])
+  btn.addEventListener(event,()=>setWalkingDirection(dir,false));
+}
 $('offlineBtn').addEventListener('click',openOffline);
 $('claimOfflineBtn').addEventListener('click',claimOffline);
 $('closeOfflineBtn').addEventListener('click',closeOffline);
