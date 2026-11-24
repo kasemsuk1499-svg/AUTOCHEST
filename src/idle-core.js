@@ -126,24 +126,34 @@
   if(h.shards<need||state.gold<cost)return false;
   h.shards-=need;state.gold-=cost;h.stars++;return true;
  }
- function draw(state,roster,count,rng=Math.random){
+ function summonCost(state,count){
+  const tickets=Math.min(count,Math.max(0,Math.floor(state.tickets||0)));
+  return {tickets,rubies:(count-tickets)*120};
+ }
+ function summonOdds(roster){
+  const entries=Object.entries(roster).map(([id,hero])=>({id,weight:hero.cost===1?6:hero.cost===2?3:1}));
+  const total=entries.reduce((sum,u)=>sum+u.weight,0);
+  return entries.map(u=>({...u,rate:total?u.weight/total:0}));
+ }
+ function drawDetailed(state,roster,count,rng=Math.random){
   if(!Number.isInteger(count)||count<=0||count>10)return null;
-  const need= Math.max(0,count-state.tickets)*120;
-  if(state.rubies<need)return null;
-  const options=Object.entries(roster),pool=options.flatMap(([id,hero])=>
-   Array(hero.cost===1?6:hero.cost===2?3:1).fill(id));
-  if(!pool.length)return null;
-  const rewards=[];
+  const cost=summonCost(state,count),odds=summonOdds(roster);
+  if(state.rubies<cost.rubies||!odds.length)return null;
+  const pool=odds.flatMap(u=>Array(u.weight).fill(u.id)),rewards=[];
+  state.tickets-=cost.tickets;state.rubies-=cost.rubies;
   for(let i=0;i<count;i++){
-   if(state.tickets>0)state.tickets--;else state.rubies-=120;
    const id=pool[Math.min(pool.length-1,Math.floor(clamp(rng(),0,.999999)*pool.length))];
-   if(state.owned[id])state.owned[id].shards++;
-   else state.owned[id]={level:1,stars:1,shards:0};
-   rewards.push(id);state.totalSummons++;
+   const isNew=!state.owned[id];
+   if(isNew)state.owned[id]={level:1,stars:1,shards:0};
+   else state.owned[id].shards++;
+   rewards.push({id,isNew,shards:isNew?0:1});state.totalSummons++;
   }
-  return rewards;
+  return {count,cost,rewards};
+ }
+ function draw(state,roster,count,rng=Math.random){
+  return drawDetailed(state,roster,count,rng)?.rewards.map(u=>u.id)||null;
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,
   initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,levelCost,shardsNeeded,ascendCost,
-  normalized,stats,power,monster,farmReward,bossReward,offlineLoot,spendLevel,ascend,draw});
+  normalized,stats,power,monster,farmReward,bossReward,offlineLoot,spendLevel,ascend,draw,summonCost,summonOdds,drawDetailed});
 })();
