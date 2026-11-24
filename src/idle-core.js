@@ -10,7 +10,7 @@
    asuna:{level:1,stars:1,shards:0},
    kirito:{level:1,stars:1,shards:0},
    silica:{level:1,stars:1,shards:0}
-  },placements:{asuna:{col:2,row:6},kirito:{col:3,row:6},silica:{col:1,row:5}},autoBoss:true,autoWalk:true,speed:1,bossWins:0,totalSummons:0,offlineBank:{minutes:0,gold:0,exp:0},lastSaved:Date.now()
+  },placements:{asuna:{col:2,row:6},kirito:{col:3,row:6},silica:{col:1,row:5}},autoBoss:true,autoWalk:true,autoBattle:true,speed:1,bossWins:0,totalSummons:0,offlineBank:{minutes:0,gold:0,exp:0},lastSaved:Date.now()
  });
  const maxSquad=stage=>stage>=20?7:stage>=12?6:stage>=5?5:4;
  // Same 6x7 board as the original AUTOCHEST (friendly deployment: rows 4-6).
@@ -45,6 +45,7 @@
   state.kills=clamp(state.kills,0,killsNeeded(state.stage));
   state.autoBoss=raw.autoBoss!==false;
   state.autoWalk=raw.autoWalk!==false;
+  state.autoBattle=raw.autoBattle!==false;
   state.speed=raw.speed===2?2:1;
   state.lastSaved=clamp(number(raw.lastSaved,Date.now()),0,Date.now());
   if(raw.offlineBank&&typeof raw.offlineBank==='object'){
