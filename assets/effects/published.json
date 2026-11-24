@@ -398,6 +398,25 @@
         "delayMs": 0,
         "airtimeMs": 1200,
         "loopFrames": false
+      },
+      "cleave": {
+        "src": "./assets/effects/artoria/cleave-b0cce4d51a9d.png",
+        "cols": 8,
+        "rows": 2,
+        "row": 0,
+        "col": 0,
+        "frames": 16,
+        "size": 250,
+        "ms": 800,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "thickness": 48,
+        "orientation": "horizontal",
+        "delayMs": 0,
+        "airtimeMs": 0,
+        "loopFrames": false
       }
     }
   }
