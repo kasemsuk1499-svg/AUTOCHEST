@@ -108,6 +108,8 @@ function position(actor){
  actor.node.classList.toggle('walking',!!actor.walking);
  actor.node.classList.toggle('cloaked',actor.cloakUntil>stageClock);
  actor.node.classList.toggle('immortal',TFT.isImmortal(actor,stageClock));
+ actor.node.classList.toggle('guard-shield',actor.hp>0&&(actor.shield||0)>0);
+ actor.node.classList.toggle('taunting',actor.hp>0&&(actor.tauntUntil||0)>stageClock);
 }
 // The original AUTOCHEST board is fixed. Movement happens within its 6x7 cells.
 function travelScene(){
@@ -392,7 +394,8 @@ function skillDescription(t,enemy=false){
    lines.push('ทุก '+n+' การโจมตี: ทุบโจมตีพื้นที่รัศมี 140 พิกเซลของสนาม แรง 180% ATK ต่อเป้าหมาย');
    break;
   case 'shield':
-   lines.push('ทุก '+n+' การโจมตี: เพิ่มโล่ป้องกัน 30% ของ HP สูงสุด และโจมตีปกติแบบหนัก 200% ATK');
+   if(t.guard)lines.push('ทุก '+n+' การโจมตี: สร้างโล่ตนเอง '+Math.round(t.guard.selfShield*100)+'% ของ HP สูงสุด และให้พันธมิตรที่ยังมีชีวิตทุกคนโล่ '+Math.round(t.guard.allyShield*100)+'% ของ HP สูงสุดของแต่ละคน · ยั่วยุศัตรูทั่วสนาม '+t.guard.tauntSeconds+' วินาที · ไม่สร้างดาเมจ · โล่รีเฟรช ไม่สะสมทับ');
+   else lines.push('ทุก '+n+' การโจมตี: เพิ่มโล่ป้องกัน 30% ของ HP สูงสุด และโจมตีปกติแบบหนัก 200% ATK');
    break;
   case 'cloakshot':
    lines.push('ทุก '+n+' การโจมตี: พรางตัว '+(t.cloakDuration||2).toFixed(1)+' วินาที ศัตรูจะไม่เลือกเป็นเป้าหมายใหม่');
@@ -401,6 +404,7 @@ function skillDescription(t,enemy=false){
    break;
   default:lines.push('ทุก '+n+' การโจมตี: ใช้สกิลตามข้อมูลฮีโร่');
  }
+ if(t.passive?.damageReduction)lines.push('พาสซีฟ — '+t.passive.name+': ลดความเสียหายที่ได้รับ '+Math.round(t.passive.damageReduction*100)+'% ตลอดการต่อสู้ ก่อนคำนวณโล่');
  if(t.passive?.focusCritStep)lines.push('พาสซีฟ — '+t.passive.name+': โจมตีเป้าหมายเดิมต่อเนื่องเพิ่มโอกาสคริติคอล '+Math.round(t.passive.focusCritStep*100)+' จุดเปอร์เซ็นต์ต่อครั้ง (สูงสุด +'+Math.round(t.passive.focusCritMax*100)+' จุดเปอร์เซ็นต์) · รีเซ็ตเมื่อเปลี่ยนเป้าหมาย');
  if(t.passive?.reviveHp)lines.push('พาสซีฟ — '+t.passive.name+': เมื่อ HP เหลือ 0 คืนชีพด้วย HP '+Math.round(t.passive.reviveHp*100)+'% และเป็นอมตะ '+t.passive.immortalSeconds+' วินาที (ไม่รับดาเมจ) · 1 ครั้งต่อเวฟหรือบอส');
  if(t.globalRange)lines.push('🎯 ระยะยิงทั่วสนาม: ยิงได้จากทุกมุมโดยไม่ต้องเดินเข้าหาเป้าหมาย · ถอยเมื่อศัตรูประชิด');
@@ -642,7 +646,7 @@ function buildFighters(preserve=false){
   const hp=old?Math.max(0,Math.min(stat.hp,Math.round(old.hp/Math.max(1,old.maxHp)*stat.hp))):stat.hp;
   return {id,side:'ally',x:point.x,y:point.y,startX:point.x,move:HEROES[id].move,
    hp,maxHp:stat.hp,atk:stat.atk,cool:stat.cool,remaining:old?.remaining??i*.12,
-   attacks:old?.attacks||0,shield:old?.shield||0,
+   attacks:old?.attacks||0,shield:old?.shield||0,tauntUntil:old?.tauntUntil||0,
    focusTarget:old?.focusTarget||null,focusHits:old?.focusHits||0,
    crit:stat.crit,critDamage:stat.critDamage,
    cloakUntil:old?.cloakUntil||0,ambush:old?.ambush||false,
@@ -759,11 +763,12 @@ function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false,pierceShie
  const hero=HEROES[attacker.id];
  const chance=Math.min(1,Math.max(0,(attacker.crit||0)+bonusCrit));
  const critical=forcedCrit||(chance>0&&Math.random()<chance);
- const raw=power*(critical?(attacker.critDamage||hero.critDamage||1.5):1);
+ const raw=TFT.incomingDamage(power*(critical?(attacker.critDamage||hero.critDamage||1.5):1),HEROES[target.id]);
  const absorbed=pierceShield?0:Math.min(target.shield||0,raw);
  target.shield=Math.max(0,(target.shield||0)-absorbed);
  const damage=Math.max(0,Math.round(raw-absorbed));
  target.hp=Math.max(0,target.hp-damage);
+ position(target);
  spawnFx((critical?'CRIT ':'')+'-'+fmt(damage),target.x+(Math.random()-.5)*5,target.y-21,critical);
  if(critical)ring(target.x,target.y);
  const bar=target.side==='enemy'?target.bar:target.hpbar;
@@ -872,6 +877,14 @@ function tftSkill(attacker,target){
    return true;
   }
   case 'shield':
+   if(hero.guard){
+    const allies=attacker.side==='ally'?fighters:enemies;
+    for(const u of TFT.applyGuard(attacker,allies,hero,stageClock)){
+     position(u);ring(u.x,u.y);spawnFx('🛡 +SHIELD',u.x,u.y-20);
+    }
+    spawnFx('ยั่วยุ!',attacker.x,attacker.y-30,true);
+    return true;
+   }
    attacker.shield+=attacker.maxHp*.30;
    ring(attacker.x,attacker.y);
    spawnFx('🛡 +SHIELD',attacker.x,attacker.y-20);
