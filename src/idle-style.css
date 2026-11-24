@@ -642,3 +642,11 @@ body.studio-trial-mode>.app-shell{display:none}
 body.studio-trial-mode #trialModal{padding:4px;background:#101b2c}
 body.studio-trial-mode #trialModal .modal-overlay,body.studio-trial-mode #trialClose{display:none}
 body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
+
+/* Megumin charge and exhaustion. Image VFX remain configurable in Studio. */
+.fighter.explosion-casting::after{content:'';position:absolute;inset:-25%;border:2px dashed #ffb25e;border-radius:50%;box-shadow:0 0 24px #ff552faa,inset 0 0 14px #ff7c4955;pointer-events:none;animation:megumin-charge 2s linear infinite}
+.fighter.explosion-casting .fighter-name::after{content:' · ร่ายเวท';color:#ffb55d}
+.fighter.explosion-exhausted img{transform:rotate(-80deg) scale(.78)!important;opacity:.7;animation:none!important}
+.fighter.explosion-exhausted .fighter-name::after{content:' · หมดแรง';color:#ffbc7e}
+@keyframes megumin-charge{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.fighter.explosion-casting::after{animation:none}}

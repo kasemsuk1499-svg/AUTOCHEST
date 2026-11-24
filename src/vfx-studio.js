@@ -2,11 +2,12 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id),H=window.AUTOCHEST_CHARACTERS.HEROES,V=window.AUTOCHEST_VFX;
 const repo='kasemsuk1499-svg/AUTOCHEST',base='https://api.github.com/repos/'+repo,manifestPath='assets/effects/published.json',draftKey='AUTOCHEST_VFX_DRAFT';
-const labels={hit:'โจมตีปกติ · ตอนโดน',skillHit:'สกิล · ตอนโดน',projectile:'กระสุนปกติ',skillProjectile:'กระสุนสกิล',area:'กระแทกวงกว้าง',heal:'ฟื้นฟู HP',buff:'บัฟทีม',debuff:'ดีบัฟศัตรู',shield:'โล่',revive:'คืนชีพ',cloak:'พรางตัว'};
+const labels={hit:'โจมตีปกติ · ตอนโดน',skillHit:'สกิล · ตอนโดน',projectile:'กระสุนปกติ',skillProjectile:'กระสุนสกิล',area:'กระแทกวงกว้าง',heal:'ฟื้นฟู HP',buff:'บัฟทีม',debuff:'ดีบัฟศัตรู',shield:'โล่',revive:'คืนชีพ',cloak:'พรางตัว',cast:'วงเวทขณะร่าย',aftermath:'ควันหลังระเบิด'};
 let file=null,dataURL='',ext='',busy=false,sequence=0,sheet=null,pick='start',loop=false,loopTimer=0;
 const status=(id,msg,error=false)=>{$(id).textContent=msg;$(id).classList.toggle('error',error)};
 function eventsFor(h){
  const ranged=Number(h.range)>=1.8,events=['hit'];
+ if(h.effect==='explosion')return ['hit','projectile','cast','area','aftermath'];
  const direct=!['heal','shield','slam','chain'].includes(h.effect);
  if(direct)events.push('skillHit');
  if(ranged)events.push('projectile');
@@ -103,7 +104,7 @@ async function loadFile(){
  }catch(e){if(seq!==sequence)return;status('fileInfo',e.message,true);sync()}
 }
 function draft(){if(!validDraft())throw Error('เลือกภาพก่อน');return {hero:$('hero').value,event:$('event').value,spec:settings(dataURL)}}
-function openTrial(){try{const d=draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&v=0.19.9';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
+function openTrial(){try{const d=draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&v=0.20.0';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
 function closeTrial(){$('trialFrame').src='about:blank';$('trialPanel').hidden=true;try{sessionStorage.removeItem(draftKey)}catch(_){}}
 function exportDraft(){try{const d=draft(),url=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='vfx-'+d.hero+'-'+d.event+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){status('publishStatus',e.message,true)}}
 async function api(token,path,method='GET',body){
