@@ -41,7 +41,7 @@ footer{margin:20px 0 0;display:flex;justify-content:space-between;color:#789db8;
 .stage-viewport.travelling .stage-ground{box-shadow:inset 0 12px 18px #85ffdb13}
 .fighter.party-fighter{z-index:2}
 .fighter.enemy-unit{z-index:3;--face:-1;width:105px;height:145px;filter:drop-shadow(0 10px 9px #10071a)}
-.fighter.enemy-unit img{filter:drop-shadow(0 6px 7px #1a0416);transform:scaleX(-1)}
+.fighter.enemy-unit img{filter:drop-shadow(0 6px 7px #1a0416);transform:scaleX(-1);animation:enemy-idle 2s ease-in-out infinite}
 .fighter.enemy-unit .mini-stars{color:#ffb6c8;background:#401f36b8;border-radius:10px;padding:2px 6px;left:12%;top:-15px}
 .fighter.enemy-unit .fighter-name{color:#ffd6e0;text-shadow:0 2px 4px #000}
 .fighter.enemy-unit .enemy-hp i{background:linear-gradient(90deg,#f67797,#ffc180)}
@@ -53,7 +53,8 @@ footer{margin:20px 0 0;display:flex;justify-content:space-between;color:#789db8;
 .fighter.walking img{animation:hero-running .23s ease-in-out infinite alternate;transform-origin:50% 100%}
 .fighter.enemy-unit.walking img{animation:enemy-running .25s ease-in-out infinite alternate}
 @keyframes hero-running{from{transform:translateY(1px) rotate(-3deg)}to{transform:translateY(-8px) rotate(3deg)}}
-@keyframes enemy-running{from{transform:scaleX(-1) translateY(2px) rotate(-3deg)}to{transform:scaleX(-1) translateY(-7px) rotate(3deg)}}
+@keyframes enemy-running{from{transform:scaleX(-1) translateY(0)}to{transform:scaleX(-1) translateY(-3px)}}
+@keyframes enemy-idle{0%,100%{transform:scaleX(-1) translateY(0)}50%{transform:scaleX(-1) translateY(-2px)}}
 @keyframes enemy-aura{50%{transform:scale(1.13);opacity:.45}}
 @media(max-width:730px){.fighter.enemy-unit{width:79px;height:108px}.fighter.boss-unit{width:119px;height:153px}.fighter.enemy-unit .fighter-name{font-size:9px}}
 
