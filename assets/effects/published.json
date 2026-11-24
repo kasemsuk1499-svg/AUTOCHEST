@@ -64,6 +64,18 @@
         "size": 400,
         "ms": 1000
       }
+    },
+    "kirito": {
+      "hit": {
+        "src": "./assets/effects/kirito/hit-4338f6f967a6.png",
+        "cols": 8,
+        "rows": 1,
+        "row": 0,
+        "col": 0,
+        "frames": 8,
+        "size": 105,
+        "ms": 500
+      }
     }
   }
 }
