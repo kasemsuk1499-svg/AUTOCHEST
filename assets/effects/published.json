@@ -191,6 +191,22 @@
         "frames": 16,
         "size": 100,
         "ms": 600
+      },
+      "projectile": {
+        "src": "./assets/effects/deathgun/projectile-cddc6bebd96e.png",
+        "cols": 8,
+        "rows": 1,
+        "row": 0,
+        "col": 0,
+        "frames": 8,
+        "size": 50,
+        "ms": 600,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "thickness": 48,
+        "orientation": "horizontal"
       }
     }
   }
