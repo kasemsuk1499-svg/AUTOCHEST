@@ -240,6 +240,24 @@
         "thickness": 48,
         "orientation": "horizontal"
       }
+    },
+    "heathcliff": {
+      "hit": {
+        "src": "./assets/effects/heathcliff/hit-f7a58531ca41.png",
+        "cols": 8,
+        "rows": 2,
+        "row": 0,
+        "col": 0,
+        "frames": 13,
+        "size": 120,
+        "ms": 800,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "thickness": 48,
+        "orientation": "horizontal"
+      }
     }
   }
 }
