@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#101729">
 <meta name="description" content="AUTOCHEST IDLE — เกม SAO Idle RPG ต่อสู้และฟาร์มอัตโนมัติ">
 <title>AUTOCHEST IDLE — SAO Adventure</title>
-<link rel="stylesheet" href="./src/idle-style.css?v=0.17.2">
+<link rel="stylesheet" href="./src/idle-style.css?v=0.18.0">
 <script>
 window.__AUTOCHEST_IDLE_READY__=false;
 window.__idleBootMessage='';
@@ -29,7 +29,7 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
  <header class="app-header">
   <div class="logo-box">✦</div>
   <div class="brand"><small>SAO • HERO COLLECTION • AUTO BATTLE</small><h1>AUTO<span>CHEST</span> <em>IDLE</em></h1></div>
-  <div class="header-badge"><span class="online-dot"></span> SOLO ADVENTURE <b>v0.17.2</b></div>
+  <div class="header-badge"><span class="online-dot"></span> SOLO ADVENTURE <b>v0.18.0</b></div>
  </header>
  <div id="startupError" class="startup-error" role="alert" hidden><b>⚠️ เกมโหลดไม่สำเร็จ</b><span id="startupErrorText"></span><button type="button" onclick="idleHardReload()">🔄 โหลดเวอร์ชันใหม่</button></div>
  <div class="resource-ribbon">
@@ -55,21 +55,28 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
        <div class="board-region board-enemy-label">ENEMY FIELD · 3 แถวบน</div>
        <div class="board-region board-ally-label">ALLY FIELD · 3 แถวล่าง</div>
        <div id="bossTimer" class="boss-timer" hidden>👑 BOSS <b id="bossCountdown">30</b>s</div>
-       <div class="arena-caption"><span>♟️ เลือกฮีโร่ → แตะช่องวางทีม / ลากตัวละครเพื่อย้าย</span><span id="battleMessage">ตั้งรับศัตรู...</span></div>
+       <div class="arena-caption"><span>♟️ TFT BOARD · แตะ “จัดทัพ” เพื่อวางและสลับตัวละคร</span><span id="battleMessage">ตั้งรับศัตรู...</span></div>
      </div>
      <div class="battle-actions">
        <button id="challengeBtn" class="primary-btn">👑 ท้าทายบอส</button>
        <button id="autoBossBtn" class="control-btn selected">🔄 AUTO BOSS ON</button>
        <button id="speedBtn" class="control-btn">⏩ ×1</button>
      </div>
-     <div class="stage-foot"><span>♟️ สนาม 6×7 ช่อง • ศัตรูบุกต่อเนื่อง 3–5 ตัว</span><span id="farmGain">+ Gold · + Hero EXP</span></div>
+     <div class="tft-mode-status"><span>⚔️ TFT COMBAT</span> <span>👑 AUTO IDLE FARM</span> <span>🎯 ยิงไกลรักษาระยะ</span></div>
+     <div class="stage-foot"><span>♟️ จัดตำแหน่งแบบ TFT • Auto ฟาร์มทรัพยากรแบบ Idle</span><span id="farmGain">+ Gold · + Hero EXP</span></div>
      <div class="combat-log" id="battleLog" aria-live="off"></div>
    </section>
    <aside class="sidebar">
      <section class="side-card team-card">
        <div class="card-heading"><div><small>YOUR KNIGHT'S ORDER</small><h3>จัดทีมผจญภัย</h3></div><div class="count-pill" id="teamCount">3 / 4</div></div>
+       <div class="formation-toolbar">
+         <button type="button" id="formationBtn" class="formation-action" aria-pressed="false">♟️ จัดทัพ (พักการต่อสู้)</button>
+         <button type="button" id="autoBattleBtn" class="auto-battle-action" aria-pressed="true">⚔️ AUTO ON</button>
+       </div>
+       <div id="formationStatus" class="formation-status" role="status">⚔️ ระบบ Auto กำลังต่อสู้ · กดจัดทัพเพื่อพักและขยับตัวละคร</div>
        <div id="teamSlots" class="team-slots"></div>
-       <div class="team-note">แตะตัวในทีมเพื่อดูเลเวล ดาว และเสริมแกร่ง • กดช่องบนกระดานเพื่อวางตำแหน่ง</div>
+       <div class="swap-help" id="swapHelp">เลือกฮีโร่ในทีม → แตะช่องบนสนามหรือลากเพื่อย้ายได้</div>
+       <div class="team-note">เลือกฮีโร่/ลากวางใน 3 แถวล่างได้ • ทีมเต็มให้เลือกตัวสำรองแล้วแตะตัวในทีมเพื่อสลับ</div>
        <div class="inline-actions"><button id="autoTeamBtn" class="soft-btn">✦ จัดทีมอัตโนมัติ</button><button id="offlineBtn" class="soft-btn">📦 รางวัลออฟไลน์</button></div>
      </section>
      <section id="heroEnhance" class="side-card upgrade-card" aria-label="เสริมแกร่งฮีโร่">
@@ -119,14 +126,15 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
    </section>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script defer src="./src/characters.js?v=0.17.2"></script>
-<script defer src="./src/characters/heroes/asuna.js?v=0.17.2"></script>
-<script defer src="./src/characters/heroes/kirito.js?v=0.17.2"></script>
-<script defer src="./src/characters/heroes/sinon.js?v=0.17.2"></script>
-<script defer src="./src/characters/heroes/lisbeth.js?v=0.17.2"></script>
-<script defer src="./src/characters/heroes/deathgun.js?v=0.17.2"></script>
-<script defer src="./src/characters/heroes/heathcliff.js?v=0.17.2"></script>
-<script defer src="./src/characters/heroes/silica.js?v=0.17.2"></script>
-<script defer src="./src/idle-core.js?v=0.17.2"></script>
-<script defer src="./src/idle-game.js?v=0.17.2"></script>
+<script defer src="./src/characters.js?v=0.18.0"></script>
+<script defer src="./src/characters/heroes/asuna.js?v=0.18.0"></script>
+<script defer src="./src/characters/heroes/kirito.js?v=0.18.0"></script>
+<script defer src="./src/characters/heroes/sinon.js?v=0.18.0"></script>
+<script defer src="./src/characters/heroes/lisbeth.js?v=0.18.0"></script>
+<script defer src="./src/characters/heroes/deathgun.js?v=0.18.0"></script>
+<script defer src="./src/characters/heroes/heathcliff.js?v=0.18.0"></script>
+<script defer src="./src/characters/heroes/silica.js?v=0.18.0"></script>
+<script defer src="./src/idle-core.js?v=0.18.0"></script>
+<script defer src="./src/idle-tft-combat.js?v=0.18.0"></script>
+<script defer src="./src/idle-game.js?v=0.18.0"></script>
 </body></html>
