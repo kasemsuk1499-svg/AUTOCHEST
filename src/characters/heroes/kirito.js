@@ -2,21 +2,23 @@
 window.AUTOCHEST_CHARACTERS.registerHero({
   "id": "kirito",
   "name": "คิริโตะ",
-  "subtitle": "นักดาบดำ • ดาบคู่",
+  "subtitle": "ไฟต์เตอร์ • นักดาบดำผู้ไม่ยอมตาย",
   "team": "นักรบ",
   "traits": [
     "ดาบคู่",
-    "โจมตีเร็ว"
+    "คืนชีพ",
+    "อมตะ"
   ],
   "cost": 2,
-  "hp": 630,
-  "dmg": 92,
+  "hp": 820,
+  "dmg": 88,
   "range": 1.07,
   "cool": 0.84,
   "move": 117,
   "critChance": 0.18,
   "critDamage": 1.6,
   "skill": "ดาบคู่ทะลวง",
+  "passive": {"name":"เจตจำนงนักดาบดำ","reviveHp":0.5,"immortalSeconds":3},
   "effect": "slash",
   "triggerEvery": 3,
   "col": "#8893b7",
