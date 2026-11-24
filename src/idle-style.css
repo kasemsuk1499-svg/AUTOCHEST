@@ -27,3 +27,32 @@ footer{margin:20px 0 0;display:flex;justify-content:space-between;color:#789db8;
 .modal[hidden],.startup-error[hidden]{display:none}.modal{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:20px}.modal-overlay{position:absolute;inset:0;background:#050c19d9;backdrop-filter:blur(7px)}.reward-dialog{position:relative;z-index:1;width:min(440px,100%);padding:32px 28px;border:1px solid #9fcad8;border-radius:20px;background:linear-gradient(145deg,#1d3f5c,#1b2949);box-shadow:0 20px 90px #000a;text-align:center}.reward-icon{font-size:53px}.reward-dialog small{font:700 11px Rajdhani,Kanit,sans-serif;letter-spacing:2px;color:#7df0dd}.reward-dialog h2{margin:3px}.reward-dialog p{font-size:13px;color:#b9d0e4}.reward-items{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:19px 0}.reward-items div{padding:17px;border:1px solid #678aa4;border-radius:12px;background:#142f4a}.reward-items strong{display:block;font-size:21px;color:#ffe5ad}.reward-dialog .primary-btn{width:100%}.text-btn{display:block;border:0;background:transparent;color:#b0c9e3;margin:10px auto 0}.toast{position:fixed;bottom:25px;left:50%;transform:translate(-50%,20px);z-index:20;padding:11px 20px;max-width:min(580px,90vw);background:#23465d;color:#e6fff9;border:1px solid #7dedcd;border-radius:14px;font-size:13px;opacity:0;pointer-events:none;transition:all .2s;text-align:center}.toast.show{transform:translate(-50%,0);opacity:1}.startup-error{background:#5c2f31;border:1px solid #ff9a9a;border-radius:10px;padding:12px 15px;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:12px}.startup-error span{flex:1}.startup-error button{border:1px solid #ffd5ac;background:#784b34;padding:6px 12px;border-radius:8px}
 @media(max-width:1110px){.main-layout{grid-template-columns:1fr}.stage-card{position:relative}.hero-list{grid-template-columns:repeat(7,minmax(0,1fr))}.team-slots{grid-template-columns:repeat(7,minmax(0,1fr))}}
 @media(max-width:730px){.app-shell{padding:10px 10px 26px}.app-header{gap:9px}.logo-box{width:43px;height:43px;font-size:23px}.brand h1{font-size:26px}.brand small{font-size:8px;letter-spacing:1px}.header-badge{font-size:8px;padding:6px}.header-badge b{display:none}.resource-ribbon{grid-template-columns:repeat(3,1fr);gap:6px}.resource-box{padding:8px 9px}.resource-box span{font-size:9px}.resource-box strong{font-size:18px}.resource-box.power{grid-column:span 2}.stage-header{padding:14px}.stage-header h2{font-size:17px}.stage-viewport{height:360px}.monster-track{padding:10px 14px}.fighter{width:72px;height:96px}.fighter .fighter-name{font-size:9px}.enemy-figure{width:100px;height:140px}.enemy-figure .monster-icon{font-size:70px}.enemy-figure.boss .monster-icon{font-size:89px}.enemy-figure .enemy-hp{width:85px}.battle-actions{grid-template-columns:1.2fr 1fr .7fr;gap:6px;padding:12px 10px}.battle-actions button{padding:9px 5px;font-size:10px}.stage-foot{font-size:10px;flex-direction:column;gap:4px}.sidebar{gap:10px}.side-card{padding:12px}.hero-list{grid-template-columns:repeat(4,1fr)}.team-slots{grid-template-columns:repeat(4,1fr)}.hero-card img{height:70px}}
+
+/* v0.15.0 — moving world and roster-based opposing units */
+.stage-viewport{--walk-x:0px;--walk-far:0px}
+.stage-viewport::before{content:'';position:absolute;inset:18% -10% 14%;z-index:0;pointer-events:none;
+ background:repeating-linear-gradient(100deg,transparent 0 130px,#7aeadd14 130px 149px,transparent 149px 260px);
+ background-position:var(--walk-far) 0;opacity:.55}
+.hills.h1,.hills.h2{background-image:repeating-linear-gradient(115deg,#26586f 0 135px,#2b6572 135px 265px,#1c435b 265px 460px)}
+.hills.h1{background-position:var(--walk-far) 0}
+.hills.h2{background-position:var(--walk-far) 20px}
+.stage-ground{background-image:repeating-linear-gradient(110deg,#ffffff15 0 2px,transparent 2px 64px),linear-gradient(#31576b,#182d40);
+ background-size:260px 100%,auto;background-position:var(--walk-x) 0,0 0}
+.stage-viewport.travelling .stage-ground{box-shadow:inset 0 12px 18px #85ffdb13}
+.fighter.party-fighter{z-index:2}
+.fighter.enemy-unit{z-index:3;--face:-1;width:105px;height:145px;filter:drop-shadow(0 10px 9px #10071a)}
+.fighter.enemy-unit img{filter:drop-shadow(0 6px 7px #1a0416);transform:scaleX(-1)}
+.fighter.enemy-unit .mini-stars{color:#ffb6c8;background:#401f36b8;border-radius:10px;padding:2px 6px;left:12%;top:-15px}
+.fighter.enemy-unit .fighter-name{color:#ffd6e0;text-shadow:0 2px 4px #000}
+.fighter.enemy-unit .enemy-hp i{background:linear-gradient(90deg,#f67797,#ffc180)}
+.fighter.boss-unit{width:156px;height:202px;filter:drop-shadow(0 8px 18px #dd65ba88)}
+.fighter.boss-unit img{filter:drop-shadow(0 5px 10px #df6aa988)}
+.fighter.boss-unit::before{content:'';position:absolute;inset:9% 9% 18%;border-radius:50%;
+ background:radial-gradient(circle,#ffeab922,#d45cb61d 50%,transparent 67%);animation:enemy-aura 2.4s ease-in-out infinite}
+.fighter.cloaked{opacity:.24!important}
+.fighter.walking img{animation:hero-running .23s ease-in-out infinite alternate;transform-origin:50% 100%}
+.fighter.enemy-unit.walking img{animation:enemy-running .25s ease-in-out infinite alternate}
+@keyframes hero-running{from{transform:translateY(1px) rotate(-3deg)}to{transform:translateY(-8px) rotate(3deg)}}
+@keyframes enemy-running{from{transform:scaleX(-1) translateY(2px) rotate(-3deg)}to{transform:scaleX(-1) translateY(-7px) rotate(3deg)}}
+@keyframes enemy-aura{50%{transform:scale(1.13);opacity:.45}}
+@media(max-width:730px){.fighter.enemy-unit{width:79px;height:108px}.fighter.boss-unit{width:119px;height:153px}.fighter.enemy-unit .fighter-name{font-size:9px}}
