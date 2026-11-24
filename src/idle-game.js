@@ -590,14 +590,19 @@ function ring(x,y,cloak=false){
  $('fxLayer').appendChild(node);setTimeout(()=>node.remove(),850);
 }
 function clearFx(){$('fxLayer').replaceChildren()}
-function buildFighters(){
+function buildFighters(preserve=false){
+ const previous=new Map(preserve?fighters.map(f=>[f.id,f]):[]);
  fighters=state.squad.filter(id=>state.owned[id]).map((id,i)=>{
   const stat=CORE.stats(HEROES[id],state.owned[id]);
-  const placement=state.placements?.[id]||CORE.defaultCells[i];
-  const point=boardPoint(placement.col,placement.row);
-  return {id,x:point.x,y:point.y,startX:point.x,move:HEROES[id].move,hp:stat.hp,maxHp:stat.hp,atk:stat.atk,cool:stat.cool,remaining:i*.12,
-   attacks:0,shield:0,crit:stat.crit,critDamage:stat.critDamage,cloakUntil:0,ambush:false,attackUntil:0,
-   alive:true,walking:false,progress:state.owned[id]};
+  const place=state.placements?.[id]||CORE.defaultCells[i],point=boardPoint(place.col,place.row);
+  const old=previous.get(id);
+  const hp=old?Math.max(0,Math.min(stat.hp,Math.round(old.hp/Math.max(1,old.maxHp)*stat.hp))):stat.hp;
+  return {id,side:'ally',x:point.x,y:point.y,startX:point.x,move:HEROES[id].move,
+   hp,maxHp:stat.hp,atk:stat.atk,cool:stat.cool,remaining:old?.remaining??i*.12,
+   attacks:old?.attacks||0,shield:old?.shield||0,
+   crit:stat.crit,critDamage:stat.critDamage,
+   cloakUntil:old?.cloakUntil||0,ambush:old?.ambush||false,
+   attackUntil:0,alive:old?old.alive&&hp>0:true,walking:false,progress:state.owned[id]};
  });
  const layer=$('heroLayer');layer.replaceChildren();
  for(const hero of fighters){
@@ -605,11 +610,13 @@ function buildFighters(){
   node.dataset.inspectId=hero.id;node.dataset.inspectSide='ally';
   node.tabIndex=0;node.setAttribute('role','button');node.setAttribute('aria-label','ดูสกิล '+base.name);
   node.style.left=hero.x+'%';node.style.top=hero.y+'%';
-  node.innerHTML='<span class="mini-stars">'+'★'.repeat(hero.progress.stars)+'</span>'+
+  node.innerHTML='<span class="mini-stars">'+'★'.repeat(hero.progress.stars)+' · Lv.'+hero.progress.level+'</span>'+
    '<img src="'+base.images.idle+'" alt="">'+
    '<div class="mini-hp"><i></i></div><span class="fighter-name">'+escapeText(base.name)+'</span>';
   layer.appendChild(node);hero.node=node;hero.img=node.querySelector('img');
   hero.hpbar=node.querySelector('.mini-hp i');hero.sprite=base.images.idle;
+  hero.hpbar.style.width=Math.max(0,hero.hp/hero.maxHp*100)+'%';
+  if(!hero.alive)node.style.opacity='.2';
  }
 }
 function beginTravel(seconds=1.6){
@@ -626,7 +633,7 @@ function spawnMonster(boss=false){
  const hero=HEROES[id],stat=CORE.monster(state.stage,boss);
  const hp=Math.max(1,Math.round(stat.hp*(.8+hero.hp/3000)));
  const entry=boardPoint(boss?2:(encounters+2)%GRID_COLS,boss?1:(encounters%3));
- const foe={id,boss,hp,maxHp:hp,atk:Math.round(stat.atk*(.9+hero.dmg/900)),
+ const foe={id,side:'enemy',boss,hp,maxHp:hp,atk:Math.round(stat.atk*(.9+hero.dmg/900)),
   remaining:.65+Math.random()*.35,delay:Math.max(.75,hero.cool*1.2),move:hero.move,
   shield:0,attacks:0,crit:hero.critChance||.05,critDamage:hero.critDamage||1.5,
   cloakUntil:0,ambush:false,attackUntil:0,walking:true,alive:true,
@@ -678,16 +685,8 @@ function defeatMonster(foe){
  else spawnCooldown=Math.min(spawnCooldown,.17);
  updateResources();
 }
-function pickEnemy(f){
- return enemies.filter(e=>e.hp>0&&e.cloakUntil<=stageClock)
-  .sort((a,b)=>near(a,f)-near(b,f))[0]||null;
-}
-function targetHero(enemy){
- const targets=fighters.filter(f=>f.alive&&f.cloakUntil<=stageClock);
- if(!targets.length)return null;
- targets.sort((a,b)=>near(a,enemy)-near(b,enemy));
- return targets.find(f=>HEROES[f.id].team==='ป้องกัน'&&near(f,enemy)<34)||targets[0];
-}
+function pickEnemy(f){return TFT.findTarget(f,enemies,stageClock)}
+function targetHero(enemy){return TFT.findTarget(enemy,fighters,stageClock)}
 function enemyAttack(enemy,target){
  const base=HEROES[enemy.id],effect=base.effect;
  const ambush=enemy.ambush&&stageClock>=enemy.cloakUntil;
@@ -771,7 +770,7 @@ function tick(dt){
   }
   const target=pickEnemy(f);
   if(!target){f.walking=false;position(f);continue}
-  const close=defenderApproach(f,target,t);
+  const close=TFT.pursue(f,target,HEROES[f.id],t,'ally').inRange;
   position(f);
   if(close&&f.remaining<=0&&f.cloakUntil<=stageClock){
    heroAttack(f,target);
@@ -787,13 +786,13 @@ function tick(dt){
   const target=targetHero(foe);
   foe.remaining-=t;
   if(target){
-   const close=invaderApproach(foe,target,t);
+   const close=TFT.pursue(foe,target,HEROES[foe.id],t,'enemy').inRange;
    position(foe);
    if(close&&foe.remaining<=0&&foe.cloakUntil<=stageClock){
     enemyAttack(foe,target);
     foe.remaining=Math.max(.06,foe.remaining+foe.delay);
    }
-  }else{invaderPatrol(foe,t);position(foe)}
+  }else{foe.walking=false;position(foe)}
   foe.bar.style.width=foe.hp/foe.maxHp*100+'%';
  }
  if(!fighters.some(f=>f.alive)){
