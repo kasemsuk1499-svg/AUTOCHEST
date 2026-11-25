@@ -606,6 +606,27 @@
         "delayMs": 0,
         "airtimeMs": 0,
         "loopFrames": false
+      },
+      "buff": {
+        "src": "./assets/effects/kazuma/buff-02e6036b6ed2.png",
+        "cols": 8,
+        "rows": 2,
+        "row": 0,
+        "col": 0,
+        "frames": 16,
+        "size": 150,
+        "ms": 800,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "thickness": 48,
+        "orientation": "horizontal",
+        "delayMs": 0,
+        "airtimeMs": 0,
+        "loopFrames": false
       }
     }
   }
