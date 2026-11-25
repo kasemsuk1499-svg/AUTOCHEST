@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id);
 const HEROES=window.AUTOCHEST_CHARACTERS?.HEROES;
 const CORE=window.AUTOCHEST_IDLE_CORE;
-const combatHero=actor=>CORE.heroAtStars(HEROES[actor?.id],actor?.side==='ally'?(actor.progress?.stars||1):1);
+const combatHero=actor=>actor?.side==='ally'?CORE.heroAtStars(HEROES[actor?.id],actor.progress?.stars||1):CORE.enemyHero(HEROES[actor?.id],actor?.stars||1,!!actor?.boss);
 const TFT=window.AUTOCHEST_TFT_COMBAT;
 const VFX=window.AUTOCHEST_VFX;
 if(!TFT)throw Error('TFT combat module missing: src/idle-tft-combat.js');
@@ -254,7 +254,7 @@ function updateResources(){
  $('stageNumber').textContent=fmt(state.stage)+' / '+fmt(CORE.maxStage(HEROES));
  if($('floorProgress'))$('floorProgress').textContent='FLOOR '+CORE.floorNumber(state.stage)+' / '+CORE.floorCount(HEROES);
  const floorBoss=HEROES[CORE.floorBossId(state.stage,HEROES)];
- if($('floorBossName'))$('floorBossName').textContent=floorBoss?'👑 บอสประจำชั้น: '+floorBoss.name:'ยังไม่มีบอสประจำชั้น';
+ if($('floorBossName'))$('floorBossName').textContent=floorBoss?'👑 บอสประจำชั้น: '+floorBoss.name+' · '+'★'.repeat(CORE.bossStars(state.stage)):'ยังไม่มีบอสประจำชั้น';
  $('bestStage').textContent=String(state.stage).padStart(2,'0');
  const need=CORE.killsNeeded(state.stage);
  $('killCounter').textContent=state.kills+' / '+need;
@@ -510,8 +510,9 @@ function skillDescription(t,enemy=false){
 }
 function openSkill(id,source='hero',unit=null){
  const base=HEROES[id],modal=$('skillModal');if(!base||!modal)return;
- const enemy=source==='enemy',progress=enemy?null:state.owned[id],h=CORE.heroAtStars(base,progress?.stars||1),stat=CORE.stats(base,progress||{level:1,stars:1});
+ const enemy=source==='enemy',progress=enemy?null:state.owned[id];
  const active=enemy?(unit||enemies.find(x=>x.id===id)):null;
+ const stars=enemy?(active?.stars||1):(progress?.stars||1),h=enemy?CORE.enemyHero(base,stars,!!active?.boss):CORE.heroAtStars(base,stars),stat=CORE.stats(base,progress||{level:1,stars});
  const stats=[
   ['HP',fmt(active?active.maxHp:stat.hp)],
   ['ATK',fmt(active?active.atk:stat.atk)],
@@ -522,7 +523,7 @@ function openSkill(id,source='hero',unit=null){
   ['ความแรงคริ','×'+Number(h.critDamage||1.5).toFixed(2)],
   ['ความถี่สกิล','ทุก '+(h.triggerEvery||4)+' ครั้ง']
  ];
- const label=enemy?'👹 ฮีโร่เงาศัตรู · ด่าน '+state.stage:progress?
+ const label=enemy?(active?.boss?'👑 บอสประจำชั้น · '+'★'.repeat(stars):'👹 ฮีโร่เงาศัตรู')+' · ด่าน '+state.stage:progress?
   '⭐ Lv.'+progress.level+' · '+progress.stars+' ดาว':'🔒 ยังไม่อัญเชิญ · ค่าสถานะพื้นฐาน';
  $('skillModalTitle').textContent=h.name+' — '+h.skill;
  $('skillModalContent').innerHTML=
@@ -534,7 +535,7 @@ function openSkill(id,source='hero',unit=null){
   '</div></div></div><section class="skill-ability"><small>⚔ AUTO SKILL · IDLE MODE</small>'+
   '<h3>✨ '+escapeText(h.skill)+'</h3><ul>'+
   skillDescription(h,enemy).map(x=>'<li>'+escapeText(x)+'</li>').join('')+'</ul>'+
-  '<p class="skill-mode-note">ใช้กติกาต่อสู้ TFT เดิม ผสมระบบฟาร์มและกาชาแบบ Idle · เลเวลและดาวอิงค่าปัจจุบัน</p></section>'+starUpgradeHtml(base,progress?.stars||1);
+  '<p class="skill-mode-note">ใช้กติกาต่อสู้ TFT เดิม ผสมระบบฟาร์มและกาชาแบบ Idle · เลเวลและดาวอิงค่าปัจจุบัน</p></section>'+starUpgradeHtml(base,stars);
  $('skillModalContent').insertAdjacentHTML('beforeend','<button type="button" class="trial-entry" data-trial-hero="'+id+'">▶ ทดลองฮีโร่ฟรี</button>');
  skillReturnFocus=modal.hidden?document.activeElement:skillReturnFocus;
  modal.hidden=false;$('closeSkillBtn').focus();
@@ -879,20 +880,19 @@ function spawnMonster(boss=false,cell=null,quiet=false){
  const id=boss?CORE.floorBossId(state.stage,HEROES):CORE.pickEnemyId(state.stage,HEROES,Math.random,excluded);
  if(!id)return;
  if(!boss)encounters++;
- const hero=HEROES[id],stat=CORE.monster(state.stage,boss);
- const hp=Math.max(1,Math.round(stat.hp*(.8+hero.hp/3000)));
+ const stat=CORE.enemyStats(HEROES[id],state.stage,boss),hero=CORE.enemyHero(HEROES[id],stat.stars,boss),hp=stat.hp;
  const entry=cell?boardPoint(cell[0],cell[1]):
   boardPoint(boss?2:(encounters+2)%GRID_COLS,boss?1:encounters%3);
- const foe={id,side:'enemy',boss,hp,maxHp:hp,atk:Math.round(stat.atk*(.9+hero.dmg/900)),
-  remaining:.65+Math.random()*.35,delay:Math.max(.75,hero.cool*1.2),move:hero.move,
-  shield:0,attacks:0,crit:hero.critChance||.05,critDamage:hero.critDamage||1.5,
+ const foe={id,side:'enemy',boss,stars:stat.stars,hp,maxHp:hp,atk:stat.atk,
+  remaining:.65+Math.random()*.35,delay:stat.delay,move:hero.move,
+  shield:0,attacks:0,crit:stat.crit,critDamage:stat.critDamage,
   cloakUntil:0,ambush:false,attackUntil:0,walking:false,alive:true,
   timeout:boss?35:0,x:entry.x,y:entry.y,strideSeed:encounters};
  const node=el('div',{class:'fighter enemy-unit'+(boss?' boss-unit':'')});
  node.dataset.inspectId=id;node.dataset.inspectSide='enemy';
  node.tabIndex=0;node.setAttribute('role','button');
  node.setAttribute('aria-label','ดูสกิลศัตรู '+hero.name);
- node.innerHTML='<span class="mini-stars">'+(boss?'👑 BOSS':'⚔ ENEMY')+'</span>'+
+ node.innerHTML='<span class="mini-stars">'+(boss?'👑 '+'★'.repeat(stat.stars):'⚔ ENEMY')+'</span>'+
   '<img src="'+hero.images.idle+'" alt="">'+
   '<div class="mini-hp enemy-hp"><i></i></div>'+
   '<span class="fighter-name">'+(boss?'👑 ':'⚔ เงา')+escapeText(hero.name)+'</span>';
@@ -902,7 +902,7 @@ function spawnMonster(boss=false,cell=null,quiet=false){
  enemies.push(foe);combat=enemies[0];
  position(foe);travelScene();
  if(!quiet){
-  $('battleMessage').textContent=boss?'👑 บอส '+hero.name+' ปรากฏตัว!':
+  $('battleMessage').textContent=boss?'👑 บอส '+hero.name+' '+ '★'.repeat(stat.stars)+' ปรากฏตัว!':
    '⚔️ เวฟ '+waveCount+' · ศัตรู '+enemies.length+' ตัว';
   updateResources();
  }
@@ -1283,7 +1283,7 @@ function tick(dt){
   const target=targetHero(foe);
   foe.remaining-=t;
   if(target){
-   const close=TFT.pursue(foe,target,HEROES[foe.id],t,'enemy').inRange;
+   const close=TFT.pursue(foe,target,combatHero(foe),t,'enemy').inRange;
    position(foe);
    if(close&&foe.remaining<=0&&foe.cloakUntil<=stageClock){
     enemyAttack(foe,target);
@@ -1520,12 +1520,12 @@ for(const layerId of ['heroLayer','monsterLayer']){
   const n=e.target.closest('[data-inspect-id]');if(!n||performance.now()<ignoreInspectUntil)return;
   if(formationMode&&n.dataset.inspectSide==='ally'){choose(n.dataset.inspectId);return}
   selected=n.dataset.inspectSide==='ally'?n.dataset.inspectId:selected;
-  openSkill(n.dataset.inspectId,n.dataset.inspectSide==='enemy'?'enemy':'hero');
+  openSkill(n.dataset.inspectId,n.dataset.inspectSide==='enemy'?'enemy':'hero',enemies.find(u=>u.node===n));
  });
  layer.addEventListener('keydown',e=>{
   if(e.key!=='Enter'&&e.key!==' ')return;
   const n=e.target.closest('[data-inspect-id]');if(!n)return;
-  e.preventDefault();openSkill(n.dataset.inspectId,n.dataset.inspectSide==='enemy'?'enemy':'hero');
+  e.preventDefault();openSkill(n.dataset.inspectId,n.dataset.inspectSide==='enemy'?'enemy':'hero',enemies.find(u=>u.node===n));
  });
 }
 $('closeSkillBtn').addEventListener('click',closeSkill);
