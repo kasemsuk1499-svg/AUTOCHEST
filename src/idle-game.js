@@ -212,7 +212,7 @@ function toast(msg){
  clearTimeout(toastTimer);toastTimer=setTimeout(()=>n.classList.remove('show'),2300);
 }
 function teamStats(){
- return state.squad.map(id=>CORE.stats(HEROES[id],state.owned[id])).filter(Boolean);
+ const tags=CORE.teamSynergies(state,HEROES);return state.squad.map(id=>CORE.teamHeroStats(state,HEROES,id,state.owned[id],tags)).filter(Boolean);
 }
 // Stage backgrounds: upload matching PNG files under assets/backgrounds.
 const STAGE_BACKGROUNDS=[
@@ -360,7 +360,24 @@ function levelBatch(id,maximum=5){
  return {count,gold:paidGold,exp:paidExp};
 }
 function neededMaterials(price,have,label){return have>=price?'✓ '+label+' พร้อม':'ขาด '+fmt(price-have)+' '+label}
+function synergyEffect(t){
+ return [['hp','HP'],['atk','ATK'],['speed','ความเร็วโจมตี'],['crit','CRIT']].filter(([k])=>t[k]).map(([k,label])=>label+' +'+Math.round(t[k]*100)+(k==='crit'?' จุด%':'%')).join(' · ');
+}
+function renderSynergies(){
+ const box=$('teamSynergies');if(!box)return;
+ const tags=CORE.teamSynergies(state,HEROES),active=tags.filter(t=>t.active);
+ $('synergyCount').textContent=active.length+' แท็กทำงาน';
+ box.innerHTML=tags.sort((a,b)=>Number(!!b.active)-Number(!!a.active)||b.members.length-a.members.length).map(t=>{
+  const target=t.next?.count||t.active?.count||t.tiers[0].count;
+  return '<div class="synergy-row '+(t.active?'synergy-active':'')+'"><div class="synergy-line"><strong>'+t.icon+' '+escapeText(t.name)+'</strong><b>'+t.members.length+'/'+target+(t.active?' ✓':'')+'</b></div>'+
+   '<div class="synergy-effect">'+(t.active?escapeText(synergyEffect(t.active)):'ยังไม่ทำงาน')+'</div>'+
+   '<div class="synergy-tier-line">'+t.tiers.map(x=>'<span class="'+(t.active?.count===x.count?'reached':'')+'">'+x.count+' ตัว · '+escapeText(synergyEffect(x))+'</span>').join('')+'</div>'+
+   '<div class="synergy-members">'+t.available.map(id=>'<span class="'+(t.members.includes(id)?'deployed':'')+'" title="'+escapeText(HEROES[id].name)+'"><img loading="lazy" src="'+HEROES[id].portrait+'" alt="'+escapeText(HEROES[id].name)+'"></span>').join('')+'</div>'+
+   (t.next?'<small>ขาดอีก '+(t.next.count-t.members.length)+' ตัวสำหรับขั้นถัดไป</small>':'<small>ครบขั้นสูงสุด</small>')+'</div>';
+ }).join('');
+}
 function renderTeam(){
+ renderSynergies();
  $('teamSlots').innerHTML=Array.from({length:CORE.maxSquad(state.stage)},(_,i)=>{
   const id=state.squad[i];
   if(!id)return '<button type="button" class="team-slot empty" data-slot="empty" aria-label="ช่องทีมว่าง">＋<small>ว่าง</small></button>';
@@ -400,10 +417,11 @@ function renderSelected(){
    starUpgradeHtml(hero,1)+'<button type="button" id="openSkillBtn" class="inspect-skill-btn">ⓘ ดูสกิลฮีโร่คนนี้</button>';
   return;
  }
- const stats=CORE.stats(hero,p),nextLv=p.level<CORE.MAX_LEVEL?
-  CORE.stats(hero,{level:p.level+1,stars:p.stars}):stats;
+ const tags=CORE.teamSynergies(state,HEROES),stats=CORE.teamHeroStats(state,HEROES,id,p,tags),nextLv=p.level<CORE.MAX_LEVEL?
+  CORE.teamHeroStats(state,HEROES,id,{level:p.level+1,stars:p.stars},tags):stats;
  const nextStar=p.stars<CORE.MAX_STARS?
-  CORE.stats(hero,{level:p.level,stars:p.stars+1}):stats;
+  CORE.teamHeroStats(state,HEROES,id,{level:p.level,stars:p.stars+1},tags):stats;
+ const activeTags=tags.filter(t=>t.active&&t.members.includes(id));
  const atMax=p.level>=CORE.MAX_LEVEL,atStarMax=p.stars>=CORE.MAX_STARS;
  const cost=CORE.levelCost(p.level),starNeed=CORE.shardsNeeded(p.stars),starGold=CORE.ascendCost(p.stars);
  const lvGood=canLevel(id),starGood=canStar(id),batch=levelBatch(id,5);
@@ -418,6 +436,7 @@ function renderSelected(){
   '<span class="gold-stars">'+'★'.repeat(p.stars)+'☆'.repeat(CORE.MAX_STARS-p.stars)+'</span>'+
   (inTeam?'<span class="equipped-tag">⚔️ ในทีม</span>':'<span class="reserve-tag">สำรอง</span>')+'</div>'+
   '</div></div>'+
+  (activeTags.length?'<div class="hero-synergy-note">✦ โบนัสแท็ก: '+activeTags.map(t=>escapeText(t.name+' ('+synergyEffect(t.active)+')')).join(' · ')+'</div>':'')+
   '<div class="detail-stats upgrade-stat-row"><div><small>❤️ HP</small><strong>'+fmt(stats.hp)+'</strong></div>'+
   '<div><small>⚔️ ATK</small><strong>'+fmt(stats.atk)+'</strong></div>'+
   '<div><small>🎯 CRIT</small><strong>'+Math.round(stats.crit*100)+'%</strong></div></div>'+
@@ -519,7 +538,7 @@ function openSkill(id,source='hero',unit=null){
  const base=HEROES[id],modal=$('skillModal');if(!base||!modal)return;
  const enemy=source==='enemy',progress=enemy?null:state.owned[id];
  const active=enemy?(unit||enemies.find(x=>x.id===id)):null;
- const stars=enemy?(active?.stars||1):(progress?.stars||1),h=enemy?CORE.enemyHero(base,stars,!!active?.boss):CORE.heroAtStars(base,stars),stat=CORE.stats(base,progress||{level:1,stars});
+ const stars=enemy?(active?.stars||1):(progress?.stars||1),h=enemy?CORE.enemyHero(base,stars,!!active?.boss):CORE.heroAtStars(base,stars),stat=enemy?CORE.stats(base,{level:1,stars}):CORE.teamHeroStats(state,HEROES,id,progress||{level:1,stars});
  const stats=[
   ['HP',fmt(active?active.maxHp:stat.hp)],
   ['ATK',fmt(active?active.atk:stat.atk)],
@@ -537,7 +556,7 @@ function openSkill(id,source='hero',unit=null){
   '<div class="skill-modal-layout"><div class="skill-portrait"><img loading="lazy" src="'+escapeText(h.images.art||h.portrait)+'" alt="'+escapeText(h.name)+'"></div>'+
   '<div class="skill-modal-main"><div class="skill-status">'+escapeText(label)+'</div><h3>'+escapeText(h.name)+'</h3>'+
   '<p>'+escapeText(h.subtitle||'')+'</p><div class="skill-tags">'+rarityBadge(h)+'<span>'+escapeText(h.role||h.team)+'</span>'+
-  (h.traits||[]).map(x=>'<span>'+escapeText(x)+'</span>').join('')+'</div>'+
+  (h.traits||[]).map(x=>'<span>'+escapeText(x)+'</span>').join('')+CORE.teamSynergies(state,HEROES).filter(t=>t.available.includes(id)).map(t=>'<span>'+escapeText(t.icon+' '+t.name)+(!enemy&&t.active&&t.members.includes(id)?' ✓':'')+'</span>').join('')+'</div>'+
   '<div class="skill-stats">'+stats.map(([k,v])=>'<div><small>'+escapeText(k)+'</small><strong>'+escapeText(v)+'</strong></div>').join('')+
   '</div></div></div><section class="skill-ability"><small>⚔ AUTO SKILL · IDLE MODE</small>'+
   '<h3>✨ '+escapeText(h.skill)+'</h3><ul>'+
@@ -615,7 +634,7 @@ function refreshUpgradeAvailability(){
 function applyLiveHeroStats(id){
  const actor=fighters.find(f=>f.id===id&&f.alive);
  if(!actor)return;
- const stat=CORE.stats(HEROES[id],state.owned[id]),old=actor.maxHp;
+ const stat=CORE.teamHeroStats(state,HEROES,id),old=actor.maxHp;
  actor.hp=Math.max(1,Math.round(actor.hp/old*stat.hp));
  actor.maxHp=stat.hp;actor.atk=stat.atk;actor.cool=stat.cool;actor.progress=state.owned[id];
  actor.crit=stat.crit;actor.critDamage=stat.critDamage;
@@ -859,9 +878,9 @@ function ring(x,y,cloak=false){
 }
 function clearFx(){for(const node of Array.from($('fxLayer').children))if(!node.classList.contains('fx-number')&&!node.classList.contains('image-vfx'))node.remove()}
 function buildFighters(preserve=false){
- const previous=new Map(preserve?fighters.map(f=>[f.id,f]):[]);
+ const previous=new Map(preserve?fighters.map(f=>[f.id,f]):[]),tags=CORE.teamSynergies(state,HEROES);
  fighters=state.squad.filter(id=>state.owned[id]).map((id,i)=>{
-  const stat=CORE.stats(HEROES[id],state.owned[id]);
+  const stat=CORE.teamHeroStats(state,HEROES,id,state.owned[id],tags);
   const place=state.placements?.[id]||CORE.defaultCells[i],point=boardPoint(place.col,place.row);
   const old=previous.get(id);
   const revive=allyRevives.get(id);
