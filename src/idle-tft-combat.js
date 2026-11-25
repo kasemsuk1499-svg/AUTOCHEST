@@ -141,7 +141,8 @@
   return true;
  }
  const debuffValue=(actor,key,clock)=>actor?.[key]?.until>clock?actor[key].amount:0;
- const outgoingMultiplier=(actor,clock)=>(1-debuffValue(actor,'attackDown',clock))*(1+debuffValue(actor,'attackUp',clock));
+ const attackBuff=(actor,clock)=>debuffValue(actor,'attackUp',clock)+debuffValue(actor,actor?.damageType==='magic'?'magicAttackUp':'physicalAttackUp',clock);
+ const outgoingMultiplier=(actor,clock)=>(1-debuffValue(actor,'attackDown',clock))*(1+attackBuff(actor,clock));
  const attackInterval=(actor,base,clock)=>base/(1+debuffValue(actor,'speedUp',clock));
  const vulnerabilityMultiplier=(actor,clock)=>1+debuffValue(actor,'vulnerability',clock);
  // Healing only affects living units; priority is lowest percentage HP.
@@ -156,7 +157,8 @@
  function applySupport(allies,config,clock){
   const units=[...new Set(allies)].filter(u=>u&&u.hp>0&&u.alive!==false);
   const healed=healWeakest(units,config.healTargets,u=>u.maxHp*config.healHp);
-  for(const u of units)for(const k of ['attackUp','speedUp']){
+  for(const u of units)for(const k of ['attackUp','physicalAttackUp','magicAttackUp','speedUp']){
+   if(k==='physicalAttackUp'&&u.damageType==='magic'||k==='magicAttackUp'&&u.damageType!=='magic')continue;
    const amount=clamp(config[k]||0,0,1);if(!amount)continue;
    const prev=u[k];u[k]={amount:Math.max(prev?.until>clock?prev.amount:0,amount),until:Math.max(prev?.until||0,clock+config.duration)};
   }
@@ -171,5 +173,5 @@
   target.shield=shieldBefore-absorbed;target.hp=hpBefore-damage;
   return {damage,absorbed,total};
  }
- window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,reviveAlly,livingHero,linkedRevive,explosionParty,blocksExplosion,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,outgoingMultiplier,vulnerabilityMultiplier,attackInterval,healWeakest,applySupport,resolveDamage});
+ window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,reviveAlly,livingHero,linkedRevive,explosionParty,blocksExplosion,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,attackBuff,outgoingMultiplier,vulnerabilityMultiplier,attackInterval,healWeakest,applySupport,resolveDamage});
 })();
