@@ -684,3 +684,14 @@ body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
 .difficulty-switch #nightmareModeBtn:disabled{opacity:.55;cursor:not-allowed}
 .stage-viewport.nightmare-arena{background:radial-gradient(ellipse at 50% 40%,#36254c 0%,#1b142c 72%);border-color:#9274be}
 .stage-viewport.nightmare-arena .board-enemy-label{color:#e0c4ff}
+
+/* Universal shard exchange and compact capped upgrade status. */
+.exchange-details{margin:10px 0;border-color:#6c5a91}
+#exchangeList{display:grid;gap:7px;max-height:300px;overflow:auto;margin-top:8px}
+.exchange-row{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:8px;padding:7px;background:#17263e;border:1px solid #394c66;border-radius:8px}
+.exchange-row img{width:40px;height:46px;object-fit:contain;object-position:center}
+.exchange-row strong,.exchange-row small{display:block;font-size:12px;overflow-wrap:anywhere}
+.exchange-row small{font-size:10px;color:#a9bfd9;margin-top:3px}
+.exchange-row button{white-space:nowrap;font-size:12px;padding:7px}
+.exchange-row button:disabled{opacity:.45}
+.upgrade-max-notice{font-size:12px;padding:7px 10px;margin:5px 0}
