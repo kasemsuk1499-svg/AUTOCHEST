@@ -6,7 +6,7 @@
  const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
  const number=(n,fallback=0)=>Number.isFinite(Number(n))?Number(n):fallback;
  const initial=()=>({
-  version:1,floorResetEvent:FLOOR_RESET_EVENT,stage:1,clearedStage:0,kills:0,bossRetryWaves:0,gold:3000,heroExp:1800,rubies:1200,tickets:START_TICKETS,
+  version:1,floorResetEvent:FLOOR_RESET_EVENT,accountEpoch:'',stage:1,clearedStage:0,kills:0,bossRetryWaves:0,gold:3000,heroExp:1800,rubies:1200,tickets:START_TICKETS,
   squad:['asuna','kirito','silica'],owned:{
    asuna:{level:1,stars:1,shards:0},
    kirito:{level:1,stars:1,shards:0},
@@ -90,6 +90,7 @@
  function normalized(raw,roster){
   if(!raw||typeof raw!=='object'||raw.version!==1)return initial();
   const state=initial(),ids=Object.keys(roster);
+  state.accountEpoch=typeof raw.accountEpoch==='string'?raw.accountEpoch:'';
   for(const key of ['stage','kills','gold','heroExp','rubies','tickets','bossWins','totalSummons'])
    state[key]=Math.floor(clamp(number(raw[key],key==='tickets'?10:state[key]),0,1e12));
   const resetFloor=number(raw.floorResetEvent,0)<FLOOR_RESET_EVENT;
