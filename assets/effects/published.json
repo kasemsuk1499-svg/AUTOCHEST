@@ -387,9 +387,14 @@
         "mode": "point",
         "scaleX": 1,
         "scaleY": 1,
-        "rotation": 0,
+        "rotation": 90,
+        "offsetX": -20,
+        "offsetY": -10,
         "thickness": 48,
-        "orientation": "horizontal"
+        "orientation": "horizontal",
+        "delayMs": 0,
+        "airtimeMs": 0,
+        "loopFrames": false
       },
       "projectile": {
         "src": "./assets/effects/silica/projectile-ad4688543510.png",
