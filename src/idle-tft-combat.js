@@ -51,6 +51,19 @@
   actor.alive=true;actor.immortalUntil=clock+Math.max(0,p.immortalSeconds||0);
   return true;
  }
+ // A caster can resurrect a fallen ally only a limited number of times per encounter.
+ function reviveAlly(caster,allies,config,clock){
+  if(!caster||caster.hp<=0||caster.alive===false||!(config?.reviveHp>0)||!(config?.reviveLimit>0)||(caster.supportRevives||0)>=config.reviveLimit)return null;
+  const target=allies.filter(u=>u&&u!==caster&&u.side===caster.side&&u.hp<=0&&u.alive===false&&!u.revivedByAlly&&u.maxHp>0)
+   .sort((a,b)=>b.maxHp-a.maxHp)[0];
+  if(!target)return null;
+  caster.supportRevives=(caster.supportRevives||0)+1;
+  target.revivedByAlly=true;target.hp=Math.max(1,Math.round(target.maxHp*clamp(config.reviveHp,0,1)));
+  target.alive=true;target.immortalUntil=clock+Math.max(0,config.reviveImmortalSeconds||0);
+  target.shield=0;target.castUntil=0;target.cloakUntil=0;target.ambush=false;target.walking=false;
+  target.attackDown=null;target.vulnerability=null;target.remaining=.5;
+  return target;
+ }
  const isImmortal=(actor,clock)=>(actor?.immortalUntil||0)>clock;
  // Focus stacks are tied to the actual target object, not its character ID.
  function focusCritBonus(actor,target,hero){
@@ -141,5 +154,5 @@
   target.shield=shieldBefore-absorbed;target.hp=hpBefore-damage;
   return {damage,absorbed,total};
  }
- window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,outgoingMultiplier,vulnerabilityMultiplier,attackInterval,healWeakest,applySupport,resolveDamage});
+ window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,reviveAlly,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,outgoingMultiplier,vulnerabilityMultiplier,attackInterval,healWeakest,applySupport,resolveDamage});
 })();
