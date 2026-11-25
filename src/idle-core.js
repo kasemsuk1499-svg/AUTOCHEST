@@ -6,7 +6,7 @@
  const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
  const number=(n,fallback=0)=>Number.isFinite(Number(n))?Number(n):fallback;
  const initial=()=>({
-  version:1,floorResetEvent:FLOOR_RESET_EVENT,accountEpoch:'',mode:'normal',nightmare:{stage:1,clearedStage:0,kills:0,bossRetryWaves:0,bossWins:0},stage:1,clearedStage:0,kills:0,bossRetryWaves:0,gold:3000,heroExp:1800,rubies:1200,tickets:START_TICKETS,
+  version:1,floorResetEvent:FLOOR_RESET_EVENT,accountEpoch:'',mode:'normal',nightmare:{stage:1,clearedStage:0,kills:0,bossRetryWaves:0,bossWins:0},stage:1,clearedStage:0,kills:0,bossRetryWaves:0,gold:3000,heroExp:1800,rubies:1200,tickets:START_TICKETS,universalShards:0,
   squad:['asuna','kirito','silica'],owned:{
    asuna:{level:1,stars:1,shards:0},
    kirito:{level:1,stars:1,shards:0},
@@ -112,7 +112,7 @@
   if(!raw||typeof raw!=='object'||raw.version!==1)return initial();
   const state=initial(),ids=Object.keys(roster);
   state.accountEpoch=typeof raw.accountEpoch==='string'?raw.accountEpoch:'';
-  for(const key of ['stage','kills','gold','heroExp','rubies','tickets','bossWins','totalSummons'])
+  for(const key of ['stage','kills','gold','heroExp','rubies','tickets','bossWins','totalSummons','universalShards'])
    state[key]=Math.floor(clamp(number(raw[key],key==='tickets'?10:state[key]),0,1e12));
   const resetFloor=number(raw.floorResetEvent,0)<FLOOR_RESET_EVENT;
   if(resetFloor){state.tickets+=100;state.stage=1;state.kills=0;state.bossWins=0;}
@@ -162,6 +162,7 @@
   state.squad=Array.isArray(raw.squad)?[...new Set(raw.squad)].filter(id=>state.owned[id]&&roster[id]).slice(0,maxSquad(state.stage)):[];
   if(!state.squad.length)state.squad=Object.keys(state.owned).slice(0,maxSquad(state.stage));
   fillPlacements(state,raw.placements);
+  for(const id of Object.keys(state.owned))convertMaxShards(state,id);
   return state;
  }
  const starCache=new WeakMap();
@@ -250,11 +251,35 @@
   const cost=levelCost(h.level);if(state.gold<cost.gold||state.heroExp<cost.exp)return false;
   state.gold-=cost.gold;state.heroExp-=cost.exp;h.level++;return true;
  }
+ const isMaxHero=p=>!!p&&p.level>=MAX_LEVEL&&p.stars>=MAX_STARS;
+ const shardExchangeRate=hero=>[0,1,2,4,10][hero?.cost]||0;
+ const heroExchangeCost=hero=>shardExchangeRate(hero)*10;
+ function convertMaxShards(state,id){
+  const p=state.owned[id];if(!p||p.stars<MAX_STARS||!p.shards)return 0;
+  const n=p.shards;state.universalShards=(state.universalShards||0)+n;p.shards=0;return n;
+ }
+ function exchangeOffer(state,roster,id){
+  const hero=roster[id],rate=shardExchangeRate(hero),p=state.owned[id];
+  if(!rate||p?.stars>=MAX_STARS)return null;
+  if(!p)return {kind:'unlock',amount:1,cost:heroExchangeCost(hero)};
+  const missing=Math.max(0,shardsNeeded(p.stars)-p.shards);
+  if(!missing)return null;
+  const amount=Math.min(missing,Math.floor((state.universalShards||0)/rate));
+  return {kind:'shards',amount:Math.max(1,amount),cost:Math.max(1,amount)*rate,rate};
+ }
+ function exchangeHero(state,roster,id){
+  const offer=exchangeOffer(state,roster,id);
+  if(!offer||state.universalShards<offer.cost)return null;
+  state.universalShards-=offer.cost;
+  if(offer.kind==='unlock')state.owned[id]={level:1,stars:1,shards:0};
+  else state.owned[id].shards+=offer.amount;
+  return offer;
+ }
  function ascend(state,id){
   const h=state.owned[id];if(!h||h.stars>=MAX_STARS)return false;
   const need=shardsNeeded(h.stars),cost=ascendCost(h.stars);
   if(h.shards<need||state.gold<cost)return false;
-  h.shards-=need;state.gold-=cost;h.stars++;return true;
+  h.shards-=need;state.gold-=cost;h.stars++;convertMaxShards(state,id);return true;
  }
  function summonCost(state,count){
   const tickets=Math.min(count,Math.max(0,Math.floor(state.tickets||0)));
@@ -280,8 +305,10 @@
    for(const entry of odds){if(roll<entry.rate){id=entry.id;break}roll-=entry.rate;}
    const isNew=!state.owned[id];
    if(isNew)state.owned[id]={level:1,stars:1,shards:0};
+   else if(state.owned[id].stars>=MAX_STARS)state.universalShards=(state.universalShards||0)+1;
    else state.owned[id].shards++;
-   rewards.push({id,isNew,shards:isNew?0:1});state.totalSummons++;
+   const universal=!isNew&&state.owned[id].stars>=MAX_STARS?1:0;
+   rewards.push({id,isNew,shards:isNew||universal?0:1,universal});state.totalSummons++;
   }
   return {count,cost,rewards};
  }
@@ -290,5 +317,5 @@
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,
   initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,bossStars,floorCount,maxStage,floorBossId,nightmareUnlocked,activeRun,nightmareBossCount,nightmareStars,nightmareBossIds,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,ascendCost,
-  normalized,heroAtStars,stats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,draw,summonCost,summonOdds,drawDetailed});
+  normalized,heroAtStars,stats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
 })();
