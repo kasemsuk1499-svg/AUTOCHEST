@@ -1029,14 +1029,14 @@
         "loopFrames": true
       },
       "groundFire": {
-        "src": "./assets/effects/qingmei/groundFire-77d4262cfb91.png",
+        "src": "./assets/effects/qingmei/groundFire-3bfda7beca16.png",
         "cols": 8,
-        "rows": 1,
+        "rows": 4,
         "row": 0,
         "col": 0,
-        "frames": 4,
+        "frames": 32,
         "size": 150,
-        "ms": 800,
+        "ms": 2000,
         "mode": "point",
         "scaleX": 1,
         "scaleY": 1,
