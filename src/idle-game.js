@@ -15,8 +15,8 @@ const attackTypeName=h=>CORE.damageType(h)==='magic'?'เวทมนตร์':
 const attackTypeMark=h=>'<span class="hero-damage-type '+CORE.damageType(h)+'" title="'+attackTypeName(h)+'">'+(CORE.damageType(h)==='magic'?'✦':'⚔')+'</span>';
 const isTankHero=h=>h.team==='ป้องกัน'||!!h.guard;
 const isSupportHero=h=>!!(h.support?.healHp||h.support?.reviveHp||h.support?.attackUp||h.support?.physicalAttackUp||h.support?.magicAttackUp||h.support?.speedUp||/SUPPORT|HEALER|REVIVER/i.test(h.role||''));
-const roleMarks=h=>(isTankHero(h)?'<span class="hero-role-type tank" title="ป้องกัน" aria-label="ป้องกัน">⛨</span>':'')+(isSupportHero(h)?'<span class="hero-role-type support" title="ซัพพอร์ต" aria-label="ซัพพอร์ต">✚</span>':'');
-const heroNameMarks=h=>'<span class="hero-type-marks">'+attackTypeMark(h)+roleMarks(h)+'</span><span class="hero-name-text">'+escapeText(h.name)+'</span>';
+const roleMark=h=>isTankHero(h)?'<span class="hero-role-type tank" title="ป้องกัน" aria-label="ป้องกัน">⛨</span>':isSupportHero(h)?'<span class="hero-role-type support" title="ซัพพอร์ต" aria-label="ซัพพอร์ต">✚</span>':attackTypeMark(h);
+const heroNameMarks=h=>'<span class="hero-type-marks">'+roleMark(h)+'</span><span class="hero-name-text">'+escapeText(h.name)+'</span>';
 const rarityClass=h=>'rarity-'+h.rarity.toLowerCase();
 const rarityBadge=h=>'<span class="rarity-badge '+rarityClass(h)+'">'+h.rarity+'</span>';
 if(!IDS.length)throw Error('No SAO heroes registered');
