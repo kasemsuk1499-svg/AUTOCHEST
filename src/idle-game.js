@@ -566,6 +566,7 @@ function renderQuest(){
 }
 function renderPanels(){
  renderGrid();updateResources();renderTeam();renderHeroes();renderSelected();renderQuest();
+ refreshUpgradePicker();
 }
 function choose(id){
  if(!HEROES[id])return;
@@ -622,6 +623,11 @@ function applyLiveHeroStats(id){
  if(stars)stars.textContent='★'.repeat(state.owned[id].stars)+' · Lv.'+state.owned[id].level;
  if(actor.hpbar)actor.hpbar.style.width=actor.hp/actor.maxHp*100+'%';
 }
+function movePastMax(){
+ if(!CORE.isMaxHero(state.owned[selected])||managementPanel?.id!=='panel-upgrade')return;
+ const next=IDS.find(id=>state.owned[id]&&!CORE.isMaxHero(state.owned[id]));
+ if(next){choose(next);refreshUpgradePicker();}
+}
 function upgrade(count=1){
  if(!state.owned[selected])return;
  const before=CORE.power(state,HEROES);
@@ -631,6 +637,7 @@ function upgrade(count=1){
  renderPanels();save();
  toast('⬆ '+HEROES[selected].name+' Lv.'+state.owned[selected].level+
   ' • พลังทีม +'+fmt(Math.max(0,CORE.power(state,HEROES)-before)));
+ movePastMax();
 }
 function rankUp(){
  const before=CORE.power(state,HEROES);
@@ -638,6 +645,7 @@ function rankUp(){
  applyLiveHeroStats(selected);renderPanels();save();
  toast('⭐ '+HEROES[selected].name+' '+state.owned[selected].stars+' ดาว! พลังทีม +'+
   fmt(Math.max(0,CORE.power(state,HEROES)-before)));
+ movePastMax();
 }
 function heroAtCell(cell){
  return cell&&state.squad.find(id=>state.placements[id]?.col===cell.col&&state.placements[id]?.row===cell.row);
