@@ -695,3 +695,23 @@ body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
 .exchange-row button{white-space:nowrap;font-size:12px;padding:7px}
 .exchange-row button:disabled{opacity:.45}
 .upgrade-max-notice{font-size:12px;padding:7px 10px;margin:5px 0}
+
+/* Team tag synergy: compact overview with expandable roster and thresholds. */
+.team-synergy-panel{margin:8px 0;border:1px solid #3d5068;border-radius:9px;background:#142338;padding:8px}
+.team-synergy-panel summary{cursor:pointer;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:6px}
+.team-synergy-panel summary::after{content:'▾';color:#90abc7}
+#synergyCount{margin-left:auto;font-size:10px;color:#9fd9ae}
+#teamSynergies{display:grid;gap:6px;margin-top:8px;max-height:340px;overflow:auto}
+.synergy-row{border:1px solid #3e4a5b;border-radius:8px;padding:7px;color:#a1b1c4;background:#1b293b}
+.synergy-row.synergy-active{border-color:#4d9d82;background:#17372f;color:#e1f7e7}
+.synergy-line{display:flex;justify-content:space-between;gap:6px;font-size:12px}
+.synergy-effect{font-size:11px;margin-top:3px}
+.synergy-tier-line{display:flex;flex-wrap:wrap;gap:3px;margin:5px 0}
+.synergy-tier-line span{font-size:9px;border:1px solid #536079;border-radius:4px;padding:3px}
+.synergy-tier-line .reached{border-color:#79c89c;color:#bbf7ce;background:#244e3c}
+.synergy-members{display:flex;gap:4px;flex-wrap:wrap}
+.synergy-members span{display:block;width:27px;height:32px;border:1px solid #63718a;border-radius:4px;overflow:hidden;opacity:.38;filter:grayscale(1)}
+.synergy-members span.deployed{opacity:1;filter:none;border-color:#75d0a2}
+.synergy-members img{width:100%;height:100%;object-fit:cover;object-position:top}
+.synergy-row>small{display:block;font-size:10px;margin-top:4px}
+.hero-synergy-note{border:1px solid #548c70;border-radius:6px;background:#1d392f;padding:7px;color:#b4eacb;font-size:11px;margin:6px 0}
