@@ -736,3 +736,11 @@ body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
 .summon-page .summon-rate-details #summonRates{max-height:240px;overflow:auto}
 @media(max-width:640px){.summon-pool{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:360px){.summon-pool{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* Favorites are separate buttons, so pinning never deploys a hero. */
+.hero-favorite-btn{position:absolute;z-index:4;right:3px;top:27px;width:23px;height:23px;padding:0;display:grid;place-items:center;border:1px solid #52657c;border-radius:5px;background:#18273d;color:#b9c8db;font-size:16px;line-height:1;cursor:pointer;touch-action:manipulation}
+.hero-favorite-btn.is-favorite{color:#ffda72;border-color:#d3a44e;background:#493b20}
+.hero-favorite-btn:hover{color:#ffda72;border-color:#d3a44e}
+.hero-favorites-toggle{width:100%;margin:4px 0;padding:7px;border-radius:7px;border:1px solid #53657c;background:#1b2c43;color:#d5dfec;font-size:12px;cursor:pointer}
+.hero-favorites-toggle[aria-pressed="true"]{color:#ffdb7e;border-color:#d3a44e;background:#44371f}
+@media(max-width:540px){.hero-favorite-btn{top:21px;width:18px;height:18px;font-size:12px;right:2px}}
