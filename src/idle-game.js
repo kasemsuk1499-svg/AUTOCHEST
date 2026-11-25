@@ -1027,7 +1027,11 @@ function visualEffect(event,actor,x=actor.x,y=actor.y,scale=1){
  const spec=VFX?.getSpec(HEROES[actor.id],event);if(!spec)return;
  renderVfxRegion(spec,spec.mode==='beam'?actor:{x,y},spec.mode==='beam'?{x,y}:null,scale);
 }
-function beamEffect(actor,target,special=false){
+// Use the shield creator's artwork at the protected unit, even if the creator has left combat.
+ function shieldEffect(target,source=target.shieldSource){
+  visualEffect('shield',{id:source||target.id,x:target.x,y:target.y});
+ }
+ function beamEffect(actor,target,special=false){
  const spec=VFX?.getSpec(HEROES[actor.id],special?'skillProjectile':'projectile');
  if(spec?.mode!=='beam')return false;
  renderVfxRegion(spec,actor,target);return true;
@@ -1054,7 +1058,7 @@ function buildFighters(preserve=false){
   const hp=old?Math.max(0,Math.min(stat.hp,Math.round(old.hp/Math.max(1,old.maxHp)*stat.hp))):stat.hp;
   return {id,side:'ally',damageType:CORE.damageType(HEROES[id]),x:point.x,y:point.y,startX:point.x,move:HEROES[id].move,
    hp,maxHp:stat.hp,atk:stat.atk,dotDamage:stat.dotDamage||0,cool:stat.cool,remaining:old?.remaining??i*.12,
-   castUntil:old?.castUntil||0,exhausted:!!old?.exhausted,explosionCount:old?.explosionCount||0,explosionReadyAt:old?.explosionReadyAt||0,attacks:old?.attacks||0,nextSkillAt:old?.nextSkillAt||0,shield:old?.shield||0,tauntUntil:old?.tauntUntil||0,
+   castUntil:old?.castUntil||0,exhausted:!!old?.exhausted,explosionCount:old?.explosionCount||0,explosionReadyAt:old?.explosionReadyAt||0,attacks:old?.attacks||0,nextSkillAt:old?.nextSkillAt||0,shield:old?.shield||0,shieldSource:old?.shield>0?old.shieldSource||null:null,tauntUntil:old?.tauntUntil||0,
    attackDown:old?.attackDown||null,vulnerability:old?.vulnerability||null,
    dots:old?.dots||[],freezeUntil:old?.freezeUntil||0,attackUp:old?.attackUp||null,physicalAttackUp:old?.physicalAttackUp||null,magicAttackUp:old?.magicAttackUp||null,speedUp:old?.speedUp||null,
    focusTarget:old?.focusTarget||null,focusHits:old?.focusHits||0,
@@ -1206,14 +1210,16 @@ function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false,pierceShie
  const critical=!dot&&(forcedCrit||(chance>0&&Math.random()<chance));
  const raw=TFT.incomingDamage(power*TFT.bossDamageMultiplier(hero,target)*TFT.outgoingMultiplier(attacker,stageClock)*TFT.vulnerabilityMultiplier(target,stageClock)*(critical?(attacker.critDamage||hero.critDamage||1.5):1),combatHero(target));
  const split=TFT.splitMagicDamage(target,target.side==='ally'?fighters:enemies,combatHero,stageClock,raw);
- const hit=TFT.resolveDamage(target,split.target,pierceShield);
+ const shieldSource=target.shieldSource;
+  const hit=TFT.resolveDamage(target,split.target,pierceShield);
  let transferred=null;
  if(split.guard&&split.redirected){
-  transferred=TFT.resolveDamage(split.guard,split.redirected,pierceShield);
+  const guardShieldSource=split.guard.shieldSource;
+   transferred=TFT.resolveDamage(split.guard,split.redirected,pierceShield);
   position(split.guard);statusFx(split.guard,'magicGuard','ปกป้องเวท');
   if(transferred.damage)unitFx(split.guard,'รับแทน −'+fmt(transferred.damage),'damage');
-  if(transferred.absorbed)unitFx(split.guard,'โล่ −'+fmt(transferred.absorbed),'shield');
-  visualEffect('shield',split.guard);
+  if(transferred.absorbed){unitFx(split.guard,'โล่ −'+fmt(transferred.absorbed),'shield');shieldEffect(split.guard,guardShieldSource)}
+   else visualEffect('shield',split.guard);
  }
  const {damage,absorbed}=hit;
  if(hero.passive?.lifesteal&&attacker.alive!==false&&attacker.hp>0){
@@ -1222,7 +1228,7 @@ function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false,pierceShie
  }
  position(target);
  if(damage>0){unitFx(target,(dot?'DOT ':critical?'CRIT ':'')+'−'+fmt(damage),'damage',critical);if(visual)visualEffect(visual,attacker,target.x,target.y,critical?1.18:1)}
- if(absorbed>0){unitFx(target,'โล่ −'+fmt(absorbed),'shield',false);visualEffect('shield',target)}
+ if(absorbed>0){unitFx(target,'โล่ −'+fmt(absorbed),'shield',false);shieldEffect(target,shieldSource)}
  if(!damage&&!absorbed)statusFx(target,'zero','0');
  if(critical)ring(target.x,target.y);
  if(transferred)finishDamage(split.guard);
@@ -1444,14 +1450,15 @@ function tftSkill(attacker,target){
     const before=new Map(allies.map(u=>[u,u.shield||0]));
     for(const u of TFT.applyGuard(attacker,allies,hero,stageClock)){
      position(u);const gained=Math.round(u.shield-(before.get(u)||0));
-     if(gained>0){visualEffect('shield',attacker,u.x,u.y);unitFx(u,'โล่ +'+fmt(gained),'shield')}
+     if(u.shield>0&&u.shieldSource===attacker.id)shieldEffect(u);
+      if(gained>0)unitFx(u,'โล่ +'+fmt(gained),'shield');
     }
     statusFx(attacker,'taunt','ยั่วยุ');
     return true;
    }
    const gain=Math.round(attacker.maxHp*.30);
-   attacker.shield=(attacker.shield||0)+gain;
-   visualEffect('shield',attacker);unitFx(attacker,'โล่ +'+fmt(gain),'shield');
+   attacker.shield=(attacker.shield||0)+gain;attacker.shieldSource=attacker.id;
+    shieldEffect(attacker);unitFx(attacker,'โล่ +'+fmt(gain),'shield');
    break;
   case 'blink':
    attacker.x=Math.max(5.5,Math.min(94.5,target.x+(Math.random()-.5)*5));

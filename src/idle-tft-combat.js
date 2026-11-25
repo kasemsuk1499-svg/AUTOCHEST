@@ -60,7 +60,7 @@
   caster.supportRevives=(caster.supportRevives||0)+1;
   target.revivedByAlly=true;target.hp=Math.max(1,Math.round(target.maxHp*clamp(config.reviveHp,0,1)));
   target.alive=true;target.immortalUntil=clock+Math.max(0,config.reviveImmortalSeconds||0);
-  target.shield=0;target.castUntil=0;target.cloakUntil=0;target.ambush=false;target.walking=false;
+  target.shield=0;target.shieldSource=null;target.castUntil=0;target.cloakUntil=0;target.ambush=false;target.walking=false;
   target.attackDown=null;target.vulnerability=null;target.remaining=.5;
   return target;
  }
@@ -70,7 +70,7 @@
   if(!actor||actor.hp>0||!(p?.aquaReviveHp>0)||!livingHero(allies,'aqua',actor.side))return false;
   actor.hp=Math.max(1,Math.round(actor.maxHp*Math.min(1,p.aquaReviveHp)));
   actor.alive=true;actor.immortalUntil=clock+Math.max(0,p.aquaImmortalSeconds||0);
-  actor.shield=0;actor.attackDown=null;actor.vulnerability=null;actor.remaining=.5;
+  actor.shield=0;actor.shieldSource=null;actor.attackDown=null;actor.vulnerability=null;actor.remaining=.5;
   return true;
  }
  function explosionParty(actor,allies,heroFor){
@@ -122,6 +122,7 @@
   for(const u of new Set([actor,...allies])){
    if(!u||u.hp<=0||u.alive===false)continue;
    const amount=Math.round(u.maxHp*(u===actor?g.selfShield:g.allyShield));
+   if(amount>0&&amount>=(u.shield||0))u.shieldSource=actor.id||hero.id||null;
    u.shield=Math.max(u.shield||0,amount);protectedUnits.push(u);
   }
   actor.tauntUntil=clock+g.tauntSeconds;
@@ -201,6 +202,7 @@
   const absorbed=pierceShield?0:Math.min(shieldBefore,total);
   const damage=Math.min(hpBefore,total-absorbed);
   target.shield=shieldBefore-absorbed;target.hp=hpBefore-damage;
+  if(!target.shield)target.shieldSource=null;
   return {damage,absorbed,total};
  }
  window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,reviveAlly,livingHero,linkedRevive,explosionParty,blocksExplosion,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,attackBuff,outgoingMultiplier,vulnerabilityMultiplier,attackInterval,healWeakest,applySupport,applyDot,dueDots,isFrozen,applyFreeze,splitMagicDamage,resolveDamage});
