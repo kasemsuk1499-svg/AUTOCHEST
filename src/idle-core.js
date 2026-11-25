@@ -7,7 +7,7 @@
  const number=(n,fallback=0)=>Number.isFinite(Number(n))?Number(n):fallback;
  const initial=()=>({
   version:1,floorResetEvent:FLOOR_RESET_EVENT,accountEpoch:'',mode:'normal',nightmare:{stage:1,clearedStage:0,kills:0,bossRetryWaves:0,bossWins:0},stage:1,clearedStage:0,kills:0,bossRetryWaves:0,gold:3000,heroExp:1800,rubies:1200,tickets:START_TICKETS,universalShards:0,
-  dungeonRepeat:true,favorites:[],squad:['asuna','kirito','silica'],owned:{
+  farmMode:'push',farmGoal:'gold',farmStages:{normal:1,nightmare:1},dungeonRepeat:true,favorites:[],squad:['asuna','kirito','silica'],owned:{
    asuna:{level:1,stars:1,shards:0},
    kirito:{level:1,stars:1,shards:0},
    silica:{level:1,stars:1,shards:0}
@@ -72,6 +72,35 @@
  }
  const nightmareUnlocked=state=>state.stage>=6||state.clearedStage>=5;
  const activeRun=state=>state.mode==='nightmare'?state.nightmare:state;
+ const farmMaxStage=(state,mode=state.mode)=>{const r=mode==='nightmare'?state.nightmare:state;return Math.max(1,Math.min(r.stage,r.clearedStage||1));};
+ const clampFarmStage=(state,stage,mode=state.mode)=>Math.floor(clamp(number(stage,1),1,farmMaxStage(state,mode)));
+ const farming=state=>['manual','smart'].includes(state.farmMode);
+ const battleStage=state=>farming(state)?clampFarmStage(state,state.farmStages?.[state.mode]):activeRun(state).stage;
+ const FARM_GOALS=['gold','exp','rubies','tickets'];
+ function farmRates(r){
+  if(!(r?.seconds>0))return null;
+  return Object.fromEntries(FARM_GOALS.map(k=>[k,(r[k]||0)*3600/r.seconds]));
+ }
+ function recordFarmWave(records,stage,seconds,kills,mode='normal'){
+  if(!(seconds>0)||!Number.isFinite(seconds))return;
+  const n=Math.max(0,Math.floor(number(kills,0))),r=farmReward(stage,mode);
+  const old=records[stage]||{waves:0,seconds:0,gold:0,exp:0,rubies:0,tickets:0};
+  const f=old.waves>=6?.8:1;
+  records[stage]={waves:Math.min(6,old.waves+1),seconds:old.seconds*f+seconds,
+   gold:old.gold*f+n*r.gold,exp:old.exp*f+n*r.exp,rubies:old.rubies*f+n*r.rubies,
+   tickets:old.tickets*f+n*(mode==='nightmare'?2:1)/ECONOMY.killsPerTicket};
+ }
+ function smartFarmStage(state,records){
+  const max=farmMaxStage(state),goal=FARM_GOALS.includes(state.farmGoal)?state.farmGoal:'gold';
+  const current=clampFarmStage(state,state.farmStages?.[state.mode]);
+  const coarse=[max,Math.ceil(max*.75),Math.ceil(max*.5),Math.ceil(max*.25),1];
+  const measured=Object.keys(records).map(Number).filter(n=>n>=1&&n<=max&&records[n].waves>=2)
+   .sort((a,b)=>(farmRates(records[b])?.[goal]||0)-(farmRates(records[a])?.[goal]||0)||b-a);
+  const best=measured[0]||current;
+  const candidates=[...new Set([...coarse,...[best-3,best-1,best+1,best+3].filter(n=>n>=1&&n<=max)])];
+  if(candidates.includes(current)&&(records[current]?.waves||0)<2)return current;
+  return candidates.find(n=>(records[n]?.waves||0)<2)||best;
+ }
  const nightmareBossCount=stage=>floorNumber(stage)>=4?3:2;
  function nightmareStars(stage,rng=Math.random){
   const max=Math.min(5,floorNumber(stage)+1);
@@ -138,6 +167,9 @@
   }
   state.mode=raw.mode==='nightmare'&&nightmareUnlocked(state)?'nightmare':'normal';
   state.dungeonRepeat=raw.dungeonRepeat!==false;
+  state.farmMode=!resetFloor&&['push','manual','smart'].includes(raw.farmMode)?raw.farmMode:'push';
+  state.farmGoal=FARM_GOALS.includes(raw.farmGoal)?raw.farmGoal:'gold';
+  for(const mode of ['normal','nightmare'])state.farmStages[mode]=clampFarmStage(state,resetFloor?1:raw.farmStages?.[mode]??farmMaxStage(state,mode),mode);
   state.autoBoss=raw.autoBoss!==false;
   state.autoWalk=raw.autoWalk!==false;
   state.autoBattle=raw.autoBattle!==false;
@@ -312,15 +344,16 @@
   if(kind==='gold')state.gold+=amount;else state.heroExp+=amount;
   return amount;
  }
- function offlineLoot(lastSaved,now,stage,carry=0){
+ function offlineLoot(lastSaved,now,stage,carry=0,mode='normal'){
+  const mult=mode==='nightmare'?2:1;
   const ms=clamp(now-lastSaved,0,OFFLINE_CAP_MS);
   const mins=Math.floor(ms/60000);
-  const total=Math.max(0,Math.min(ECONOMY.offlineMinutesPerTicket-1,Math.floor(number(carry,0))))+mins;
-  return {minutes:mins,gold:mins*(24+stage*6)*ECONOMY.offline,exp:mins*(14+stage*4)*ECONOMY.offline,
-   rubies:mins*(4+floorNumber(stage)),tickets:Math.floor(total/ECONOMY.offlineMinutesPerTicket),ticketRemainder:total%ECONOMY.offlineMinutesPerTicket};
+  const total=Math.max(0,Math.min(ECONOMY.offlineMinutesPerTicket-1,Math.floor(number(carry,0))))+mins*mult;
+  return {minutes:mins,gold:mins*(24+stage*6)*ECONOMY.offline*mult,exp:mins*(14+stage*4)*ECONOMY.offline*mult,
+   rubies:mins*(4+floorNumber(stage))*mult,tickets:Math.floor(total/ECONOMY.offlineMinutesPerTicket),ticketRemainder:total%ECONOMY.offlineMinutesPerTicket};
  }
- function awardFarmKill(state){
-  const reward=farmReward(activeRun(state).stage,state.mode);
+ function awardFarmKill(state,stage=battleStage(state)){
+  const reward=farmReward(stage,state.mode);
   state.gold+=reward.gold;state.heroExp+=reward.exp;state.rubies+=reward.rubies;
   const kills=(state.farmTicketKills||0)+(state.mode==='nightmare'?2:1);
   const tickets=Math.floor(kills/ECONOMY.killsPerTicket);
@@ -401,5 +434,5 @@
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,DUNGEON_REWARD_MULT,DUNGEON_ENTRY_COST,dungeonTiers,dungeonReward,canEnterDungeon,payDungeonEntry,claimDungeon,
   initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,bossStars,floorCount,maxStage,floorBossId,nightmareUnlocked,activeRun,nightmareBossCount,nightmareStars,nightmareBossIds,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,shardsToMax,ascendCost,
-  normalized,heroAtStars,damageType,SKILL_MIN_INTERVAL,skillAttackCount,consumeSkillAttack,explosionCastSeconds,explosionRestSeconds,stats,teamSynergies,synergyBonus,teamHeroStats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,universalShardYield,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
+  normalized,farmMaxStage,clampFarmStage,farming,battleStage,FARM_GOALS,farmRates,recordFarmWave,smartFarmStage,heroAtStars,damageType,SKILL_MIN_INTERVAL,skillAttackCount,consumeSkillAttack,explosionCastSeconds,explosionRestSeconds,stats,teamSynergies,synergyBonus,teamHeroStats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,universalShardYield,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
 })();

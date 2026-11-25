@@ -783,3 +783,6 @@ body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
 @media(max-width:420px){.resource-dungeons{margin:4px 5px;padding:6px}.dungeon-controls{grid-template-columns:1fr 1.4fr}.dungeon-controls button{grid-column:1/-1}.resource-dungeons summary small{font-size:9px}}
 
 .dungeon-repeat{display:flex;align-items:center;gap:6px;margin-top:7px;color:#dceaf4;font-size:11px;cursor:pointer}.dungeon-repeat input{accent-color:#8fe2ce;margin:0}
+
+/* AFK farm settings */
+.farm-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:8px 0}.farm-controls label{display:flex;flex-direction:column;gap:4px;min-width:0;font-size:11px}.farm-controls select{width:100%;min-width:0;background:#15233b;color:#f0f5ff;border:1px solid #405775;border-radius:6px;padding:7px 3px;font:inherit}.farm-controls select:disabled{opacity:.55}.farm-settings #farmRates{line-height:1.5;overflow-wrap:anywhere}@media(max-width:480px){.farm-controls{grid-template-columns:1fr 1fr}.farm-controls label:last-child{grid-column:1/-1}}
