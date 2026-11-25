@@ -375,7 +375,7 @@ function levelBatch(id,maximum=5){
 function neededMaterials(price,have,label){return have>=price?'✓ '+label+' พร้อม':'ขาด '+fmt(price-have)+' '+label}
 function synergyEffect(t){
  if(t.special)return t.special;
- return [['hp','HP'],['atk','ATK ทุกประเภท'],['physicalAtk','PATK'],['magicAtk','MATK'],['speed','ความเร็วโจมตี'],['crit','CRIT']].filter(([k])=>t[k]).map(([k,label])=>label+' +'+Math.round(t[k]*100)+(k==='crit'?' จุด%':'%')).join(' · ');
+ return [['hp','HP'],['atk','ATK ทุกประเภท'],['physicalAtk','PATK'],['magicAtk','MATK'],['dotDamage','DMG ต่อเนื่อง'],['speed','ความเร็วโจมตี'],['crit','CRIT']].filter(([k])=>t[k]).map(([k,label])=>label+' +'+Math.round(t[k]*100)+(k==='crit'?' จุด%':'%')).join(' · ');
 }
 function renderSynergies(){
  const box=$('teamSynergies');if(!box)return;
@@ -420,7 +420,7 @@ function filterHeroes(ids,prefix){
  return ids.filter(id=>{
   if(prefix==='Collection'&&favoritesOnly&&!state.favorites.includes(id))return false;
   const h=HEROES[id],p=state.owned[id],mt=memberTags(id);
-  const hay=[id,h.name,h.subtitle,h.role,h.team,h.rarity,attackTypeLabel(h),attackTypeName(h),faction(id),...(h.traits||[]),...mt.map(t=>t.name)].join(' ').toLocaleLowerCase();
+  const hay=[id,h.name,h.subtitle,h.role,h.team,h.rarity,attackTypeLabel(h),attackTypeName(h),faction(id),h.faction==='celestial_beast'?'สัตว์สวรรค์':'',...(h.traits||[]),...mt.map(t=>t.name)].join(' ').toLocaleLowerCase();
   return (!q||q.split(/\s+/).every(x=>hay.includes(x)))&&(!damageType||CORE.damageType(h)===damageType)&&(!tier||h.rarity===tier)&&(!role||h.team===role)&&(!tag||faction(id)===tag||mt.some(t=>t.id===tag))&&(!status||(status==='owned'&&p)||(status==='locked'&&!p)||(status==='ready'&&readyUpgrade(id))||(status==='max'&&CORE.isMaxHero(p))||(status==='unfinished'&&p&&!CORE.isMaxHero(p))||(status==='team'&&state.squad.includes(id)));
  }).sort((a,b)=>{
   const pa=state.owned[a],pb=state.owned[b];
@@ -433,7 +433,7 @@ function filterHeroes(ids,prefix){
  });
 }
 function createHeroFilters(prefix,host,mode,refresh){
- const tags=CORE.teamSynergies(state,HEROES),tagOptions=new Map([['sao','Sword Art Online'],['konosuba','KonoSuba'],['fate','Fate']]);
+ const tags=CORE.teamSynergies(state,HEROES),tagOptions=new Map([['sao','Sword Art Online'],['konosuba','KonoSuba'],['fate','Fate'],['celestial_beast','🦊 สัตว์สวรรค์']]);
  for(const t of tags)if(!tagOptions.has(t.id))tagOptions.set(t.id,t.name);
  for(const h of Object.values(HEROES))if(h.faction&&!tagOptions.has(h.faction))tagOptions.set(h.faction,h.faction);
  const opt=(items)=>items.map(([v,n])=>'<option value="'+escapeText(v)+'">'+escapeText(n)+'</option>').join('');
@@ -631,6 +631,7 @@ function openSkill(id,source='hero',unit=null){
   ['ความเร็วเดิน',String(h.move)],
   ['โอกาสคริ',Math.round((active?active.crit:stat.crit)*100)+'%'],
   ['ความแรงคริ','×'+Number(h.critDamage||1.5).toFixed(2)],
+  ...(!enemy&&stat.dotDamage>0&&h.passive?.dotPower?[['โบนัส DOT','+'+Math.round(stat.dotDamage*100)+'%']]:[]),
   ['ความถี่สกิล',h.effect==='explosion'?'ร่าย '+CORE.explosionCastSeconds(h)+' วินาที':'ทุก '+CORE.skillAttackCount(h)+' ครั้ง · เว้น ≥ '+CORE.SKILL_MIN_INTERVAL+'s']
  ];
  const label=enemy?(active?.boss?'👑 บอสประจำชั้น · '+'★'.repeat(stars):'👹 ฮีโร่เงาศัตรู · '+'★'.repeat(stars))+' · ด่าน '+run().stage:progress?
@@ -640,7 +641,7 @@ function openSkill(id,source='hero',unit=null){
   '<div class="skill-modal-layout"><div class="skill-portrait"><img loading="lazy" src="'+escapeText(h.images.art||h.portrait)+'" alt="'+escapeText(h.name)+'"></div>'+
   '<div class="skill-modal-main"><div class="skill-status">'+escapeText(label)+'</div><h3>'+escapeText(h.name)+'</h3>'+
   '<p>'+escapeText(h.subtitle||'')+'</p><div class="skill-tags">'+rarityBadge(h)+'<span>'+escapeText(h.role||h.team)+'</span>'+
-  (h.traits||[]).map(x=>'<span>'+escapeText(x)+'</span>').join('')+CORE.teamSynergies(state,HEROES).filter(t=>t.available.includes(id)).map(t=>'<span>'+escapeText(t.icon+' '+t.name)+(!enemy&&t.active&&t.members.includes(id)?' ✓':'')+'</span>').join('')+'</div>'+
+  (h.traits||[]).map(x=>'<span>'+escapeText(x)+'</span>').join('')+(h.faction==='celestial_beast'&&!CORE.teamSynergies(state,HEROES).some(t=>t.id==='celestial_beast')?'<span>🦊 สัตว์สวรรค์</span>':'')+CORE.teamSynergies(state,HEROES).filter(t=>t.available.includes(id)).map(t=>'<span>'+escapeText(t.icon+' '+t.name)+(!enemy&&t.active&&t.members.includes(id)?' ✓':'')+'</span>').join('')+'</div>'+
   '<div class="skill-stats">'+stats.map(([k,v])=>'<div><small>'+escapeText(k)+'</small><strong>'+escapeText(v)+'</strong></div>').join('')+
   '</div></div></div><section class="skill-ability"><small>⚔ AUTO SKILL · IDLE MODE</small>'+
   '<h3>✨ '+escapeText(h.skill)+'</h3><ul>'+
@@ -720,7 +721,7 @@ function applyLiveHeroStats(id){
  if(!actor)return;
  const stat=CORE.teamHeroStats(state,HEROES,id),old=actor.maxHp;
  actor.hp=Math.max(1,Math.round(actor.hp/old*stat.hp));
- actor.maxHp=stat.hp;actor.atk=stat.atk;actor.cool=stat.cool;actor.progress=state.owned[id];
+ actor.maxHp=stat.hp;actor.atk=stat.atk;actor.dotDamage=stat.dotDamage||0;actor.cool=stat.cool;actor.progress=state.owned[id];
  actor.crit=stat.crit;actor.critDamage=stat.critDamage;
  const stars=actor.node?.querySelector('.mini-stars');
  if(stars)stars.textContent='★'.repeat(state.owned[id].stars)+' · Lv.'+state.owned[id].level;
@@ -987,7 +988,7 @@ function buildFighters(preserve=false){
   const revive=allyRevives.get(id);
   const hp=old?Math.max(0,Math.min(stat.hp,Math.round(old.hp/Math.max(1,old.maxHp)*stat.hp))):stat.hp;
   return {id,side:'ally',damageType:CORE.damageType(HEROES[id]),x:point.x,y:point.y,startX:point.x,move:HEROES[id].move,
-   hp,maxHp:stat.hp,atk:stat.atk,cool:stat.cool,remaining:old?.remaining??i*.12,
+   hp,maxHp:stat.hp,atk:stat.atk,dotDamage:stat.dotDamage||0,cool:stat.cool,remaining:old?.remaining??i*.12,
    castUntil:old?.castUntil||0,exhausted:!!old?.exhausted,explosionCount:old?.explosionCount||0,explosionReadyAt:old?.explosionReadyAt||0,attacks:old?.attacks||0,nextSkillAt:old?.nextSkillAt||0,shield:old?.shield||0,tauntUntil:old?.tauntUntil||0,
    attackDown:old?.attackDown||null,vulnerability:old?.vulnerability||null,
    dots:old?.dots||[],freezeUntil:old?.freezeUntil||0,attackUp:old?.attackUp||null,physicalAttackUp:old?.physicalAttackUp||null,magicAttackUp:old?.magicAttackUp||null,speedUp:old?.speedUp||null,
@@ -1311,7 +1312,7 @@ function tftSkill(attacker,target){
    const targets=foes().sort((a,b)=>TFT.pxDist(a,target)-TFT.pxDist(b,target)).slice(0,hero.passive.dotTargets);
    for(const e of targets){
     if(!trialContext&&!combat)break;
-    if(tftDamage(attacker,e,attacker.atk*hero.skillPower,0,false,false,'skillHit')&&TFT.applyDot(e,attacker,hero.passive,stageClock)){
+    if(tftDamage(attacker,e,attacker.atk*hero.skillPower,0,false,false,'skillHit')&&TFT.applyDot(e,attacker,{...hero.passive,dotPower:hero.passive.dotPower*(1+(attacker.dotDamage||0))},stageClock)){
      visualEffect('debuff',attacker,e.x,e.y);statusFx(e,'dot','คำสาป');
     }
    }
