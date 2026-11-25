@@ -755,3 +755,11 @@ body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
 #teamSlots .team-slot:not(.empty) strong{bottom:13px;height:13px;line-height:13px;padding:0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #teamSlots .team-stars{bottom:1px;height:11px;line-height:11px;white-space:nowrap;overflow:hidden;font-size:9px;letter-spacing:0;text-align:center}
 @media(max-width:540px){#teamSlots .team-slot:not(.empty) strong{bottom:11px;height:11px;line-height:11px;font-size:8px;padding:0 1px}#teamSlots .team-stars{height:9px;line-height:9px;font-size:clamp(6px,1.7vw,8px)}}
+
+/* Keep role and damage icons on the name row without colliding with stars. */
+#teamSlots .team-slot:not(.empty) strong,#heroList .hero-card strong{display:flex;align-items:center;justify-content:center;gap:2px;min-width:0}
+.hero-type-marks{display:inline-flex!important;flex:0 0 auto;align-items:center;gap:1px;line-height:1;font-size:inherit!important;white-space:nowrap}
+.hero-type-marks .hero-damage-type{margin:0}
+.hero-role-type{display:inline!important;font-size:inherit!important;line-height:1}
+.hero-role-type.tank{color:#b6cfe1}.hero-role-type.support{color:#78e8b3}
+.hero-name-text{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
