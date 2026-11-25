@@ -45,10 +45,28 @@
  // Preserve the original nine floors even if the hero script order is changed.
  // Register new heroes at the end of the loaded roster to append their floors.
  const ORIGINAL_FLOOR_BOSSES=['asuna','kirito','sinon','lisbeth','deathgun','heathcliff','silica','megumin','artoria'];
- function floorBossId(stage,roster=window.AUTOCHEST_CHARACTERS?.HEROES){
+ function floorOrder(roster=window.AUTOCHEST_CHARACTERS?.HEROES){
   const ids=Object.keys(roster||{});
-  const order=[...ORIGINAL_FLOOR_BOSSES.filter(id=>ids.includes(id)),...ids.filter(id=>!ORIGINAL_FLOOR_BOSSES.includes(id))];
-  return order[floorNumber(stage)-1]||null;
+  return [...ORIGINAL_FLOOR_BOSSES.filter(id=>ids.includes(id)),...ids.filter(id=>!ORIGINAL_FLOOR_BOSSES.includes(id))];
+ }
+ function floorBossId(stage,roster){
+  return floorOrder(roster)[floorNumber(stage)-1]||null;
+ }
+ // Normal enemies unlock cumulatively. Rates are per spawn, not per wave.
+ function enemySpawnRates(stage,roster,excluded=[]){
+  const pool=floorOrder(roster).slice(0,floorNumber(stage));
+  const n=pool.length;
+  const weighted=pool.map((id,i)=>({id,weight:n===1?1:n===2?.5:i===n-1?.5:i===n-2?.3:.2/(n-2)}));
+  const available=weighted.filter(x=>!excluded.includes(x.id));
+  const total=available.reduce((sum,x)=>sum+x.weight,0);
+  return total?available.map(x=>({id:x.id,rate:x.weight/total})):[];
+ }
+ function pickEnemyId(stage,roster,rng=Math.random,excluded=[]){
+  const rates=enemySpawnRates(stage,roster,excluded);
+  if(!rates.length)return null;
+  let roll=rng();
+  for(const {id,rate} of rates){roll-=rate;if(roll<0)return id;}
+  return rates[rates.length-1].id;
  }
  const canChallengeStage=(state,roster)=>state.stage<=maxStage(roster)&&(state.clearedStage||0)<state.stage;
  const nextEncounter=(state,roster)=>state.autoBoss&&canChallengeStage(state,roster)&&state.kills>=killsNeeded(state.stage)&&state.bossRetryWaves===0?'boss':'wave';
@@ -204,6 +222,6 @@
   return drawDetailed(state,roster,count,rng)?.rewards.map(u=>u.id)||null;
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,
-  initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,floorCount,maxStage,floorBossId,canChallengeStage,clearStage,levelCost,shardsNeeded,ascendCost,
+  initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,floorCount,maxStage,floorBossId,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,ascendCost,
   normalized,heroAtStars,stats,power,monster,farmReward,bossReward,offlineLoot,spendLevel,ascend,draw,summonCost,summonOdds,drawDetailed});
 })();
