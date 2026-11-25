@@ -24,7 +24,10 @@ const floorResetGift=!!loaded&&loaded.version===1&&Number(loaded.floorResetEvent
 let suppressSave=false;
 if(loaded){
  const offlineStage=floorResetGift?Math.max(1,Number(loaded.stage)||1):state.stage;
- const newLoot=CORE.offlineLoot(Number(loaded.lastSaved)||Date.now(),Date.now(),offlineStage);
+ const newLoot=CORE.offlineLoot(Number(loaded.lastSaved)||Date.now(),Date.now(),offlineStage,state.offlineTicketMinutes);
+ state.offlineTicketMinutes=newLoot.ticketRemainder;
+ state.offlineBank.rubies+=newLoot.rubies;
+ state.offlineBank.tickets+=newLoot.tickets;
  state.offlineBank.minutes+=newLoot.minutes;
  state.offlineBank.gold+=newLoot.gold;
  state.offlineBank.exp+=newLoot.exp;
@@ -270,7 +273,7 @@ function updateResources(){
  $('fightLabel').textContent=combat?.boss?'BOSS BATTLE':combat?'WAVE '+waveCount:'WAVE READY';
  if(combat?.boss){$('bossCountdown').textContent=Math.max(0,Math.ceil(combat.timeout))}
  const farm=CORE.farmReward(state.stage);
- $('farmGain').textContent='ศัตรูที่ชนะ +'+fmt(farm.gold)+' G / +'+fmt(farm.exp)+' EXP';
+ $('farmGain').textContent='+'+fmt(farm.gold)+' G / +'+fmt(farm.exp)+' EXP / +'+fmt(farm.rubies)+' 💎 · 🎟 '+state.farmTicketKills+'/'+CORE.ECONOMY.killsPerTicket;
  updateSummonWallet();
  refreshUpgradeAvailability();
 }
@@ -737,17 +740,19 @@ function openOffline(){
   'ออกผจญภัยระหว่างออฟไลน์ '+Math.floor(pending.minutes/60)+' ชม. '+pending.minutes%60+' นาที (สูงสุด 8 ชั่วโมง)':
   'ยังไม่มีรางวัลออฟไลน์สะสม กลับมาเล่นใหม่หลังจากผ่านไปสักพักนะ';
  $('offlineResources').innerHTML='<div>🪙 GOLD<strong>+'+fmt(pending.gold)+'</strong></div>'+
-   '<div>🔹 HERO EXP<strong>+'+fmt(pending.exp)+'</strong></div>';
+   '<div>🔹 HERO EXP<strong>+'+fmt(pending.exp)+'</strong></div>'+
+   '<div>💎 RUBIES<strong>+'+fmt(pending.rubies)+'</strong></div>'+
+   '<div>🎟️ TICKETS<strong>+'+fmt(pending.tickets)+'</strong></div>';
  $('claimOfflineBtn').disabled=pending.minutes===0;
 }
 function closeOffline(){$('rewardModal').hidden=true}
 function claimOffline(){
  if(pending.minutes<=0)return;
- state.gold+=pending.gold;state.heroExp+=pending.exp;
+ state.gold+=pending.gold;state.heroExp+=pending.exp;state.rubies+=pending.rubies;state.tickets+=pending.tickets;
  const earned={...pending};
- state.offlineBank={minutes:0,gold:0,exp:0};pending=state.offlineBank;
+ state.offlineBank={minutes:0,gold:0,exp:0,rubies:0,tickets:0};pending=state.offlineBank;
  closeOffline();renderPanels();save();
- toast('📦 รับรางวัลออฟไลน์ +'+fmt(earned.gold)+' G และ +'+fmt(earned.exp)+' EXP');
+ toast('📦 ออฟไลน์ +'+fmt(earned.gold)+' G / +'+fmt(earned.exp)+' EXP / +'+fmt(earned.rubies)+' 💎 / +'+fmt(earned.tickets)+' 🎟');
 }
 // Keep the effect layer bounded during long idle farming sessions.
 const MAX_VISUAL_EFFECTS=70,MAX_ACTIVE_SHOTS=36;
@@ -915,7 +920,7 @@ function victoryBoss(){
  const reward=CORE.bossReward(state.stage);
  state.gold+=reward.gold;state.heroExp+=reward.exp;
  state.rubies+=reward.rubies;state.tickets+=reward.tickets;state.bossWins++;
- log('🏆 ผ่านด่าน '+state.stage+'! +'+fmt(reward.gold)+' G และ +'+fmt(reward.rubies)+' 💎');
+ log('🏆 ผ่านด่าน '+state.stage+'! +'+fmt(reward.gold)+' G / +'+fmt(reward.rubies)+' 💎 / +'+fmt(reward.tickets)+' 🎟');
  CORE.clearStage(state,HEROES);waveCount=0;save();
  const complete=!CORE.canChallengeStage(state,HEROES);
  beginTravel(1.5);
@@ -931,8 +936,8 @@ function failBoss(){
 function defeatMonster(foe){
  if(!foe||!enemies.includes(foe))return;
  if(foe.boss){victoryBoss();return}
- const reward=CORE.farmReward(state.stage);
- state.gold+=reward.gold;state.heroExp+=reward.exp;
+ const reward=CORE.awardFarmKill(state);
+ if(reward.tickets){log('🎟️ ฟาร์มครบ '+CORE.ECONOMY.killsPerTicket+' ตัว! ได้ตั๋วสุ่ม +'+reward.tickets);save();}
  state.kills=Math.min(CORE.killsNeeded(state.stage),state.kills+1);
  enemies=enemies.filter(x=>x!==foe);foe.node?.remove();
  combat=enemies[0]||null;
