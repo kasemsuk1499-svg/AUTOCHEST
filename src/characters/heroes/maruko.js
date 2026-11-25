@@ -1,6 +1,6 @@
 /* Maruko — UR magic drain tank. */
 window.AUTOCHEST_CHARACTERS.registerHero({
- id:'maruko',name:'มารุโกะ',subtitle:'Enchanting Fox',faction:'original',
+ id:'maruko',name:'มารุโกะ',subtitle:'Enchanting Fox',faction:'celestial_beast',
  team:'ป้องกัน',damageType:'magic',role:'TANK / DOT / LIFESTEAL',
  traits:['คำสาปทะลุโล่','แช่แข็งเมื่อคำสาปครบ','ดูดเลือด','รับดาเมจแทนเพื่อนสายเวท'],cost:4,
  hp:1450,dmg:125,range:2.5,cool:1.25,move:95,critChance:.08,critDamage:1.5,
