@@ -11,7 +11,7 @@ window.AUTOCHEST_CHARACTERS.registerHero({
   {star:2,label:'เวท 400% ATK · ฮีล 38% HP',patch:{skillPower:4,support:{healHp:.38}}},
   {star:3,label:'ชุบ HP 65% · อมตะ 2 วินาที',patch:{support:{reviveHp:.65,reviveImmortalSeconds:2}}},
   {star:4,label:'ใช้สกิลทุก 3 ครั้ง · โจมตี 4 / ฮีล 4 เป้าหมาย',patch:{triggerEvery:3,support:{damageTargets:4,healTargets:4}}},
-  {star:5,label:'เวท 550% ATK · ฮีล 50% · ชุบ HP 100% · อมตะ 3 วินาที',patch:{skillPower:5.5,support:{healHp:.5,reviveHp:1,reviveImmortalSeconds:3},passive:{healOnAttack:1}}}
+  {star:5,label:'เวท 550% ATK · ฮีล 50% · ชุบเพื่อน HP 100% + อมตะ 3 วินาที · คืนชีพตนเอง HP 100% + อมตะ 3 วินาที (1 ครั้ง/การต่อสู้)',patch:{skillPower:5.5,support:{healHp:.5,reviveHp:1,reviveImmortalSeconds:3},passive:{healOnAttack:1,reviveHp:1,immortalSeconds:3}}}
  ],
  col:'#75dfff',e:'💧',portrait:'./assets/heroes/aqua/art.png',
  images:{art:'./assets/heroes/aqua/art.png',idle:'./assets/heroes/aqua/idle.png',attack:'./assets/heroes/aqua/attack.png'},
