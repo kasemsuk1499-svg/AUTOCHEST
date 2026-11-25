@@ -10,6 +10,9 @@ if(!TFT)throw Error('TFT combat module missing: src/idle-tft-combat.js');
 if(!HEROES||!CORE)throw Error('Character and Idle Core modules must be loaded before idle-game.js');
 const IDS=Object.keys(HEROES);
 const rarityOrder=()=>[...IDS].sort((a,b)=>HEROES[b].cost-HEROES[a].cost);
+const attackTypeLabel=h=>CORE.damageType(h)==='magic'?'MATK':'PATK';
+const attackTypeName=h=>CORE.damageType(h)==='magic'?'เวทมนตร์':'กายภาพ';
+const attackTypeMark=h=>'<span class="hero-damage-type '+CORE.damageType(h)+'" title="'+attackTypeName(h)+'">'+(CORE.damageType(h)==='magic'?'✦':'⚔')+'</span>';
 const rarityClass=h=>'rarity-'+h.rarity.toLowerCase();
 const rarityBadge=h=>'<span class="rarity-badge '+rarityClass(h)+'">'+h.rarity+'</span>';
 if(!IDS.length)throw Error('No SAO heroes registered');
@@ -151,7 +154,7 @@ function position(actor){
  actor.node.classList.toggle('taunting',actor.hp>0&&(actor.tauntUntil||0)>stageClock);
  actor.node.classList.toggle('weakened',actor.hp>0&&TFT.debuffValue(actor,'attackDown',stageClock)>0);
  actor.node.classList.toggle('vulnerable',actor.hp>0&&TFT.debuffValue(actor,'vulnerability',stageClock)>0);
- actor.node.classList.toggle('support-buffed',actor.hp>0&&(TFT.debuffValue(actor,'attackUp',stageClock)>0||TFT.debuffValue(actor,'speedUp',stageClock)>0));
+ actor.node.classList.toggle('support-buffed',actor.hp>0&&(TFT.attackBuff(actor,stageClock)>0||TFT.debuffValue(actor,'speedUp',stageClock)>0));
 }
 // The original AUTOCHEST board is fixed. Movement happens within its 6x7 cells.
 function travelScene(){
@@ -367,7 +370,7 @@ function levelBatch(id,maximum=5){
 function neededMaterials(price,have,label){return have>=price?'✓ '+label+' พร้อม':'ขาด '+fmt(price-have)+' '+label}
 function synergyEffect(t){
  if(t.special)return t.special;
- return [['hp','HP'],['atk','ATK'],['speed','ความเร็วโจมตี'],['crit','CRIT']].filter(([k])=>t[k]).map(([k,label])=>label+' +'+Math.round(t[k]*100)+(k==='crit'?' จุด%':'%')).join(' · ');
+ return [['hp','HP'],['atk','ATK ทุกประเภท'],['physicalAtk','PATK'],['magicAtk','MATK'],['speed','ความเร็วโจมตี'],['crit','CRIT']].filter(([k])=>t[k]).map(([k,label])=>label+' +'+Math.round(t[k]*100)+(k==='crit'?' จุด%':'%')).join(' · ');
 }
 function renderSynergies(){
  const box=$('teamSynergies');if(!box)return;
@@ -403,15 +406,15 @@ const heroPageSize=24;
 let heroPage=0, favoritesOnly=false;
 function filterHeroes(ids,prefix){
  const q=($('filterQuery'+prefix)?.value||'').trim().toLocaleLowerCase();
- const tier=$('filterTier'+prefix)?.value||'',role=$('filterRole'+prefix)?.value||'',tag=$('filterTag'+prefix)?.value||'',status=$('filterStatus'+prefix)?.value||'',sort=$('filterSort'+prefix)?.value||'rarity';
+ const damageType=$('filterDamage'+prefix)?.value||'',tier=$('filterTier'+prefix)?.value||'',role=$('filterRole'+prefix)?.value||'',tag=$('filterTag'+prefix)?.value||'',status=$('filterStatus'+prefix)?.value||'',sort=$('filterSort'+prefix)?.value||'rarity';
  const tags=CORE.teamSynergies(state,HEROES);
  const memberTags=id=>tags.filter(t=>t.available.includes(id));
  const faction=id=>HEROES[id].faction||(id==='artoria'?'fate':['aqua','megumin'].includes(id)?'konosuba':['asuna','kirito','sinon','lisbeth','deathgun','heathcliff','silica'].includes(id)?'sao':'');
  return ids.filter(id=>{
   if(prefix==='Collection'&&favoritesOnly&&!state.favorites.includes(id))return false;
   const h=HEROES[id],p=state.owned[id],mt=memberTags(id);
-  const hay=[id,h.name,h.subtitle,h.role,h.team,h.rarity,faction(id),...(h.traits||[]),...mt.map(t=>t.name)].join(' ').toLocaleLowerCase();
-  return (!q||q.split(/\s+/).every(x=>hay.includes(x)))&&(!tier||h.rarity===tier)&&(!role||h.team===role)&&(!tag||faction(id)===tag||mt.some(t=>t.id===tag))&&(!status||(status==='owned'&&p)||(status==='locked'&&!p)||(status==='ready'&&readyUpgrade(id))||(status==='max'&&CORE.isMaxHero(p))||(status==='unfinished'&&p&&!CORE.isMaxHero(p))||(status==='team'&&state.squad.includes(id)));
+  const hay=[id,h.name,h.subtitle,h.role,h.team,h.rarity,attackTypeLabel(h),attackTypeName(h),faction(id),...(h.traits||[]),...mt.map(t=>t.name)].join(' ').toLocaleLowerCase();
+  return (!q||q.split(/\s+/).every(x=>hay.includes(x)))&&(!damageType||CORE.damageType(h)===damageType)&&(!tier||h.rarity===tier)&&(!role||h.team===role)&&(!tag||faction(id)===tag||mt.some(t=>t.id===tag))&&(!status||(status==='owned'&&p)||(status==='locked'&&!p)||(status==='ready'&&readyUpgrade(id))||(status==='max'&&CORE.isMaxHero(p))||(status==='unfinished'&&p&&!CORE.isMaxHero(p))||(status==='team'&&state.squad.includes(id)));
  }).sort((a,b)=>{
   const pa=state.owned[a],pb=state.owned[b];
   if(prefix==='Collection'||prefix==='Upgrade'){const fav=Number(state.favorites.includes(b))-Number(state.favorites.includes(a));if(fav)return fav;}
@@ -431,6 +434,7 @@ function createHeroFilters(prefix,host,mode,refresh){
  const root=el('div',{class:'hero-filter-bar'});
  root.innerHTML='<div class="hero-search-line"><input type="search" id="filterQuery'+prefix+'" placeholder="🔎 ค้นหาชื่อ / ID / แท็ก" aria-label="ค้นหาฮีโร่"><button type="button" class="filter-clear">ล้าง</button></div><div class="hero-filter-grid">'+
   select('filterTier','ระดับ',[['','ทุกเทียร์'],...['UR','SSR','SR','R'].map(x=>[x,x])])+
+  select('filterDamage','ประเภทพลังโจมตี',[['','ทุกประเภท ATK'],['physical','⚔ กายภาพ'],['magic','✦ เวทมนตร์']])+
   select('filterRole','อาชีพ',[['','ทุกอาชีพ'],...['นักรบ','เวท','ยิงไกล','ป้องกัน'].map(x=>[x,x])])+
   select('filterTag','แท็ก',[['','ทุกแท็ก'],...tagOptions])+
   (mode==='collection'?select('filterStatus','สถานะ',[['','ทุกสถานะ'],['owned','มีแล้ว'],['locked','ยังไม่มี'],['ready','พร้อมอัป'],['unfinished','ยังไม่ MAX'],['max','MAX'],['team','ในทีม']]):'')+
@@ -449,7 +453,7 @@ function renderHeroes(){
  $('heroList').innerHTML=ids.slice(heroPage*heroPageSize,(heroPage+1)*heroPageSize).map(id=>{
   const t=HEROES[id],p=state.owned[id],ready=readyUpgrade(id);
   return '<div class="hero-entry"><button type="button" class="hero-card '+(!p?'locked ':'')+
-   (selected===id?'active ':'')+(ready?'is-upgrade-ready ':'')+rarityClass(t)+'" data-hero="'+id+'">'+rarityBadge(t)+
+   (selected===id?'active ':'')+(ready?'is-upgrade-ready ':'')+rarityClass(t)+'" data-hero="'+id+'">'+rarityBadge(t)+attackTypeMark(t)+
    '<img loading="lazy" src="'+t.portrait+'" alt="">'+
    '<strong>'+escapeText(t.name)+'</strong>'+
    '<span class="collection-level">'+(p?(CORE.isMaxHero(p)?'✓ MAX':'LEVEL '+p.level+(p.level>=CORE.MAX_LEVEL?' MAX':'')):'🔒 ไม่ได้ปลดล็อก')+'</span>'+
@@ -484,21 +488,21 @@ function renderSelected(){
  const shardMissing=Math.max(0,starNeed-p.shards);
  box.innerHTML='<div class="upgrade-hero-header"><img src="'+hero.portrait+'" alt=""><div class="upgrade-identity">'+
   '<span class="upgrade-kicker">HERO PROGRESSION</span><h4>'+escapeText(hero.name)+' '+rarityBadge(hero)+'</h4>'+
-  '<p>'+escapeText(hero.team)+' · '+escapeText(hero.skill)+'</p>'+
+  '<p>'+escapeText(hero.team)+' · '+attackTypeName(hero)+' · '+escapeText(hero.skill)+'</p>'+
   '<div class="upgrade-badges"><span>Lv.'+p.level+' / '+CORE.MAX_LEVEL+'</span>'+
   '<span class="gold-stars">'+'★'.repeat(p.stars)+'☆'.repeat(CORE.MAX_STARS-p.stars)+'</span>'+
   (inTeam?'<span class="equipped-tag">⚔️ ในทีม</span>':'<span class="reserve-tag">สำรอง</span>')+'</div>'+
   '</div></div>'+
   (activeTags.length?'<div class="hero-synergy-note">✦ โบนัสแท็ก: '+activeTags.map(t=>escapeText(t.name+' ('+synergyEffect(t.active)+')')).join(' · ')+'</div>':'')+
   '<div class="detail-stats upgrade-stat-row"><div><small>❤️ HP</small><strong>'+fmt(stats.hp)+'</strong></div>'+
-  '<div><small>⚔️ ATK</small><strong>'+fmt(stats.atk)+'</strong></div>'+
+  '<div><small>'+attackTypeLabel(hero)+'</small><strong>'+fmt(stats.atk)+'</strong></div>'+
   '<div><small>🎯 CRIT</small><strong>'+Math.round(stats.crit*100)+'%</strong></div></div>'+
   (atMax?'<div class="upgrade-max-notice">✓ LEVEL MAX · Lv.'+CORE.MAX_LEVEL+'</div>':'<section class="upgrade-step">'+
    '<div class="upgrade-step-heading"><div><span class="step-num">1</span><strong>เพิ่มเลเวล</strong></div>'+
    '<span class="upgrade-current">Lv.'+p.level+' / '+CORE.MAX_LEVEL+'</span></div>'+
    '<div class="upgrade-progress"><i style="width:'+lvPct+'%"></i></div>'+
    '<p class="upgrade-benefit">'+(atMax?'🏅 เลเวลสูงสุดแล้ว':
-     'เลเวลถัดไป: HP <b>+'+fmt(nextLv.hp-stats.hp)+'</b> · ATK <b>+'+fmt(nextLv.atk-stats.atk)+'</b>')+'</p>'+
+     'เลเวลถัดไป: HP <b>+'+fmt(nextLv.hp-stats.hp)+'</b> · '+attackTypeLabel(hero)+' <b>+'+fmt(nextLv.atk-stats.atk)+'</b>')+'</p>'+
    (atMax?'<div class="upgrade-max-notice">✅ เลเวลสูงสุดแล้ว</div>':
    '<div class="upgrade-materials"><span id="levelGoldStatus" class="'+(state.gold>=cost.gold?'enough':'missing')+'">🪙 Gold '+fmt(state.gold)+' / '+fmt(cost.gold)+'</span>'+
    '<span id="levelExpStatus" class="'+(state.heroExp>=cost.exp?'enough':'missing')+'">🔹 EXP '+fmt(state.heroExp)+' / '+fmt(cost.exp)+'</span></div>'+
@@ -514,7 +518,7 @@ function renderSelected(){
    '<span class="upgrade-current gold-stars">'+'★'.repeat(p.stars)+'☆'.repeat(CORE.MAX_STARS-p.stars)+'</span></div>'+
    '<div class="upgrade-progress star-progress"><i style="width:'+starPct+'%"></i></div>'+
    '<p class="upgrade-benefit">'+(atStarMax?'🌟 ดาวสูงสุดแล้ว':
-     'ดาวถัดไป: HP <b>+'+fmt(nextStar.hp-stats.hp)+'</b> · ATK <b>+'+fmt(nextStar.atk-stats.atk)+'</b>')+'</p>'+
+     'ดาวถัดไป: HP <b>+'+fmt(nextStar.hp-stats.hp)+'</b> · '+attackTypeLabel(hero)+' <b>+'+fmt(nextStar.atk-stats.atk)+'</b>')+'</p>'+
    starUpgradeHtml(hero,p.stars)+
    (atStarMax?'<div class="upgrade-max-notice">✅ ครบ 5 ดาวแล้ว</div>':
     '<div class="upgrade-materials"><span id="starShardStatus" class="'+(p.shards>=starNeed?'enough':'missing')+'">🧩 ชิ้นส่วน '+fmt(p.shards)+' / '+fmt(starNeed)+'</span>'+
@@ -564,7 +568,7 @@ function skillDescription(t,enemy=false){
    lines.push('ทุก '+n+' การโจมตี: ฟื้น HP ให้สมาชิกที่มีเปอร์เซ็นต์ HP ต่ำสุด '+t.support.healTargets+' คน คนละ '+Math.round(t.support.healHp*100)+'% ของ HP สูงสุด'+(t.support.reviveHp?'':' · ไม่ชุบชีวิต'));
    if(t.support.reviveHp)lines.push('ชุบชีวิตเพื่อนที่ตาย 1 คน (HP สูงสุดมากที่สุดก่อน) ด้วย HP '+Math.round(t.support.reviveHp*100)+'% และอมตะ '+t.support.reviveImmortalSeconds+' วินาที · '+t.support.reviveLimit+' ครั้งต่อเวฟหรือบอสต่อผู้ร่าย · เป้าหมายถูกเพื่อนชุบได้ครั้งเดียว');
    if(t.support.damageTargets)lines.push('โจมตีเวทศัตรูสูงสุด '+t.support.damageTargets+' ตัว ตัวละ '+Math.round(t.skillPower*100)+'% ATK');
-   if(t.support.attackUp||t.support.speedUp)lines.push('เพิ่ม ATK '+Math.round(t.support.attackUp*100)+'% และความเร็วโจมตี '+Math.round(t.support.speedUp*100)+'% ให้ทีมที่ยังมีชีวิตทั้งหมด '+t.support.duration+' วินาที · รีเฟรชเวลา ไม่สะสมความแรง'+(t.support.damageTargets?'':' · ไม่สร้างดาเมจ'));
+   if(t.support.attackUp||t.support.physicalAttackUp||t.support.magicAttackUp||t.support.speedUp)lines.push('บัฟทีม: '+[['attackUp','พลังโจมตีทุกประเภท'],['physicalAttackUp','PATK'],['magicAttackUp','MATK'],['speedUp','ความเร็วโจมตี']].filter(([k])=>t.support[k]).map(([k,label])=>label+' +'+Math.round(t.support[k]*100)+'%').join(' · ')+' นาน '+t.support.duration+' วินาที · รีเฟรชเวลา ไม่สะสมความแรง');
    break;
   case 'chain':
    lines.push('ทุก '+n+' การโจมตี: ปล่อยกระแสพลังใส่ศัตรูสูงสุด '+(t.chainTargets||3)+' ตัว แรงนัดละ '+Math.round((t.chainPower||1.12)*100)+'% ATK');
@@ -598,7 +602,7 @@ function skillDescription(t,enemy=false){
  if(t.globalRange)lines.push('🎯 ระยะยิงทั่วสนาม: ยิงได้จากทุกมุมโดยไม่ต้องเดินเข้าหาเป้าหมาย · ถอยเมื่อศัตรูประชิด');
  else if(Number(t.range)>=1.8)lines.push('🎯 ยิงไกล: กระสุนเดินทางตามเป้าหมายและคำนวณดาเมจเมื่อกระสุนถึง; พยายามรักษาระยะเมื่อศัตรูประชิด');
  else lines.push('⚔️ ประชิด: วิ่งเข้าโจมตีตามระยะของสนาม TFT');
- return lines;
+ return lines.map(line=>line.replace(/\bATK\b/g,attackTypeLabel(t)));
 }
 function openSkill(id,source='hero',unit=null){
  const base=HEROES[id],modal=$('skillModal');if(!base||!modal)return;
@@ -607,7 +611,7 @@ function openSkill(id,source='hero',unit=null){
  const stars=enemy?(active?.stars||1):(progress?.stars||1),h=enemy?CORE.enemyHero(base,stars,!!active?.boss):CORE.heroAtStars(base,stars),stat=enemy?CORE.stats(base,{level:1,stars}):CORE.teamHeroStats(state,HEROES,id,progress||{level:1,stars});
  const stats=[
   ['HP',fmt(active?active.maxHp:stat.hp)],
-  ['ATK',fmt(active?active.atk:stat.atk)],
+  [attackTypeLabel(h),fmt(active?active.atk:stat.atk)],
   ['โจมตีทุก',Number(active?active.delay:stat.cool).toFixed(2)+' วินาที'],
   ['ระยะโจมตี',h.globalRange?'ทั่วสนาม':Number(h.range).toFixed(2)+' ช่อง'],
   ['ความเร็วเดิน',String(h.move)],
@@ -968,11 +972,11 @@ function buildFighters(preserve=false){
   const old=previous.get(id);
   const revive=allyRevives.get(id);
   const hp=old?Math.max(0,Math.min(stat.hp,Math.round(old.hp/Math.max(1,old.maxHp)*stat.hp))):stat.hp;
-  return {id,side:'ally',x:point.x,y:point.y,startX:point.x,move:HEROES[id].move,
+  return {id,side:'ally',damageType:CORE.damageType(HEROES[id]),x:point.x,y:point.y,startX:point.x,move:HEROES[id].move,
    hp,maxHp:stat.hp,atk:stat.atk,cool:stat.cool,remaining:old?.remaining??i*.12,
    castUntil:old?.castUntil||0,exhausted:!!old?.exhausted,explosionCount:old?.explosionCount||0,explosionReadyAt:old?.explosionReadyAt||0,attacks:old?.attacks||0,nextSkillAt:old?.nextSkillAt||0,shield:old?.shield||0,tauntUntil:old?.tauntUntil||0,
    attackDown:old?.attackDown||null,vulnerability:old?.vulnerability||null,
-   attackUp:old?.attackUp||null,speedUp:old?.speedUp||null,
+   attackUp:old?.attackUp||null,physicalAttackUp:old?.physicalAttackUp||null,magicAttackUp:old?.magicAttackUp||null,speedUp:old?.speedUp||null,
    focusTarget:old?.focusTarget||null,focusHits:old?.focusHits||0,
    crit:stat.crit,critDamage:stat.critDamage,
    cloakUntil:old?.cloakUntil||0,ambush:old?.ambush||false,
@@ -1015,7 +1019,7 @@ function spawnMonster(boss=false,cell=null,quiet=false,forcedId=null){
  const stat=CORE.enemyStats(HEROES[id],stage,boss,state.mode,night()&&!boss?CORE.nightmareStars(stage):1),hero=CORE.enemyHero(HEROES[id],stat.stars,boss),hp=stat.hp;
  const entry=cell?boardPoint(cell[0],cell[1]):
   boardPoint(boss?2:(encounters+2)%GRID_COLS,boss?1:encounters%3);
- const foe={id,side:'enemy',boss,stars:stat.stars,hp,maxHp:hp,atk:stat.atk,
+ const foe={id,side:'enemy',damageType:CORE.damageType(hero),boss,stars:stat.stars,hp,maxHp:hp,atk:stat.atk,
   remaining:.65+Math.random()*.35,delay:stat.delay,move:hero.move,
   shield:0,attacks:0,crit:stat.crit,critDamage:stat.critDamage,
   cloakUntil:0,ambush:false,attackUntil:0,walking:false,alive:true,
@@ -1261,7 +1265,7 @@ function tftSkill(attacker,target){
    const allies=attacker.side==='ally'?fighters:enemies;
    const result=TFT.applySupport(allies,hero.support,stageClock);
    showHealing(result.healed,attacker);
-   if(hero.support.attackUp||hero.support.speedUp)for(const u of result.units){position(u);visualEffect('buff',attacker,u.x,u.y,.85);unitFx(u,'ATK +'+Math.round(TFT.debuffValue(u,'attackUp',stageClock)*100)+'% · SPD +'+Math.round(TFT.debuffValue(u,'speedUp',stageClock)*100)+'%','buff')}
+   if(hero.support.attackUp||hero.support.physicalAttackUp||hero.support.magicAttackUp||hero.support.speedUp)for(const u of result.units){const attack=TFT.attackBuff(u,stageClock),speed=TFT.debuffValue(u,'speedUp',stageClock);if(!attack&&!speed)continue;position(u);visualEffect('buff',attacker,u.x,u.y,.85);unitFx(u,[attack?attackTypeLabel(HEROES[u.id])+' +'+Math.round(attack*100)+'%':'',speed?'SPD +'+Math.round(speed*100)+'%':''].filter(Boolean).join(' · '),'buff')}
    if(hero.support.reviveHp){
     const candidates=attacker.side==='ally'||trialContext?allies:fallenEnemies;
     const revived=TFT.reviveAlly(attacker,candidates,hero.support,stageClock);
@@ -1482,7 +1486,7 @@ function withTrial(fn){
 }
 function trialUnit(id,side,x,y,hp,maxHp,label,stars=1){
  const progress={level:1,stars},h=HEROES[id],st=h?CORE.stats(h,progress):{atk:100,cool:1,crit:0,critDamage:1};
- const actor={id,side,x,y,hp,maxHp,progress,atk:st.atk,cool:st.cool,crit:st.crit,critDamage:st.critDamage,alive:true,shield:0,attacks:0,attackUntil:0,cloakUntil:0,ambush:false,walking:false,label};
+ const actor={id,side,damageType:CORE.damageType(h),x,y,hp,maxHp,progress,atk:st.atk,cool:st.cool,crit:st.crit,critDamage:st.critDamage,alive:true,shield:0,attacks:0,attackUntil:0,cloakUntil:0,ambush:false,walking:false,label};
  const node=el('div',{class:'fighter '+(side==='enemy'?'enemy-unit trial-dummy':'party-fighter')});
  node.innerHTML='<span class="mini-stars">'+(side==='enemy'?'DUMMY':'Lv.1 '+'★'.repeat(stars))+'</span>'+
  (h?'<img src="'+h.images.idle+'" alt="">':'<div class="dummy-icon">◎</div>')+
@@ -1509,7 +1513,7 @@ function resetTrial(){
  const cells=h.cleave?[[50,42],[50,27],[66,37],[25,25],[80,20]]:h.effect==='pierce'?[[50,42],[50,25],[50,10],[24,30],[76,30]]:[[50,38],[33,32],[67,32],[18,15],[82,15]];
  for(let i=0;i<count;i++){const [x,y]=cells[i];const dummy=trialUnit('__dummy','enemy',x,y,bossTrial?12000:3000,bossTrial?12000:3000,bossTrial?'👑 หุ่นบอส':'หุ่น '+(i+1));dummy.boss=bossTrial;trial.enemies.push(dummy)}
  $('trialSkillName').innerHTML=rarityBadge(h)+' '+escapeText(h.skill);
- $('trialStats').textContent='HP '+fmt(st.hp)+' · ATK '+fmt(st.atk)+' · '+(h.globalRange?'ทั่วสนาม':h.range+' ช่อง');
+ $('trialStats').textContent='HP '+fmt(st.hp)+' · '+attackTypeLabel(h)+' '+fmt(st.atk)+' · '+(h.globalRange?'ทั่วสนาม':h.range+' ช่อง');
  $('trialPassive').disabled=!(h.passive||h.guard||h.effect==='cloakshot');
  $('trialPassive').textContent=h.effect==='explosion'?'ทดลองหมดแรง':h.passive?.reviveHp?'ทดสอบคืนชีพตัวเอง':h.support?.reviveHp?'ทดสอบชุบเพื่อน':h.passive?.aquaReviveHp?'ทดสอบคืนชีพ':h.passive?.focusCritStep?'ทดสอบคริต่อเนื่อง':h.passive?.healOnAttack?'ทดสอบฮีลปกติ':h.guard?'ทดสอบยั่วยุ':h.effect==='cloakshot'?'ทดสอบซุ่มยิง':h.passive?.damageReduction?'ทดสอบลดดาเมจ':'ทดลองพาสซีฟ';
  withTrial(renderTrial);
