@@ -173,13 +173,18 @@
   const atk=Math.round((boss?55:15)*Math.pow(1.098,n));
   return {hp,atk,delay:boss?1.45:2.15};
  }
- // Keep the existing stage curve and apply the same star stat multipliers as heroes.
+ // Boss stars primarily unlock skills; avoid multiplying the exponential stage curve by full player stat growth.
+ function enemyHero(hero,stars=1,boss=false){
+  const h=heroAtStars(hero,stars);
+  if(!h||!boss||!h.support)return h;
+  // Bosses have huge HP pools; percent healing must not stall the 35-second encounter.
+  return {...h,support:{...h.support,healHp:Math.min(h.support.healHp||0,.10)}};
+ }
  function enemyStats(hero,stage,boss=false){
-  const stars=boss?bossStars(stage):1,h=heroAtStars(hero,stars),base=monster(stage,boss);
-  const normal=stats(hero,{level:1,stars:1}),scaled=stats(hero,{level:1,stars});
-  return {stars,hp:Math.max(1,Math.round(base.hp*(.8+hero.hp/3000)*scaled.hp/normal.hp)),
-   atk:Math.round(base.atk*(.9+hero.dmg/900)*scaled.atk/normal.atk),
-   delay:Math.max(.75,h.cool*1.2),crit:scaled.crit,critDamage:scaled.critDamage};
+  const stars=boss?bossStars(stage):1,h=enemyHero(hero,stars,boss),base=monster(stage,boss);
+  return {stars,hp:Math.max(1,Math.round(base.hp*(.8+hero.hp/3000)*(1+(stars-1)*.03))),
+   atk:Math.round(base.atk*(.9+hero.dmg/900)*(1+(stars-1)*.02)),
+   delay:Math.max(.75,h.cool*1.2),crit:h.critChance||.05,critDamage:h.critDamage||1.5};
  }
  // Economy balance: speed up levelling without devaluing duplicate hero shards.
  const ECONOMY=Object.freeze({farm:3,boss:3,offline:5,bossRubies:3,killsPerTicket:20,offlineMinutesPerTicket:30});
@@ -250,5 +255,5 @@
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,
   initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,bossStars,floorCount,maxStage,floorBossId,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,ascendCost,
-  normalized,heroAtStars,stats,power,monster,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,draw,summonCost,summonOdds,drawDetailed});
+  normalized,heroAtStars,stats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,draw,summonCost,summonOdds,drawDetailed});
 })();
