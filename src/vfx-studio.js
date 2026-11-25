@@ -2,7 +2,7 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id),H=window.AUTOCHEST_CHARACTERS.HEROES,V=window.AUTOCHEST_VFX;
 const repo='kasemsuk1499-svg/AUTOCHEST',base='https://api.github.com/repos/'+repo,manifestPath='assets/effects/published.json',draftKey='AUTOCHEST_VFX_DRAFT';
-const labels={freeze:'แช่แข็ง · เมื่อคำสาปครบ',dot:'คำสาป · ดาเมจต่อเนื่อง',hit:'โจมตีปกติ · ตอนโดน',skillHit:'สกิล · ตอนโดน',projectile:'กระสุนปกติ',skillProjectile:'กระสุนสกิล',area:'กระแทกวงกว้าง',heal:'ฟื้นฟู HP',buff:'บัฟทีม',debuff:'ดีบัฟศัตรู',shield:'โล่',revive:'คืนชีพ',cloak:'พรางตัว',cast:'วงเวทขณะร่าย',aftermath:'ควันหลังระเบิด',cleave:'ฟันหมู่ปกติ'};
+const labels={freeze:'แช่แข็ง · เมื่อคำสาปครบ',dot:'คำสาป · ดาเมจต่อเนื่อง',hit:'โจมตีปกติ · ตอนโดน',skillHit:'สกิล · ตอนโดน',projectile:'กระสุนปกติ',skillProjectile:'กระสุนสกิล',area:'กระแทกวงกว้าง',heal:'ฟื้นฟู HP',buff:'บัฟทีม',debuff:'ดีบัฟศัตรู',shield:'โล่',revive:'คืนชีพ',cloak:'พรางตัว',cast:'วงเวทขณะร่าย',aftermath:'ควันหลังระเบิด',cleave:'ฟันหมู่ปกติ',groundFire:'ทางไฟ · พื้นสนาม'};
 let file=null,dataURL='',ext='',busy=false,sequence=0,sheet=null,pick='start',loop=false,loopTimer=0;
 const status=(id,msg,error=false)=>{$(id).textContent=msg;$(id).classList.toggle('error',error)};
 function eventsFor(h){
@@ -16,6 +16,7 @@ function eventsFor(h){
  for(const event of Object.keys(h.visual?.layout||{}))if(labels[event]&&!events.includes(event))events.push(event);
  if(h.effect==='slam')events.push('area','debuff');
  if(h.effect==='dot')events.push('dot','debuff');
+ if(h.effect==='firetrail')events.push('groundFire');
  if(h.passive?.dotFreezeSeconds)events.push('freeze');
  if(h.passive?.lifesteal&&!events.includes('heal'))events.push('heal');
  if(h.passive?.magicGuard&&!events.includes('shield'))events.push('shield');
@@ -33,7 +34,7 @@ function selectHero(){
  selectEvent();
 }
 function selectEvent(){
- const event=$('event').value;const notes={freeze:'พรีวิวภาพแช่แข็งได้ทันทีด้วยเล่นภาพ · ในสนามทดลองให้กดใช้สกิลแล้วรอคำสาปครบ 5–6 ครั้ง',dot:'แสดงทุกครั้งที่คำสาปสร้างดาเมจจริง',skillHit:'แสดงที่ศัตรูแต่ละตัวที่ได้รับดาเมจจากสกิลโดยตรง รวมถึงสกิลเวทโจมตีพร้อมฮีล',skillProjectile:'ใช้กับกระสุนสกิลที่เดินทางไปยังเป้าหมาย',heal:'แสดงที่พันธมิตรที่ได้รับการฮีลจริง',area:'แสดงตรงเป้าหมายของค้อน',revive:'แสดงที่ตัวละครที่คืนชีพหรือได้รับการชุบชีวิตจากเพื่อน',shield:'แสดงเมื่อได้รับหรือถูกตีโล่'};
+ const event=$('event').value;const notes={groundFire:'ภาพพื้นไฟยืดตามทางนกที่บินผ่าน · ความกว้างและอายุยึดระบบต่อสู้ ไม่ใช้ค่าขนาด/airtime ของภาพ',freeze:'พรีวิวภาพแช่แข็งได้ทันทีด้วยเล่นภาพ · ในสนามทดลองให้กดใช้สกิลแล้วรอคำสาปครบ 5–6 ครั้ง',dot:'แสดงทุกครั้งที่คำสาปสร้างดาเมจจริง',skillHit:'แสดงที่ศัตรูแต่ละตัวที่ได้รับดาเมจจากสกิลโดยตรง รวมถึงสกิลเวทโจมตีพร้อมฮีล',skillProjectile:'ใช้กับกระสุนสกิลที่เดินทางไปยังเป้าหมาย',heal:'แสดงที่พันธมิตรที่ได้รับการฮีลจริง',area:'แสดงตรงเป้าหมายของค้อน',revive:'แสดงที่ตัวละครที่คืนชีพหรือได้รับการชุบชีวิตจากเพื่อน',shield:'แสดงเมื่อได้รับหรือถูกตีโล่'};
  const hero=H[$('hero').value],mode=V.slotLayout(hero,event),spec=V.getSpec(hero,event);
  $('eventHint').textContent=mode==='beam'?'ลำแสงยืดตามแนวโจมตีจริงอัตโนมัติ · ไม่ต้องสร้างภาพยาวเท่าสนาม':mode==='field'?'ภาพยืดตามพื้นที่สนามโดยอัตโนมัติ':notes[event]||'แสดงเมื่อกลไกนี้ทำงานจริงในสนาม';
  $('beamSettings').hidden=mode!=='beam';$('pointSettings').hidden=mode==='beam';$('slotMode').textContent=mode==='beam'?'BEAM · ยืดตามแนวยิง':mode==='field'?'FIELD · พื้นที่สนาม':'POINT · จุดแสดงผล';

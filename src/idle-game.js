@@ -47,7 +47,7 @@ let selected=state.squad[0]||Object.keys(state.owned)[0]||IDS[0];
 let skillReturnFocus=null,managementPanel=null,managementFocus=null;
 let summonBusy=false,summonTimer=0,lastSummon=null;
 let trial=null,trialContext=null,trialReturnFocus=null;
-let formationMode=false,shots=[];
+let formationMode=false,shots=[],fireTrails=[];
 let allyRevives=new Map(),fallenEnemies=[];
 let bossTime=0,combat=null,enemies=[],fighters=[],stageClock=0,respawn=1.8,waveCount=0,travel=0,travelDistance=0,encounters=0,lastFrame=0,lastSave=0,lastHUD=0,toastTimer=0;
 let logLines=['✦ เริ่มการผจญภัย SAO IDLE แล้ว!'];
@@ -165,6 +165,7 @@ function refreshArenaSize(){
  arenaSize={width:arena.clientWidth,height:arena.clientHeight};
  for(const actor of [...fighters,...enemies])position(actor);
  for(const shot of shots)positionShot(shot);
+ for(const f of fireTrails)positionFireTrail(f);
 }
 function setArenaPosition(node,x,y,angle=null){
  if(!node)return;
@@ -634,8 +635,13 @@ function skillDescription(t,enemy=false){
   case 'blink':
    lines.push('ทุก '+n+' การโจมตี: เคลื่อนฉับไวเข้าหาเป้าหมาย ฟัน 200% ATK และตามด้วยโจมตีอีก 50% ATK');
    break;
-  case 'pierce':
-   lines.push('ทุก '+n+' การโจมตี: '+(t.range<1.8?'ฟันปล่อยลำแสงศักดิ์สิทธิ์':'ยิงทะลวง')+'เป็นเส้นตรงจนถึงขอบสนาม ทำดาเมจ '+Math.round((t.skillPower||2.4)*100)+'% ATK ต่อศัตรูทุกตัวในแนว (โดนครั้งเดียวต่อตัว) · '+(t.pierceShield===false?'โล่ป้องกันได้':'ไม่สนโล่ป้องกัน')+' · ไม่ทะลุอมตะ');
+  case 'firetrail':
+    lines.push('ทุก '+n+' การโจมตี: ปล่อยนกเพลิงบินตรงจนสุดขอบสนาม ทำดาเมจ '+Math.round(t.skillPower*100)+'% MATK ครั้งเดียวต่อศัตรูที่บินผ่าน · โล่ป้องกันได้');
+    lines.push('ทิ้งทางไฟกว้าง '+t.fireTrail.widthCells+' ช่อง: เผาศัตรูที่ยืนบนไฟทุก 1 วินาที '+(t.fireTrail.hpRate*100).toFixed(1)+'% ของ HP สูงสุดต่อทางไฟ · ไม่คริติคอล · โล่และอมตะป้องกันได้ · มีผลกับบอส');
+    lines.push('ไฟแต่ละช่วงอยู่ '+t.fireTrail.duration+' วินาทีหลังนกบินผ่าน แล้วค่อยจางจากต้นทางไปปลายทาง · ทางไฟต่างครั้งซ้อนดาเมจได้ · ไฟอยู่ต่อแม้ผู้ร่ายตายจนจบอายุหรือจบเวฟ');
+    break;
+   case 'pierce':
+    lines.push('ทุก '+n+' การโจมตี: '+(t.range<1.8?'ฟันปล่อยลำแสงศักดิ์สิทธิ์':'ยิงทะลวง')+'เป็นเส้นตรงจนถึงขอบสนาม ทำดาเมจ '+Math.round((t.skillPower||2.4)*100)+'% ATK ต่อศัตรูทุกตัวในแนว (โดนครั้งเดียวต่อตัว) · '+(t.pierceShield===false?'โล่ป้องกันได้':'ไม่สนโล่ป้องกัน')+' · ไม่ทะลุอมตะ');
    break;
   case 'triple':
    lines.push('ทุก '+n+' การโจมตี: ยิงกระสุนหลักแรง 200% ATK และกระสุนรองอีก 2 นัด นัดละ 85% ATK (เลือกเป้าหมายอื่นได้)');
@@ -697,7 +703,7 @@ function openSkill(id,source='hero',unit=null){
   ['ความเร็วเดิน',String(h.move)],
   ['โอกาสคริ',Math.round((active?active.crit:stat.crit)*100)+'%'],
   ['ความแรงคริ','×'+Number(h.critDamage||1.5).toFixed(2)],
-  ...(!enemy&&stat.dotDamage>0&&h.passive?.dotPower?[['โบนัส DOT','+'+Math.round(stat.dotDamage*100)+'%']]:[]),
+  ...(!enemy&&stat.dotDamage>0&&(h.passive?.dotPower||h.fireTrail)?[['โบนัส DOT','+'+Math.round(stat.dotDamage*100)+'%']]:[]),
   ['ความถี่สกิล',h.effect==='explosion'?'ร่าย '+CORE.explosionCastSeconds(h)+' วินาที':'ทุก '+CORE.skillAttackCount(h)+' ครั้ง · เว้น ≥ '+CORE.SKILL_MIN_INTERVAL+'s']
  ];
  const label=enemy?(active?.boss?'👑 บอสประจำชั้น · '+'★'.repeat(stars):'👹 ฮีโร่เงาศัตรู · '+'★'.repeat(stars))+' · ด่าน '+(dungeon?.stage||battleStage()):progress?
@@ -1297,12 +1303,56 @@ function tftShot(attacker,target,mult=1,bonusCrit=0,execute=false,heavy=false,co
   power:attacker.atk*mult,bonusCrit,execute,color:palette,node,visual:heavy?'skillHit':'hit'
  });
 }
-function tftPiercingShot(attacker,target){
+function fireLayer(){
+  const arena=$(trialContext?'trialArena':'stageViewport');
+  let node=arena.querySelector('.fire-ground-layer');
+  if(!node){node=el('div',{class:'fire-ground-layer'});arena.appendChild(node)}
+  return node;
+ }
+ function positionFireTrail(f){
+  const b=TFT.fireBounds(f,stageClock),node=f.node;
+  if(!node)return;
+  if(!b.active){node.style.display='none';return}
+  node.style.display='';
+  const sx=arenaSize.width/TFT.W,sy=arenaSize.height/TFT.H,dx=f.dx*sx,dy=f.dy*sy;
+  const mid=(b.head+b.tail)/2,len=(b.head-b.tail)*Math.hypot(dx,dy);
+  const width=f.width*sx*sy/Math.max(1e-6,Math.hypot(dx,dy));
+  node.style.left=(f.x+f.dx*mid)*sx+'px';node.style.top=(f.y+f.dy*mid)*sy+'px';
+  node.style.width=len+'px';node.style.height=width+'px';
+  node.style.transform='translate(-50%,-50%) rotate('+Math.atan2(dy,dx)+'rad)';
+  const fade=Math.min(len,Math.max(0,(stageClock-f.started-(f.duration-1.25))*f.speed-b.tail)*Math.hypot(dx,dy));
+  const startAlpha=b.tail>0?0:Math.max(0,1-Math.max(0,stageClock-f.started-(f.duration-1.25))/1.25);
+  const endAlpha=Math.max(0,Math.min(1,startAlpha+(len/Math.max(1e-6,1.25*f.speed*Math.hypot(dx,dy)))));
+  node.style.maskImage='linear-gradient(to right,rgba(0,0,0,'+startAlpha+') 0px,rgba(0,0,0,'+(fade>=len?endAlpha:1)+') '+fade.toFixed(1)+'px,rgba(0,0,0,'+(fade>=len?endAlpha:1)+') 100%)';
+  node.style.webkitMaskImage=node.style.maskImage;
+ }
+ function addFireTrail(attacker,ray,hero,speed){
+  const f=TFT.makeFireTrail(ray,hero.fireTrail,speed,stageClock,attacker.dotDamage||0);
+  f.owner=attacker;f.side=attacker.side;
+  const node=el('div',{class:'fire-ground-strip '+(f.side==='enemy'?'hostile-fire':'ally-fire')});
+  const art=el('span',{class:'fire-ground-art'}),spec=VFX?.getSpec(HEROES[attacker.id],'groundFire');
+  if(spec)VFX.paint(art,{...spec,delayMs:0,loopFrames:true},true);
+  node.appendChild(art);f.node=node;node.style.display='none';fireLayer().appendChild(node);fireTrails.push(f);return f;
+ }
+ function clearFireTrails(){for(const f of fireTrails)f.node?.remove();fireTrails=[]}
+ function advanceFireTrails(){
+  for(const f of fireTrails.slice()){
+   if(!fireTrails.includes(f))return;
+   for(const hit of TFT.fireTicks(f,stageClock,f.side==='ally'?enemies:fighters)){
+    if(!fireTrails.includes(f))return;
+    if(hit.target.hp>0&&hit.target.alive!==false)tftDamage(f.owner,hit.target,hit.power,0,false,false,null,true);
+    if(!trialContext&&!combat)return;
+   }
+   if(TFT.fireBounds(f,stageClock).expired){f.node?.remove();fireTrails=fireTrails.filter(x=>x!==f)}
+   else positionFireTrail(f);
+  }
+ }
+ function tftPiercingShot(attacker,target){
  const hero=combatHero(attacker),p=TFT.makePierce(attacker,target);
  // The beam endpoints come from the same logical ray as the collision system.
  const end={x:(p.x+p.dx*p.limit)*100/TFT.W,y:(p.y+p.dy*p.limit)*100/TFT.H};
  let node=null;
- if(!beamEffect(attacker,end,true)){
+ if(hero.fireTrail||!beamEffect(attacker,end,true)){
   node=el('span',{class:'tft-bullet heavy piercing-bullet'});
   node.style.setProperty('--bullet-color',hero.col||'#82d0c7');
   node.style.setProperty('--shot-angle',Math.atan2(p.dy,p.dx)+'rad');
@@ -1311,12 +1361,13 @@ function tftPiercingShot(attacker,target){
   setShotVisualPosition(node,attacker.x,attacker.y,angle);
   effectLayer().appendChild(node);
  }
- shots.push({owner:attacker,side:attacker.side,x:attacker.x,y:attacker.y,pierce:p,
-  speed:hero.projectileSpeed||950,radius:hero.pierceRadius||36,power:attacker.atk*(hero.skillPower||2.4),pierceShield:hero.pierceShield!==false,node});
+ const speed=hero.projectileSpeed||950,fire=hero.fireTrail?addFireTrail(attacker,p,hero,speed):null;
+ shots.push({owner:attacker,side:attacker.side,x:attacker.x,y:attacker.y,pierce:p,fire,
+  speed,radius:hero.pierceRadius||36,power:attacker.atk*(hero.skillPower||2.4),pierceShield:hero.pierceShield!==false,node});
 }
 function clearTftShots(){
  for(const b of shots)if(b.node)b.node.remove();
- shots=[];
+ shots=[];clearFireTrails();
 }
 function advanceTftShots(t){
  if(!shots.length)return;
@@ -1326,6 +1377,7 @@ function advanceTftShots(t){
   if(bullet.pierce){
    const targets=bullet.side==='ally'?enemies:fighters;
    const result=TFT.advancePierce(bullet,t,targets);
+   if(bullet.fire){if(!bullet.fire.head) {bullet.fire.started=stageClock-t;bullet.fire.nextTick=bullet.fire.started+1}bullet.fire.head=bullet.pierce.distance;}
    for(const target of result.hits){
     if(!shots.includes(bullet))break;
     tftDamage(bullet.owner,target,bullet.power,0,false,bullet.pierceShield!==false,'skillHit');
@@ -1427,8 +1479,9 @@ function tftSkill(attacker,target){
    }
    ring(attacker.x,attacker.y);return true;
   }
-  case 'pierce':
-   tftPiercingShot(attacker,target);return true;
+  case 'firetrail':
+   case 'pierce':
+    tftPiercingShot(attacker,target);return true;
   case 'slam':{
    const nearby=foes().filter(x=>TFT.pxDist(x,target)<=(hero.slamRadius||140)).sort((a,b)=>TFT.pxDist(a,target)-TFT.pxDist(b,target)).slice(0,hero.slamTargets||Infinity);
    visualEffect('area',attacker,target.x,target.y,1.3);
@@ -1607,7 +1660,8 @@ function tick(dt){
  }
  advanceTftShots(t);
  if(!combat)return;
- if(!fighters.some(f=>f.alive&&!f.exhausted)&&!shots.some(q=>q.side==='ally')){
+ advanceFireTrails();if(!combat)return;
+ if(!fighters.some(f=>f.alive&&!f.exhausted)&&!shots.some(q=>q.side==='ally')&&!(fighters.some(f=>f.alive)&&fireTrails.some(f=>f.side==='ally'))){
   if(combat?.boss){failBoss();return}
   log('💔 ทีมฟื้นตัวก่อนต้านมอนระลอกใหม่');finishFarmWave();beginTravel(1.2);save();return;
  }
@@ -1630,12 +1684,12 @@ function frame(now){
 // used by it is scoped to a disposable scene and restored synchronously.
 function withTrial(fn){
  const scene=trial;if(!scene)return;
- const live={fighters,enemies,shots,stageClock,arenaSize,allyRevives};
- trialContext=scene;fighters=scene.fighters;enemies=scene.enemies;shots=scene.shots;
+ const live={fighters,enemies,shots,fireTrails,stageClock,arenaSize,allyRevives};
+ trialContext=scene;fighters=scene.fighters;enemies=scene.enemies;shots=scene.shots;fireTrails=scene.fireTrails;
  stageClock=scene.clock;arenaSize=scene.size;allyRevives=scene.revives;
  try{return fn()}finally{
-  scene.clock=stageClock;scene.shots=shots;
-  ({fighters,enemies,shots,stageClock,arenaSize,allyRevives}=live);trialContext=null;
+  scene.clock=stageClock;scene.shots=shots;scene.fireTrails=fireTrails;
+  ({fighters,enemies,shots,fireTrails,stageClock,arenaSize,allyRevives}=live);trialContext=null;
  }
 }
 function trialUnit(id,side,x,y,hp,maxHp,label,stars=1){
@@ -1652,8 +1706,8 @@ function trialUnit(id,side,x,y,hp,maxHp,label,stars=1){
 function resetTrial(){
  if($('trialModal').hidden)return;
  const id=$('trialHero').value,stars=Number($('trialStars').value)||1,h=CORE.heroAtStars(HEROES[id],stars),bossTrial=$('trialCount').value==='boss',count=bossTrial?1:Number($('trialCount').value),st=CORE.stats(HEROES[id],{level:1,stars}),arena=$('trialArena');
- $('trialUnits').replaceChildren();$('trialFx').replaceChildren();$('trialLog').replaceChildren();
- trial={id,clock:0,size:{width:arena.clientWidth,height:arena.clientHeight},fighters:[],enemies:[],shots:[],revives:new Map(),events:[],queue:[],active:null,nextAt:0,lastLog:'',note:'พร้อมทดลอง'};
+ $('trialUnits').replaceChildren();$('trialFx').replaceChildren();$('trialArena').querySelector('.fire-ground-layer')?.replaceChildren();$('trialLog').replaceChildren();
+ trial={id,clock:0,size:{width:arena.clientWidth,height:arena.clientHeight},fighters:[],enemies:[],shots:[],fireTrails:[],revives:new Map(),events:[],queue:[],active:null,nextAt:0,lastLog:'',note:'พร้อมทดลอง'};
  trial.hero=trialUnit(id,'ally',50,78,st.hp,st.hp,undefined,stars);
  trial.fighters.push(trial.hero);
  if(h.passive?.magicGuard){const max=CORE.stats(HEROES.aqua,{level:1,stars:1}).hp;trial.fighters.push(trialUnit('aqua','ally',25,82,max,max,HEROES.aqua.name));}
@@ -1665,12 +1719,12 @@ function resetTrial(){
    trial.fighters.push(trialUnit(other,'ally',x,82,Math.round(max*(h.support?ratio:1)),max,HEROES[other].name));
   }
  }
- const cells=h.debuff?.healDown?[[50,42],[50,34],[59,42],[41,42],[50,25]]:h.cleave?[[50,42],[50,27],[66,37],[25,25],[80,20]]:h.effect==='pierce'?[[50,42],[50,25],[50,10],[24,30],[76,30]]:[[50,38],[33,32],[67,32],[18,15],[82,15]];
+ const cells=h.debuff?.healDown?[[50,42],[50,34],[59,42],[41,42],[50,25]]:h.cleave?[[50,42],[50,27],[66,37],[25,25],[80,20]]:(h.effect==='pierce'||h.effect==='firetrail')?[[50,42],[50,25],[50,10],[24,30],[76,30]]:[[50,38],[33,32],[67,32],[18,15],[82,15]];
  for(let i=0;i<count;i++){const [x,y]=cells[i];const dummy=trialUnit('__dummy','enemy',x,y,bossTrial?12000:3000,bossTrial?12000:3000,bossTrial?'👑 หุ่นบอส':'หุ่น '+(i+1));dummy.boss=bossTrial;trial.enemies.push(dummy)}
  $('trialSkillName').innerHTML=rarityBadge(h)+' '+escapeText(h.skill);
  $('trialStats').textContent='HP '+fmt(st.hp)+' · '+attackTypeLabel(h)+' '+fmt(st.atk)+' · '+(h.globalRange?'ทั่วสนาม':h.range+' ช่อง');
- $('trialPassive').disabled=!(h.passive||h.guard||h.effect==='cloakshot');
- $('trialPassive').textContent=h.debuff?.healDown?'ทดสอบตัดฮีล':h.passive?.magicGuard?'ทดสอบรับดาเมจแทน':h.effect==='explosion'?'ทดลองหมดแรง':h.passive?.reviveHp?'ทดสอบคืนชีพตัวเอง':h.support?.reviveHp?'ทดสอบชุบเพื่อน':h.passive?.aquaReviveHp?'ทดสอบคืนชีพ':h.passive?.focusCritStep?'ทดสอบคริต่อเนื่อง':h.passive?.healOnAttack?'ทดสอบฮีลปกติ':h.guard?'ทดสอบยั่วยุ':h.effect==='cloakshot'?'ทดสอบซุ่มยิง':h.passive?.damageReduction?'ทดสอบลดดาเมจ':'ทดลองพาสซีฟ';
+ $('trialPassive').disabled=!(h.passive||h.guard||h.fireTrail||h.effect==='cloakshot');
+ $('trialPassive').textContent=h.fireTrail?'ทดสอบทางไฟซ้อน':h.debuff?.healDown?'ทดสอบตัดฮีล':h.passive?.magicGuard?'ทดสอบรับดาเมจแทน':h.effect==='explosion'?'ทดลองหมดแรง':h.passive?.reviveHp?'ทดสอบคืนชีพตัวเอง':h.support?.reviveHp?'ทดสอบชุบเพื่อน':h.passive?.aquaReviveHp?'ทดสอบคืนชีพ':h.passive?.focusCritStep?'ทดสอบคริต่อเนื่อง':h.passive?.healOnAttack?'ทดสอบฮีลปกติ':h.guard?'ทดสอบยั่วยุ':h.effect==='cloakshot'?'ทดสอบซุ่มยิง':h.passive?.damageReduction?'ทดสอบลดดาเมจ':'ทดลองพาสซีฟ';
  withTrial(renderTrial);
 }
 // Keep the whole delayed skill sequence visible in Hero Trial.
@@ -1687,8 +1741,8 @@ function renderTrial(){
   position(u);u.hpbar.style.width=u.hp/u.maxHp*100+'%';
   const dotLeft=u.hp>0?Math.max(0,...(u.dots||[]).map(d=>d.left)):0;
   const frozen=u.hp>0&&TFT.isFrozen(u,stageClock);
-  const antiHeal=TFT.debuffValue(u,'healDown',stageClock);
-  const value=fmt(u.hp)+' / '+fmt(u.maxHp)+(antiHeal?' · ฮีล −'+Math.round(antiHeal*100)+'%':'')+(u.shield?' · โล่ '+fmt(u.shield):'')+(frozen?' · ❄ '+(Math.ceil((u.freezeUntil-stageClock)*10)/10).toFixed(1)+'s':dotLeft?' · DOT '+dotLeft+' ครั้ง':'');
+  const antiHeal=TFT.debuffValue(u,'healDown',stageClock),burn=fireTrails.filter(f=>f.side!==u.side&&TFT.fireContains(f,u,stageClock)).length;
+  const value=fmt(u.hp)+' / '+fmt(u.maxHp)+(burn?' · 🔥 ×'+burn:'')+(antiHeal?' · ฮีล −'+Math.round(antiHeal*100)+'%':'')+(u.shield?' · โล่ '+fmt(u.shield):'')+(frozen?' · ❄ '+(Math.ceil((u.freezeUntil-stageClock)*10)/10).toFixed(1)+'s':dotLeft?' · DOT '+dotLeft+' ครั้ง':'');
   if(u.values.textContent!==value)u.values.textContent=value;
  }
  const scene=trialContext;
@@ -1698,8 +1752,8 @@ function renderTrial(){
  $('trialSkill').disabled=busy||!scene.hero.alive||!!scene.hero.exhausted;
  $('trialHit').disabled=busy||!scene.hero.alive||!!scene.hero.exhausted;
  const h=combatHero(scene.hero);
- $('trialPassive').disabled=busy||!scene.hero.alive||!!scene.hero.exhausted||!(h.passive||h.guard||h.effect==='cloakshot');
- $('trialNote').textContent=progress.frozen?'❄ แช่แข็ง '+progress.frozen+' เป้าหมาย · เหลือ '+(Math.ceil(progress.seconds*10)/10).toFixed(1)+' วินาที':progress.pending?'คำสาปกำลังทำงาน · เหลือ '+progress.left+' ครั้งก่อนจบ'+(h.passive?.dotFreezeSeconds?'และแช่แข็ง':''):scene.note;
+ $('trialPassive').disabled=busy||!scene.hero.alive||!!scene.hero.exhausted||!(h.passive||h.guard||h.fireTrail||h.effect==='cloakshot');
+ $('trialNote').textContent=fireTrails.length?'🔥 ทางไฟ '+fireTrails.length+' เส้น · ซ้อนทับได้ · จางตามแนวบิน':progress.frozen?'❄ แช่แข็ง '+progress.frozen+' เป้าหมาย · เหลือ '+(Math.ceil(progress.seconds*10)/10).toFixed(1)+' วินาที':progress.pending?'คำสาปกำลังทำงาน · เหลือ '+progress.left+' ครั้งก่อนจบ'+(h.passive?.dotFreezeSeconds?'และแช่แข็ง':''):scene.note;
  const key=JSON.stringify(scene.events);
  if(scene.lastLog!==key){
   scene.lastLog=key;$('trialLog').innerHTML=scene.events.map(e=>'<div class="trial-event '+e.kind+'"><span>'+escapeText(e.name)+'</span><b>'+escapeText(e.label)+'</b></div>').join('');
@@ -1716,6 +1770,7 @@ function queueTrial(mode){
    if(!fallen||(trial.hero.supportRevives||0)>=h.support.reviveLimit){trial.note='ใช้สิทธิ์ชุบชีวิตครบแล้ว · รีเซ็ตสนามเพื่อทดลองอีกครั้ง';withTrial(renderTrial);return;}
    fallen.hp=0;fallen.alive=false;fallen.node.style.opacity='.2';trial.queue=['skill'];
   }
+  else if(h.fireTrail)trial.queue=['skill','skill'];
   else if(h.debuff?.healDown)trial.queue=['skill','healTest'];
   else if(h.passive?.magicGuard)trial.queue=['protect'];
   else if(h.passive?.aquaReviveHp)trial.queue=['lethal'];
@@ -1738,7 +1793,7 @@ function tickTrial(dt){
    scene.note='การทดลองใช้เวลานานเกินไป · กดลองใหม่หรือรีเซ็ตสนาม';actor.walking=false;renderTrial();return;
   }
   if(actor.attackUntil<=stageClock){pose(actor,false);actor.node.classList.remove('burst')}
-  advanceTftShots(t);advanceDots();
+  advanceTftShots(t);advanceDots();advanceFireTrails();
   if(TFT.isFrozen(actor,stageClock)){actor.walking=false;if(actor.castUntil)actor.castUntil+=t;renderTrial();return;}
   if(actor.castUntil){advanceExplosion(actor,false);renderTrial();return}
   if(!scene.active&&scene.queue.length&&stageClock>=scene.nextAt&&!shots.length)scene.active=scene.queue.shift();
@@ -1793,7 +1848,7 @@ function openTrial(id){
 function closeTrial(){
  if($('trialModal').hidden)return;
  if(studioMode){resetTrial();return}
- trial=null;$('trialModal').hidden=true;$('trialUnits').replaceChildren();$('trialFx').replaceChildren();
+ trial=null;$('trialModal').hidden=true;$('trialUnits').replaceChildren();$('trialFx').replaceChildren();$('trialArena').querySelector('.fire-ground-layer')?.replaceChildren();
  if(trialReturnFocus?.isConnected)trialReturnFocus.focus();trialReturnFocus=null;
 }
 document.addEventListener('click',e=>{const b=e.target.closest('[data-trial-hero]');if(b){e.preventDefault();openTrial(b.dataset.trialHero)}});
@@ -1801,7 +1856,7 @@ $('trialHero').addEventListener('change',resetTrial);$('trialCount').addEventLis
 $('trialReset').addEventListener('click',resetTrial);$('trialClose').addEventListener('click',closeTrial);$('trialOverlay').addEventListener('click',closeTrial);
 for(const [id,mode] of [['trialNormal','normal'],['trialSkill','skill'],['trialPassive','passive'],['trialHit','hit']])$(id).addEventListener('click',()=>queueTrial(mode));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('trialModal').hidden){e.preventDefault();e.stopImmediatePropagation();closeTrial()}});
-if(typeof ResizeObserver==='function')new ResizeObserver(()=>{if(trial){trial.size={width:$('trialArena').clientWidth,height:$('trialArena').clientHeight};withTrial(()=>{renderTrial();for(const shot of shots)positionShot(shot)})}}).observe($('trialArena'));
+if(typeof ResizeObserver==='function')new ResizeObserver(()=>{if(trial){trial.size={width:$('trialArena').clientWidth,height:$('trialArena').clientHeight};withTrial(()=>{renderTrial();for(const shot of shots)positionShot(shot);for(const f of fireTrails)positionFireTrail(f)})}}).observe($('trialArena'));
 function refreshUpgradePicker(){
  const picker=$('upgradePicker');if(!picker)return;
  const all=IDS.filter(id=>state.owned[id]&&!CORE.isMaxHero(state.owned[id])),eligible=filterHeroes(all,'Upgrade');

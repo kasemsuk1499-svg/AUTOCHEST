@@ -212,7 +212,7 @@
   actor.attacks=0;actor.nextSkillAt=clock+SKILL_MIN_INTERVAL;return true;
  }
  const starCache=new WeakMap();
- const starKeys=new Set(['skillPower','triggerEvery','critChance','critDamage','cool','castSeconds','cloakDuration','cloakShotMultiplier','cloakCritBonus','executeThreshold','executeMultiplier','pierceRadius','slamRadius','passive','support','guard','debuff','cleave']);
+ const starKeys=new Set(['skillPower','triggerEvery','critChance','critDamage','cool','castSeconds','cloakDuration','cloakShotMultiplier','cloakCritBonus','executeThreshold','executeMultiplier','pierceRadius','slamRadius','passive','support','guard','debuff','cleave','fireTrail']);
  function heroAtStars(hero,stars=1){
   if(!hero)return hero;
   const n=clamp(Math.floor(number(stars,1)),1,MAX_STARS);
@@ -255,7 +255,7 @@
   {id:'konosuba',name:'KonoSuba',icon:'💥',match:h=>factionOf(h)==='konosuba',tiers:[{count:2,hp:.10,atk:.10}]},
   {id:'konosuba_trio',name:'ปาร์ตี้มหาวิบัติ',icon:'🍀',match:h=>['kazuma','aqua','megumin'].includes(h.id),tiers:[{count:3,special:'อควา + คาซึมะ + เมกุมินมีชีวิตครบ: EXPLOSION ซ้ำได้'}]},
   {id:'vtuber',name:'วีทูปเบอร์',icon:'🎤',match:h=>factionOf(h)==='vtuber',tiers:VTUBER_TIERS,showFuture:true},
-  {id:'celestial_beast',name:'สัตว์สวรรค์',icon:'🦊',match:h=>factionOf(h)==='celestial_beast',tiers:[{count:2,dotDamage:.15},{count:3,dotDamage:.25},{count:5,dotDamage:.40},{count:7,dotDamage:.55}]},
+  {id:'celestial_beast',name:'สัตว์สวรรค์',icon:'🦊',match:h=>factionOf(h)==='celestial_beast',showFuture:true,tiers:[{count:2,dotDamage:.15},{count:3,dotDamage:.25},{count:5,dotDamage:.40},{count:7,dotDamage:.55}]},
   {id:'fate',name:'Fate',icon:'👑',match:h=>factionOf(h)==='fate',tiers:[{count:2,hp:.10,atk:.10}]},
   {id:'duo',name:'คู่ดาบแห่ง Aincrad',icon:'💞',match:h=>h.id==='asuna'||h.id==='kirito',tiers:[{count:2,speed:.08}]},
   {id:'warrior',name:'นักรบ',icon:'🗡️',match:h=>h.team==='นักรบ',tiers:[{count:2,speed:.10},{count:3,speed:.18}]},

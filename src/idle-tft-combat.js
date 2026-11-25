@@ -115,6 +115,29 @@
   shot.x=(p.x+p.dx*end)*100/W;shot.y=(p.y+p.dy*end)*100/H;
   return {hits:hits.map(h=>h.u),expired:end>=p.limit};
  }
+ // Independent timed ground trail per cast; physical board coordinates.
+ function makeFireTrail(ray,config,speed,clock,dotBonus=0){
+  return {x:ray.x,y:ray.y,dx:ray.dx,dy:ray.dy,limit:ray.limit,head:0,speed,started:clock,nextTick:clock+1,
+   duration:config.duration,width:config.widthCells*(W/6),rate:config.hpRate*(1+Math.max(0,dotBonus))};
+ }
+ function fireBounds(f,clock){
+  const age=Math.max(0,clock-f.started),head=Math.min(f.head,f.limit,age*f.speed);
+  const tail=Math.max(0,(age-f.duration)*f.speed);
+  return {head,tail,active:head>tail+1e-7,expired:tail>f.limit+1e-7};
+ }
+ function fireContains(f,u,clock){
+  const b=fireBounds(f,clock);if(!b.active||!u||u.hp<=0||u.alive===false)return false;
+  const dx=u.x*W/100-f.x,dy=u.y*H/100-f.y,along=dx*f.dx+dy*f.dy,across=Math.abs(dx*f.dy-dy*f.dx);
+  return along>=b.tail-1e-7&&along<=b.head+1e-7&&across<=f.width/2+1e-7;
+ }
+ function fireTicks(f,clock,targets){
+  const hits=[];
+  while(f.nextTick<=clock+1e-7&&f.nextTick<=f.started+f.limit/f.speed+f.duration+1e-7){
+   const at=f.nextTick;f.nextTick+=1;
+   for(const target of targets)if(fireContains(f,target,at))hits.push({target,power:target.maxHp*f.rate});
+  }
+  return hits;
+ }
  // Shields refresh rather than stack indefinitely; all living teammates receive protection.
  function applyGuard(actor,allies,hero,clock){
   const g=hero?.guard;if(!g||actor.hp<=0)return [];
@@ -207,5 +230,5 @@
   if(!target.shield)target.shieldSource=null;
   return {damage,absorbed,total};
  }
- window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,reviveAlly,livingHero,linkedRevive,explosionParty,blocksExplosion,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,attackBuff,outgoingMultiplier,vulnerabilityMultiplier,healDownDamageMultiplier,boostedDebuff,attackInterval,healWeakest,applySupport,applyDot,dueDots,isFrozen,applyFreeze,splitMagicDamage,resolveDamage});
+ window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,reviveAlly,livingHero,linkedRevive,explosionParty,blocksExplosion,isImmortal,focusCritBonus,makePierce,advancePierce,makeFireTrail,fireBounds,fireContains,fireTicks,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,attackBuff,outgoingMultiplier,vulnerabilityMultiplier,healDownDamageMultiplier,boostedDebuff,attackInterval,healWeakest,applySupport,applyDot,dueDots,isFrozen,applyFreeze,splitMagicDamage,resolveDamage});
 })();
