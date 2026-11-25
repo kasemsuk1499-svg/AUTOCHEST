@@ -167,6 +167,17 @@
   for(const id of Object.keys(state.owned))convertMaxShards(state,id,roster[id]);
   return state;
  }
+ // Skill cadence is separate from normal attack speed and VFX timing.
+ const SKILL_MIN_INTERVAL=4;
+ const skillAttackCount=hero=>Math.max(1,Math.floor(number(hero?.triggerEvery,4)))+2;
+ const explosionCastSeconds=hero=>Math.max(1,number(hero?.castSeconds,5))+1;
+ const explosionRestSeconds=rest=>Math.max(0,number(rest,2))+2;
+ function consumeSkillAttack(actor,hero,clock,force=false){
+  const need=skillAttackCount(hero);
+  actor.attacks=Math.min(need,(actor.attacks||0)+1);
+  if(!force&&(actor.attacks<need||clock+1e-9<(actor.nextSkillAt||0)))return false;
+  actor.attacks=0;actor.nextSkillAt=clock+SKILL_MIN_INTERVAL;return true;
+ }
  const starCache=new WeakMap();
  const starKeys=new Set(['skillPower','triggerEvery','critChance','critDamage','cool','castSeconds','cloakDuration','cloakShotMultiplier','cloakCritBonus','executeThreshold','executeMultiplier','pierceRadius','slamRadius','passive','support','guard','debuff','cleave']);
  function heroAtStars(hero,stars=1){
@@ -362,5 +373,5 @@
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,
   initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,bossStars,floorCount,maxStage,floorBossId,nightmareUnlocked,activeRun,nightmareBossCount,nightmareStars,nightmareBossIds,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,shardsToMax,ascendCost,
-  normalized,heroAtStars,stats,teamSynergies,synergyBonus,teamHeroStats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,universalShardYield,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
+  normalized,heroAtStars,SKILL_MIN_INTERVAL,skillAttackCount,consumeSkillAttack,explosionCastSeconds,explosionRestSeconds,stats,teamSynergies,synergyBonus,teamHeroStats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,universalShardYield,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
 })();
