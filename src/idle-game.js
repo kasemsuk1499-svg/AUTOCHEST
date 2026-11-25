@@ -705,10 +705,13 @@ function updateSummonWallet(){
  $('summonLastBtn').hidden=!lastSummon;
  if($('exchangeDetails')?.open)renderExchange();
 }
+let exchangeRenderKey='';
 function renderExchange(){
  const box=$('exchangeList');if(!box)return;
  $('exchangeShardValue').textContent=fmt(state.universalShards);
  const ids=rarityOrder().filter(id=>CORE.exchangeOffer(state,HEROES,id));
+ const key=JSON.stringify([state.universalShards,ids.map(id=>[id,CORE.exchangeOffer(state,HEROES,id)])]);
+ if(exchangeRenderKey===key)return;exchangeRenderKey=key;
  box.innerHTML=ids.length?ids.map(id=>{
   const h=HEROES[id],offer=CORE.exchangeOffer(state,HEROES,id);
   return '<div class="exchange-row"><img loading="lazy" src="'+h.images.art+'" alt=""><div><strong>'+escapeText(h.name)+' '+rarityBadge(h)+'</strong><small>'+(offer.kind==='unlock'?'ปลดล็อกฮีโร่ใหม่':'แลกชิ้นส่วนฮีโร่ ×'+offer.amount)+'</small></div><button type="button" class="control-btn" data-exchange-hero="'+id+'"'+(state.universalShards<offer.cost?' disabled':'')+'>🧩 '+fmt(offer.cost)+'</button></div>';
