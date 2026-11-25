@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#101729">
 <meta name="description" content="AUTOCHEST IDLE — เกม SAO Idle RPG ต่อสู้และฟาร์มอัตโนมัติ">
 <title>AUTOCHEST IDLE — SAO Adventure</title>
-<link rel="stylesheet" href="./src/idle-style.css?v=0.20.39">
+<link rel="stylesheet" href="./src/idle-style.css?v=0.20.40">
 <script>
 window.__AUTOCHEST_IDLE_READY__=false;
 window.__idleBootMessage='';
@@ -33,7 +33,7 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
  <header class="app-header">
   <div class="logo-box">✦</div>
   <div class="brand"><small>SAO • HERO COLLECTION • AUTO BATTLE</small><h1>AUTO<span>CHEST</span> <em>IDLE</em></h1></div>
-  <div class="header-badge"><span class="online-dot"></span><b>v0.20.39</b></div>
+  <div class="header-badge"><span class="online-dot"></span><b>v0.20.40</b></div>
  </header>
  <div id="startupError" class="startup-error" role="alert" hidden><b>⚠️ เกมโหลดไม่สำเร็จ</b><span id="startupErrorText"></span><button type="button" onclick="idleHardReload()">🔄 โหลดเวอร์ชันใหม่</button></div>
  <div class="resource-ribbon">
@@ -50,7 +50,7 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
        <div class="stage-badge"><small>BEST</small><b id="bestStage">01</b></div>
      </div>
      <div class="difficulty-switch" aria-label="เลือกโหมดต่อสู้"><button type="button" id="normalModeBtn" class="control-btn selected">NORMAL · 1</button><button type="button" id="nightmareModeBtn" class="control-btn" disabled>🔒 NIGHTMARE · ผ่าน Normal 5</button></div>
-     <details class="resource-dungeons" id="resourceDungeons"><summary><span>✦ ดันเจี้ยนทรัพยากร</span><small id="dungeonRemaining">∞ ไม่จำกัดรอบ</small></summary><div class="dungeon-controls"><label>ประเภท<select id="dungeonType"><option value="gold">🪙 ทอง</option><option value="exp">📘 EXP</option></select></label><label>ระดับความยาก<select id="dungeonTier"></select></label><button id="enterDungeonBtn" type="button" class="control-btn">⚔ เข้าดันเจี้ยน</button></div><div id="dungeonReward" class="dungeon-reward"></div><label class="dungeon-repeat"><input id="dungeonRepeat" type="checkbox" checked> ฟาร์มซ้ำอัตโนมัติ</label><p class="dungeon-help">ลงได้ไม่จำกัด · ชนะรับรางวัลทุกครั้ง · แพ้จะหยุดฟาร์ม · เลือกระดับที่เคยผ่าน</p></details>
+     <details class="resource-dungeons" id="resourceDungeons"><summary><span>✦ ดันเจี้ยนทรัพยากร</span><small id="dungeonRemaining">💎 1,000 / รอบ</small></summary><div class="dungeon-controls"><label>ประเภท<select id="dungeonType"><option value="gold">🪙 ทอง</option><option value="exp">📘 EXP</option></select></label><label>ระดับความยาก<select id="dungeonTier"></select></label><button id="enterDungeonBtn" type="button" class="control-btn">⚔ เข้าดันเจี้ยน</button></div><div id="dungeonReward" class="dungeon-reward"></div><label class="dungeon-repeat"><input id="dungeonRepeat" type="checkbox" checked> ฟาร์มซ้ำอัตโนมัติ</label><p class="dungeon-help">ค่าเข้า 1,000 รูบี้ทุกครั้ง · ไม่คืนเมื่อแพ้หรือออก · ฟาร์มซ้ำจนรูบี้ไม่พอหรือแพ้ · ไม่จำกัดรอบ</p></details>
      <div class="monster-track"><span>กำจัดฮีโร่ศัตรู <strong id="killCounter">0 / 6</strong></span><div class="track"><i id="killFill"></i></div></div>
      <div id="stageViewport" class="stage-viewport" aria-label="สนาม AUTOCHEST แบบตาราง 6 คอลัมน์ 7 แถว">
        <div class="board-grid" id="boardGrid" role="group" aria-label="กระดานจัดทัพ 6 คอลัมน์ 7 แถว"></div>
@@ -177,8 +177,8 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
 <script defer src="./src/characters/heroes/aqua.js?v=0.20.26"></script>
 <script defer src="./src/characters/heroes/kazuma.js?v=0.20.30"></script>
 <script defer src="./src/characters/heroes/maruko.js?v=0.20.37"></script>
-<script defer src="./src/idle-core.js?v=0.20.39"></script>
+<script defer src="./src/idle-core.js?v=0.20.40"></script>
 <script defer src="./src/idle-tft-combat.js?v=0.20.35"></script>
 <script defer src="./src/idle-vfx.js?v=0.20.35"></script>
-<script defer src="./src/idle-game.js?v=0.20.39"></script>
+<script defer src="./src/idle-game.js?v=0.20.40"></script>
 </body></html>
