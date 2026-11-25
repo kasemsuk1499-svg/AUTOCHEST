@@ -62,8 +62,19 @@
         "row": 0,
         "col": 0,
         "frames": 16,
-        "size": 400,
-        "ms": 1500
+        "size": 350,
+        "ms": 1000,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "thickness": 48,
+        "orientation": "horizontal",
+        "delayMs": 0,
+        "airtimeMs": 8000,
+        "loopFrames": true
       },
       "area": {
         "src": "./assets/effects/megumin/area-16fcf93e258f.png",
