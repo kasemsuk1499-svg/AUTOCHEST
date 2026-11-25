@@ -48,7 +48,7 @@ const cellAtClient=(clientX,clientY)=>{
 let boardGesture=null,ignoreInspectUntil=0,dragGhost=null,dropHighlight=null;
 // Hero-shaped enemies share art and skills with the player's SAO roster.
 const ENEMY_IDS=IDS.filter(id=>HEROES[id].effect!=='explosion'&&!HEROES[id].playerOnly);
-const bosses=ENEMY_IDS.filter(id=>HEROES[id].cost===3);
+// Floor bosses use the whole registered roster, including boss-only heroes.
 const enemyLimit=()=>CORE.waveSize(state.stage);
 const waveSlots=[[1,0],[4,0],[2,1],[0,1],[5,1]]; // finite TFT wave formation
 const near=(a,b)=>Math.hypot(a.x-b.x,(a.y-b.y)*.65);
@@ -242,6 +242,8 @@ function updateResources(){
  updateStageBackground(state.stage);
  $('stageNumber').textContent=fmt(state.stage)+' / '+fmt(CORE.maxStage(HEROES));
  if($('floorProgress'))$('floorProgress').textContent='FLOOR '+CORE.floorNumber(state.stage)+' / '+CORE.floorCount(HEROES);
+ const floorBoss=HEROES[CORE.floorBossId(state.stage,HEROES)];
+ if($('floorBossName'))$('floorBossName').textContent=floorBoss?'👑 บอสประจำชั้น: '+floorBoss.name:'ยังไม่มีบอสประจำชั้น';
  $('bestStage').textContent=String(state.stage).padStart(2,'0');
  const need=CORE.killsNeeded(state.stage);
  $('killCounter').textContent=state.kills+' / '+need;
@@ -254,7 +256,7 @@ function updateResources(){
  refreshFormationControls();
  const floorComplete=!CORE.canChallengeStage(state,HEROES);
  $('challengeBtn').disabled=floorComplete||!!combat?.boss||state.kills<need;
- $('challengeBtn').textContent=floorComplete?'🏆 ถึงขอบเขตชั้นปัจจุบัน · ฟาร์มต่อ':combat?.boss?'👑 กำลังต่อสู้กับบอส':state.kills<need?'👑 ปลดล็อกบอส '+state.kills+'/'+need:'👑 ท้าทายบอส!';
+ $('challengeBtn').textContent=floorComplete?'🏆 ถึงขอบเขตชั้นปัจจุบัน · ฟาร์มต่อ':combat?.boss?'👑 กำลังต่อสู้กับบอส':state.kills<need?'👑 ปลดล็อกบอส '+state.kills+'/'+need:'👑 ท้าทาย '+(floorBoss?.name||'บอส')+'!';
  $('bossTimer').hidden=!combat?.boss;
  $('fightLabel').classList.toggle('boss-mode',!!combat?.boss);
  $('fightLabel').textContent=combat?.boss?'BOSS BATTLE':combat?'WAVE '+waveCount:'WAVE READY';
@@ -857,8 +859,9 @@ function spawnMonster(boss=false,cell=null,quiet=false){
  if(boss&&!CORE.canChallengeStage(state,HEROES))return;
  if(boss){enemies=[];$('monsterLayer').replaceChildren();clearTftShots()}
  else if(enemies.length>=enemyLimit())return;
- const id=boss&&bosses.length?bosses[Math.floor((state.stage-1)/3)%bosses.length]:
+ const id=boss?CORE.floorBossId(state.stage,HEROES):
   ENEMY_IDS[(state.stage+state.kills+encounters++)%ENEMY_IDS.length];
+ if(!id)return;
  const hero=HEROES[id],stat=CORE.monster(state.stage,boss);
  const hp=Math.max(1,Math.round(stat.hp*(.8+hero.hp/3000)));
  const entry=cell?boardPoint(cell[0],cell[1]):
@@ -1063,7 +1066,7 @@ function advanceExplosion(actor,auto=false){
  if(hero?.effect!=='explosion')return false;
  if(!actor.alive||actor.hp<=0){actor.castUntil=0;return true}
  if(actor.exhausted)return true;
- if(!actor.castUntil){if(auto&&enemies.some(e=>e.hp>0&&e.alive!==false))startExplosion(actor);return !!auto}
+ if(!actor.castUntil){const targets=actor.side==='ally'?enemies:fighters;if(auto&&targets.some(e=>e.hp>0&&e.alive!==false))startExplosion(actor);return !!auto}
  if(stageClock+1e-9<actor.castUntil){actor.walking=false;position(actor);return true}
  actor.castUntil=0;actor.exhausted=true;actor.walking=false;pose(actor,false);position(actor);
  visualEffect('aftermath',actor,50,50,2.4);visualEffect('area',actor,50,50,2.4);
@@ -1234,6 +1237,7 @@ function tick(dt){
  }
  for(const foe of enemies.slice()){
   if(foe.hp<=0)continue;
+  if(advanceExplosion(foe,true)){if(!combat)return;continue}
   if(foe.attackUntil<stageClock&&foe.sprite!==HEROES[foe.id].images.idle){
    pose(foe,false);foe.node.classList.remove('burst');
   }
