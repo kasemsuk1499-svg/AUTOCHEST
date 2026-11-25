@@ -252,7 +252,8 @@
   state.gold-=cost.gold;state.heroExp-=cost.exp;h.level++;return true;
  }
  const isMaxHero=p=>!!p&&p.level>=MAX_LEVEL&&p.stars>=MAX_STARS;
- const shardExchangeRate=hero=>[0,1,2,4,10][hero?.cost]||0;
+ // Overflow currency is a long-term targeted reward, not a cheap replacement for summons.
+ const shardExchangeRate=hero=>[0,3,6,15,40][hero?.cost]||0;
  const heroExchangeCost=hero=>shardExchangeRate(hero)*10;
  function convertMaxShards(state,id){
   const p=state.owned[id];if(!p||p.stars<MAX_STARS||!p.shards)return 0;
