@@ -1,7 +1,7 @@
 /* Kazuma — SR survival / KonoSuba party enabler. */
 window.AUTOCHEST_CHARACTERS.registerHero({
  id:'kazuma',name:'คาซึมะ',subtitle:'KonoSuba • Adventurer',faction:'konosuba',
- team:'นักรบ',role:'SURVIVAL / PARTY SUPPORT',traits:['อมตะ','กัน Explosion','คืนชีพเมื่อมีอควา','ปลดล็อก Explosion ซ้ำ'],cost:2,
+ team:'เวท',damageType:'magic',role:'SURVIVAL / PARTY SUPPORT',traits:['อมตะ','กัน Explosion','คืนชีพเมื่อมีอควา','ปลดล็อก Explosion ซ้ำ'],cost:2,
  hp:900,dmg:35,range:1.15,cool:1.25,move:105,critChance:.08,critDamage:1.5,
  skill:'Survival Instinct',effect:'slash',triggerEvery:4,skillPower:1.2,
  passive:{name:'ชีวิตต้องรอด!',explosionImmune:true,skillImmortalSeconds:1.5,aquaReviveHp:.35,aquaImmortalSeconds:1.5,explosionRestSeconds:2},
