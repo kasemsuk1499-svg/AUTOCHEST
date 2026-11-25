@@ -229,8 +229,19 @@
         "row": 0,
         "col": 0,
         "frames": 24,
-        "size": 400,
-        "ms": 1000
+        "size": 250,
+        "ms": 1000,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "offsetX": 0,
+        "offsetY": -50,
+        "thickness": 48,
+        "orientation": "horizontal",
+        "delayMs": 0,
+        "airtimeMs": 0,
+        "loopFrames": false
       },
       "debuff": {
         "src": "./assets/effects/lisbeth/debuff-10118a14297a.png",
