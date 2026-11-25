@@ -6,7 +6,7 @@
  const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
  const number=(n,fallback=0)=>Number.isFinite(Number(n))?Number(n):fallback;
  const initial=()=>({
-  version:1,floorResetEvent:FLOOR_RESET_EVENT,accountEpoch:'',stage:1,clearedStage:0,kills:0,bossRetryWaves:0,gold:3000,heroExp:1800,rubies:1200,tickets:START_TICKETS,
+  version:1,floorResetEvent:FLOOR_RESET_EVENT,accountEpoch:'',mode:'normal',nightmare:{stage:1,clearedStage:0,kills:0,bossRetryWaves:0,bossWins:0},stage:1,clearedStage:0,kills:0,bossRetryWaves:0,gold:3000,heroExp:1800,rubies:1200,tickets:START_TICKETS,
   squad:['asuna','kirito','silica'],owned:{
    asuna:{level:1,stars:1,shards:0},
    kirito:{level:1,stars:1,shards:0},
@@ -70,6 +70,26 @@
   for(const {id,rate} of rates){roll-=rate;if(roll<0)return id;}
   return rates[rates.length-1].id;
  }
+ const nightmareUnlocked=state=>state.stage>=6||state.clearedStage>=5;
+ const activeRun=state=>state.mode==='nightmare'?state.nightmare:state;
+ const nightmareBossCount=stage=>floorNumber(stage)>=4?3:2;
+ function nightmareStars(stage,rng=Math.random){
+  const max=Math.min(5,floorNumber(stage)+1);
+  return 1+Math.min(max-1,Math.floor(Math.max(0,Math.min(.999999,rng()))*max));
+ }
+ function nightmareBossIds(stage,roster,rng=Math.random){
+  const main=floorBossId(stage,roster);if(!main)return [];
+  const result=[main],count=nightmareBossCount(stage);
+  const pool=floorOrder(roster).slice(0,floorNumber(stage));
+  while(result.length<count){
+   const eligible=pool.filter(id=>roster[id].effect!=='explosion'||!result.some(x=>roster[x].effect==='explosion'));
+   const unused=eligible.filter(id=>!result.includes(id));
+   const choices=unused.length?unused:eligible;
+   if(!choices.length)break;
+   result.push(choices[Math.min(choices.length-1,Math.max(0,Math.floor(rng()*choices.length)))]);
+  }
+  return result;
+ }
  const canChallengeStage=(state,roster)=>state.stage<=maxStage(roster)&&(state.clearedStage||0)<state.stage;
  const nextEncounter=(state,roster)=>state.autoBoss&&canChallengeStage(state,roster)&&state.kills>=killsNeeded(state.stage)&&state.bossRetryWaves===0?'boss':'wave';
  function clearStage(state,roster){
@@ -104,6 +124,18 @@
   if(resumeNext){state.stage++;state.kills=0;}
   state.kills=clamp(state.kills,0,killsNeeded(state.stage));
   state.bossRetryWaves=resetFloor||resumeNext?0:Math.floor(clamp(number(raw.bossRetryWaves,0),0,3));
+  const nr=raw.nightmare;
+  if(nr&&typeof nr==='object'&&!resetFloor){
+   const p=state.nightmare;
+   p.stage=Math.floor(clamp(number(nr.stage,1),1,maxStage(roster)));
+   p.clearedStage=Math.max(p.stage-1,Math.floor(clamp(number(nr.clearedStage,0),0,p.stage)));
+   const advance=p.clearedStage===p.stage&&p.stage<maxStage(roster);
+   if(advance)p.stage++;
+   p.kills=advance?0:Math.floor(clamp(number(nr.kills,0),0,killsNeeded(p.stage)));
+   p.bossRetryWaves=advance?0:Math.floor(clamp(number(nr.bossRetryWaves,0),0,3));
+   p.bossWins=Math.floor(clamp(number(nr.bossWins,0),0,1e12));
+  }
+  state.mode=raw.mode==='nightmare'&&nightmareUnlocked(state)?'nightmare':'normal';
   state.autoBoss=raw.autoBoss!==false;
   state.autoWalk=raw.autoWalk!==false;
   state.autoBattle=raw.autoBattle!==false;
@@ -180,20 +212,23 @@
   // Bosses have huge HP pools; percent healing must not stall the 35-second encounter.
   return {...h,support:{...h.support,healHp:Math.min(h.support.healHp||0,.10)}};
  }
- function enemyStats(hero,stage,boss=false){
-  const stars=boss?bossStars(stage):1,h=enemyHero(hero,stars,boss),base=monster(stage,boss);
-  return {stars,hp:Math.max(1,Math.round(base.hp*(.8+hero.hp/3000)*(1+(stars-1)*.03))),
-   atk:Math.round(base.atk*(.9+hero.dmg/900)*(1+(stars-1)*.02)),
+ function enemyStats(hero,stage,boss=false,mode='normal',randomStars=1){
+  const night=mode==='nightmare',stars=boss?bossStars(stage):night?clamp(Math.floor(randomStars),1,MAX_STARS):1,h=enemyHero(hero,stars,boss),base=monster(stage,boss);
+  const hpScale=night?(boss?1.35/nightmareBossCount(stage):1.15):1,atkScale=night?(boss?1.30/nightmareBossCount(stage):1.10):1;
+  return {stars,hp:Math.max(1,Math.round(base.hp*(.8+hero.hp/3000)*(1+(stars-1)*.03)*hpScale)),
+   atk:Math.round(base.atk*(.9+hero.dmg/900)*(1+(stars-1)*.02)*atkScale),
    delay:Math.max(.75,h.cool*1.2),crit:h.critChance||.05,critDamage:h.critDamage||1.5};
  }
  // Economy balance: speed up levelling without devaluing duplicate hero shards.
  const ECONOMY=Object.freeze({farm:3,boss:3,offline:5,bossRubies:3,killsPerTicket:20,offlineMinutesPerTicket:30});
- function farmReward(stage){
-  return {gold:Math.round((28+stage*8)*ECONOMY.farm),exp:Math.round((18+stage*5)*ECONOMY.farm),rubies:3+floorNumber(stage)};
+ function farmReward(stage,mode='normal'){
+  const mult=mode==='nightmare'?2:1;
+  return {gold:Math.round((28+stage*8)*ECONOMY.farm*mult),exp:Math.round((18+stage*5)*ECONOMY.farm*mult),rubies:(3+floorNumber(stage))*mult};
  }
- function bossReward(stage){
-  return {gold:Math.round((420+stage*110)*ECONOMY.boss),exp:Math.round((280+stage*70)*ECONOMY.boss),
-   rubies:Math.round((75+stage*8)*ECONOMY.bossRubies),tickets:stage%STAGES_PER_FLOOR===0?5:3};
+ function bossReward(stage,mode='normal'){
+  const mult=mode==='nightmare'?2:1;
+  return {gold:Math.round((420+stage*110)*ECONOMY.boss*mult),exp:Math.round((280+stage*70)*ECONOMY.boss*mult),
+   rubies:Math.round((75+stage*8)*ECONOMY.bossRubies*mult),tickets:(stage%STAGES_PER_FLOOR===0?5:3)*mult};
  }
  function offlineLoot(lastSaved,now,stage,carry=0){
   const ms=clamp(now-lastSaved,0,OFFLINE_CAP_MS);
@@ -203,9 +238,9 @@
    rubies:mins*(4+floorNumber(stage)),tickets:Math.floor(total/ECONOMY.offlineMinutesPerTicket),ticketRemainder:total%ECONOMY.offlineMinutesPerTicket};
  }
  function awardFarmKill(state){
-  const reward=farmReward(state.stage);
+  const reward=farmReward(activeRun(state).stage,state.mode);
   state.gold+=reward.gold;state.heroExp+=reward.exp;state.rubies+=reward.rubies;
-  const kills=(state.farmTicketKills||0)+1;
+  const kills=(state.farmTicketKills||0)+(state.mode==='nightmare'?2:1);
   const tickets=Math.floor(kills/ECONOMY.killsPerTicket);
   state.farmTicketKills=kills%ECONOMY.killsPerTicket;state.tickets+=tickets;
   return {...reward,tickets};
@@ -254,6 +289,6 @@
   return drawDetailed(state,roster,count,rng)?.rewards.map(u=>u.id)||null;
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,
-  initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,bossStars,floorCount,maxStage,floorBossId,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,ascendCost,
+  initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,bossStars,floorCount,maxStage,floorBossId,nightmareUnlocked,activeRun,nightmareBossCount,nightmareStars,nightmareBossIds,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,ascendCost,
   normalized,heroAtStars,stats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,draw,summonCost,summonOdds,drawDetailed});
 })();
