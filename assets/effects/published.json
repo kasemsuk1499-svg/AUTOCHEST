@@ -439,6 +439,8 @@
         "scaleX": 1,
         "scaleY": 1,
         "rotation": 0,
+        "offsetX": 0,
+        "offsetY": -110,
         "thickness": 48,
         "orientation": "horizontal",
         "delayMs": 0,
