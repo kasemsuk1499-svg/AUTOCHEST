@@ -41,6 +41,7 @@
  const waveSize=stage=>Math.min(5,3+Math.floor((Math.max(1,stage)-1)/5));
  const STAGES_PER_FLOOR=5;
  const floorNumber=stage=>Math.ceil(Math.max(1,stage)/STAGES_PER_FLOOR);
+ const bossStars=stage=>(Math.max(1,Math.floor(number(stage,1)))-1)%STAGES_PER_FLOOR+1;
  const floorCount=(roster=window.AUTOCHEST_CHARACTERS?.HEROES)=>Math.max(1,Object.keys(roster||{}).length);
  const maxStage=roster=>floorCount(roster)*STAGES_PER_FLOOR;
  // Preserve the original nine floors even if the hero script order is changed.
@@ -172,6 +173,14 @@
   const atk=Math.round((boss?55:15)*Math.pow(1.098,n));
   return {hp,atk,delay:boss?1.45:2.15};
  }
+ // Keep the existing stage curve and apply the same star stat multipliers as heroes.
+ function enemyStats(hero,stage,boss=false){
+  const stars=boss?bossStars(stage):1,h=heroAtStars(hero,stars),base=monster(stage,boss);
+  const normal=stats(hero,{level:1,stars:1}),scaled=stats(hero,{level:1,stars});
+  return {stars,hp:Math.max(1,Math.round(base.hp*(.8+hero.hp/3000)*scaled.hp/normal.hp)),
+   atk:Math.round(base.atk*(.9+hero.dmg/900)*scaled.atk/normal.atk),
+   delay:Math.max(.75,h.cool*1.2),crit:scaled.crit,critDamage:scaled.critDamage};
+ }
  // Economy balance: speed up levelling without devaluing duplicate hero shards.
  const ECONOMY=Object.freeze({farm:3,boss:3,offline:5,bossRubies:3,killsPerTicket:20,offlineMinutesPerTicket:30});
  function farmReward(stage){
@@ -240,6 +249,6 @@
   return drawDetailed(state,roster,count,rng)?.rewards.map(u=>u.id)||null;
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,
-  initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,floorCount,maxStage,floorBossId,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,ascendCost,
-  normalized,heroAtStars,stats,power,monster,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,draw,summonCost,summonOdds,drawDetailed});
+  initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,bossStars,floorCount,maxStage,floorBossId,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,ascendCost,
+  normalized,heroAtStars,stats,power,monster,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,draw,summonCost,summonOdds,drawDetailed});
 })();
