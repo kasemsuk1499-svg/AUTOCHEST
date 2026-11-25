@@ -133,7 +133,12 @@ function setArenaPosition(node,x,y,angle=null){
  const transform='translate3d('+px.toFixed(2)+'px,'+py.toFixed(2)+'px,0) translate(-50%,-50%)'+(angle===null?'':' rotate('+angle+'rad)');
  if(node.style.transform!==transform)node.style.transform=transform;
 }
-function positionShot(shot){const angle=shot.pierce?Math.atan2(shot.pierce.dy*arenaSize.height/TFT.H,shot.pierce.dx*arenaSize.width/TFT.W):shot.target?Math.atan2((shot.target.y-shot.y)*arenaSize.height,(shot.target.x-shot.x)*arenaSize.width):null;setArenaPosition(shot.node,shot.x,shot.y,(angle||0)+(Number(shot.node?.dataset.fxRotation)||0)*Math.PI/180)}
+function setShotVisualPosition(node,x,y,angle){
+ if(!node)return;
+ const offset=VFX?.visualOffset({offsetX:Number(node.dataset.fxOffsetX)||0,offsetY:Number(node.dataset.fxOffsetY)||0},arenaSize)||{x:0,y:0};
+ setArenaPosition(node,x+offset.x*100/Math.max(1,arenaSize.width),y+offset.y*100/Math.max(1,arenaSize.height),angle+(Number(node.dataset.fxRotation)||0)*Math.PI/180);
+}
+function positionShot(shot){const angle=shot.pierce?Math.atan2(shot.pierce.dy*arenaSize.height/TFT.H,shot.pierce.dx*arenaSize.width/TFT.W):shot.target?Math.atan2((shot.target.y-shot.y)*arenaSize.height,(shot.target.x-shot.x)*arenaSize.width):null;setShotVisualPosition(shot.node,shot.x,shot.y,angle||0)}
 function position(actor){
  if(!actor?.node)return;
  setArenaPosition(actor.node,actor.x,actor.y);
@@ -939,7 +944,7 @@ function imageProjectile(node,actor,special=false){
  const spec=VFX?.getSpec(HEROES[actor.id],special?'skillProjectile':'projectile');if(!spec)return false;
  node.classList.add('image-projectile');
  const size=(spec.src.endsWith('/combat-atlas.svg')?(special?58:36):spec.size)*Math.min(1,arenaSize.width/540);
- node.style.width=size*spec.scaleX+'px';node.style.height=size*spec.scaleY+'px';node.dataset.fxRotation=String(spec.rotation);VFX.paint(node,spec,spec.frames>1&&!spec.src.endsWith('/combat-atlas.svg'));VFX.animateLifetime(node,spec,true);return true;
+ node.style.width=size*spec.scaleX+'px';node.style.height=size*spec.scaleY+'px';node.dataset.fxRotation=String(spec.rotation);node.dataset.fxOffsetX=String(spec.offsetX);node.dataset.fxOffsetY=String(spec.offsetY);VFX.paint(node,spec,spec.frames>1&&!spec.src.endsWith('/combat-atlas.svg'));VFX.animateLifetime(node,spec,true);return true;
 }
 function ring(x,y,cloak=false){
  const node=el('span',{class:cloak?'fx-cloak':'fx-ring'});
@@ -1139,7 +1144,7 @@ function tftShot(attacker,target,mult=1,bonusCrit=0,execute=false,heavy=false,co
   node=el('span',{class:'tft-bullet'+(heavy?' heavy':'')});
   node.style.setProperty('--bullet-color',palette);imageProjectile(node,attacker,heavy);
   const angle=Math.atan2((target.y-attacker.y)*arenaSize.height,(target.x-attacker.x)*arenaSize.width);
-  setArenaPosition(node,attacker.x,attacker.y,angle+(Number(node.dataset.fxRotation)||0)*Math.PI/180);
+  setShotVisualPosition(node,attacker.x,attacker.y,angle);
   effectLayer().appendChild(node);
  }
  shots.push({
@@ -1159,7 +1164,7 @@ function tftPiercingShot(attacker,target){
   node.style.setProperty('--shot-angle',Math.atan2(p.dy,p.dx)+'rad');
   imageProjectile(node,attacker,true);
   const angle=Math.atan2((end.y-attacker.y)*arenaSize.height,(end.x-attacker.x)*arenaSize.width);
-  setArenaPosition(node,attacker.x,attacker.y,angle+(Number(node.dataset.fxRotation)||0)*Math.PI/180);
+  setShotVisualPosition(node,attacker.x,attacker.y,angle);
   effectLayer().appendChild(node);
  }
  shots.push({owner:attacker,side:attacker.side,x:attacker.x,y:attacker.y,pierce:p,
