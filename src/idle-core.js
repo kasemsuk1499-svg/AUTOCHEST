@@ -211,6 +211,7 @@
  // Deployed unique heroes activate only the highest reached threshold per tag.
  const factions={asuna:'sao',kirito:'sao',sinon:'sao',lisbeth:'sao',deathgun:'sao',heathcliff:'sao',silica:'sao',megumin:'konosuba',aqua:'konosuba',artoria:'fate'};
  const factionOf=h=>h.faction||factions[h.id];
+ const damageType=h=>h?.damageType||(h?.team==='เวท'?'magic':'physical');
  const synergyDefs=[
   {id:'sao',name:'Sword Art Online',icon:'⚔️',match:h=>factionOf(h)==='sao',tiers:[{count:3,hp:.05,atk:.05},{count:5,hp:.10,atk:.10},{count:7,hp:.16,atk:.16}]},
   {id:'konosuba',name:'KonoSuba',icon:'💥',match:h=>factionOf(h)==='konosuba',tiers:[{count:2,hp:.10,atk:.10}]},
@@ -218,7 +219,8 @@
   {id:'fate',name:'Fate',icon:'👑',match:h=>factionOf(h)==='fate',tiers:[{count:2,hp:.10,atk:.10}]},
   {id:'duo',name:'คู่ดาบแห่ง Aincrad',icon:'💞',match:h=>h.id==='asuna'||h.id==='kirito',tiers:[{count:2,speed:.08}]},
   {id:'warrior',name:'นักรบ',icon:'🗡️',match:h=>h.team==='นักรบ',tiers:[{count:2,speed:.10},{count:3,speed:.18}]},
-  {id:'mage',name:'เวท',icon:'🔮',match:h=>h.team==='เวท',tiers:[{count:2,atk:.10},{count:3,atk:.18}]},
+  {id:'mage',name:'พลังเวท',icon:'🔮',match:h=>damageType(h)==='magic',tiers:[{count:2,magicAtk:.10},{count:3,magicAtk:.18},{count:5,magicAtk:.25},{count:7,magicAtk:.35}]},
+  {id:'physical',name:'พลังกายภาพ',icon:'⚔️',match:h=>damageType(h)==='physical',tiers:[{count:2,physicalAtk:.10},{count:3,physicalAtk:.18},{count:5,physicalAtk:.25},{count:7,physicalAtk:.35}]},
   {id:'ranged',name:'ยิงไกล',icon:'🎯',match:h=>h.team==='ยิงไกล',tiers:[{count:2,crit:.10},{count:3,crit:.18}]},
   {id:'tank',name:'ป้องกัน',icon:'🛡️',match:h=>h.team==='ป้องกัน',tiers:[{count:2,hp:.18},{count:3,hp:.28}]}
  ];
@@ -234,7 +236,7 @@
   }).filter(tag=>tag.tiers.length);
  }
  function synergyBonus(id,tags){
-  const bonus={hp:0,atk:0,speed:0,crit:0};
+  const bonus={hp:0,atk:0,physicalAtk:0,magicAtk:0,speed:0,crit:0};
   for(const tag of tags)if(tag.active&&tag.members.includes(id))
    for(const key of Object.keys(bonus))bonus[key]+=tag.active[key]||0;
   return bonus;
@@ -242,7 +244,7 @@
  function teamHeroStats(state,roster,id,progress=state.owned[id],tags=teamSynergies(state,roster)){
   const s=stats(roster[id],progress);if(!s)return null;
   const b=synergyBonus(id,tags);
-  return {...s,hp:Math.round(s.hp*(1+b.hp)),atk:Math.round(s.atk*(1+b.atk)),cool:Math.max(.28,s.cool/(1+b.speed)),crit:Math.min(1,s.crit+b.crit)};
+  return {...s,hp:Math.round(s.hp*(1+b.hp)),atk:Math.round(s.atk*(1+b.atk+(damageType(roster[id])==='magic'?b.magicAtk:b.physicalAtk))),cool:Math.max(.28,s.cool/(1+b.speed)),crit:Math.min(1,s.crit+b.crit)};
  }
  function power(state,roster){
   const tags=teamSynergies(state,roster);
@@ -373,5 +375,5 @@
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,
   initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,bossStars,floorCount,maxStage,floorBossId,nightmareUnlocked,activeRun,nightmareBossCount,nightmareStars,nightmareBossIds,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,shardsToMax,ascendCost,
-  normalized,heroAtStars,SKILL_MIN_INTERVAL,skillAttackCount,consumeSkillAttack,explosionCastSeconds,explosionRestSeconds,stats,teamSynergies,synergyBonus,teamHeroStats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,universalShardYield,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
+  normalized,heroAtStars,damageType,SKILL_MIN_INTERVAL,skillAttackCount,consumeSkillAttack,explosionCastSeconds,explosionRestSeconds,stats,teamSynergies,synergyBonus,teamHeroStats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,universalShardYield,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
 })();
