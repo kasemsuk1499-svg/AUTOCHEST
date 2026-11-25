@@ -361,6 +361,7 @@ function levelBatch(id,maximum=5){
 }
 function neededMaterials(price,have,label){return have>=price?'✓ '+label+' พร้อม':'ขาด '+fmt(price-have)+' '+label}
 function synergyEffect(t){
+ if(t.special)return t.special;
  return [['hp','HP'],['atk','ATK'],['speed','ความเร็วโจมตี'],['crit','CRIT']].filter(([k])=>t[k]).map(([k,label])=>label+' +'+Math.round(t[k]*100)+(k==='crit'?' จุด%':'%')).join(' · ');
 }
 function renderSynergies(){
