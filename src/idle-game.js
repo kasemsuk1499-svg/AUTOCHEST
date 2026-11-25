@@ -20,6 +20,7 @@ const studioTrialId=new URLSearchParams(location.search).get('studioTrial');
 const studioMode=!!studioTrialId&&!!HEROES[studioTrialId];
 let loaded=studioMode?null:safe(()=>JSON.parse(localStorage.getItem(CORE.KEY)),null);
 let state=CORE.normalized(loaded,HEROES);
+const run=()=>CORE.activeRun(state),night=()=>state.mode==='nightmare';
 const floorResetGift=!!loaded&&loaded.version===1&&Number(loaded.floorResetEvent||0)<CORE.FLOOR_RESET_EVENT;
 let suppressSave=false;
 if(loaded){
@@ -39,7 +40,7 @@ let summonBusy=false,summonTimer=0,lastSummon=null;
 let trial=null,trialContext=null,trialReturnFocus=null;
 let formationMode=false,shots=[];
 let allyRevives=new Map(),fallenEnemies=[];
-let combat=null,enemies=[],fighters=[],stageClock=0,respawn=1.8,waveCount=0,travel=0,travelDistance=0,encounters=0,lastFrame=0,lastSave=0,lastHUD=0,toastTimer=0;
+let bossTime=0,combat=null,enemies=[],fighters=[],stageClock=0,respawn=1.8,waveCount=0,travel=0,travelDistance=0,encounters=0,lastFrame=0,lastSave=0,lastHUD=0,toastTimer=0;
 let logLines=['✦ เริ่มการผจญภัย SAO IDLE แล้ว!'];
 const GRID_COLS=6,GRID_ROWS=7,ALLY_START_ROW=4;
 const boardPoint=(col,row)=>({x:(col+.5)*100/GRID_COLS,y:(row+.5)*100/GRID_ROWS});
@@ -55,7 +56,7 @@ let boardGesture=null,ignoreInspectUntil=0,dragGhost=null,dropHighlight=null;
 // Hero-shaped enemies share art and skills with the player's SAO roster.
 // Normal enemies unlock with their assigned floor, including former boss-only heroes.
 // Floor bosses use the whole registered roster, including boss-only heroes.
-const enemyLimit=()=>CORE.waveSize(state.stage);
+const enemyLimit=()=>CORE.waveSize(run().stage);
 const waveSlots=[[1,0],[4,0],[2,1],[0,1],[5,1]]; // finite TFT wave formation
 const near=(a,b)=>Math.hypot(a.x-b.x,(a.y-b.y)*.65);
 const reach=id=>Math.min(41,Math.max(10,HEROES[id].range*8.1+2));
@@ -223,10 +224,11 @@ const STAGE_BACKGROUNDS=[
 ];
 let stageBackgroundTheme=-1;
 function updateStageBackground(stage){
- const theme=CORE.floorNumber(stage)-1;
- if(theme===stageBackgroundTheme)return;
- stageBackgroundTheme=theme;
- const arena=$('stageViewport'),src=STAGE_BACKGROUNDS[theme]||('./assets/backgrounds/floor-'+String(theme+1).padStart(2,'0')+'.png');
+ const theme=CORE.floorNumber(stage)-1,key=state.mode+':'+theme;
+ if(key===stageBackgroundTheme)return;
+ stageBackgroundTheme=key;
+ const arena=$('stageViewport'),src=night()?'./assets/backgrounds/nightmare-floor-'+String(theme+1).padStart(2,'0')+'.png':STAGE_BACKGROUNDS[theme]||('./assets/backgrounds/floor-'+String(theme+1).padStart(2,'0')+'.png');
+ arena.classList.toggle('nightmare-arena',night());
  // Restore the existing CSS background while the next image is loading or absent.
  arena.style.removeProperty('background-image');
  arena.style.removeProperty('background-size');
@@ -235,7 +237,7 @@ function updateStageBackground(stage){
  if(!src)return;
  const img=new Image();
  img.onload=()=>{
-  if(stageBackgroundTheme!==theme)return;
+  if(stageBackgroundTheme!==key)return;
   arena.style.backgroundImage='url('+JSON.stringify(src)+')';
   arena.style.backgroundSize='cover';
   arena.style.backgroundPosition='center';
@@ -249,30 +251,35 @@ function updateResources(){
  $('rubyValue').textContent=fmt(state.rubies);
  $('ticketValue').textContent=fmt(state.tickets);
  $('teamPower').textContent=fmt(CORE.power(state,HEROES));
- $('stageName').textContent=CORE.stageName(state.stage);
- updateStageBackground(state.stage);
- $('stageNumber').textContent=fmt(state.stage)+' / '+fmt(CORE.maxStage(HEROES));
- if($('floorProgress'))$('floorProgress').textContent='FLOOR '+CORE.floorNumber(state.stage)+' / '+CORE.floorCount(HEROES);
- const floorBoss=HEROES[CORE.floorBossId(state.stage,HEROES)];
- if($('floorBossName'))$('floorBossName').textContent=floorBoss?'👑 บอสประจำชั้น: '+floorBoss.name+' · '+'★'.repeat(CORE.bossStars(state.stage)):'ยังไม่มีบอสประจำชั้น';
- $('bestStage').textContent=String(state.stage).padStart(2,'0');
- const need=CORE.killsNeeded(state.stage);
- $('killCounter').textContent=state.kills+' / '+need;
- $('killFill').style.width=Math.min(100,state.kills/need*100)+'%';
+ const p=run(),stage=p.stage,bossCount=night()?CORE.nightmareBossCount(stage):1;
+ $('stageName').textContent=(night()?'☾ NIGHTMARE · ':'')+CORE.stageName(stage);
+ updateStageBackground(stage);
+ $('stageNumber').textContent=fmt(stage)+' / '+fmt(CORE.maxStage(HEROES));
+ if($('floorProgress'))$('floorProgress').textContent=(night()?'NM FLOOR ':'FLOOR ')+CORE.floorNumber(stage)+' / '+CORE.floorCount(HEROES);
+ const floorBoss=HEROES[CORE.floorBossId(stage,HEROES)];
+ if($('floorBossName'))$('floorBossName').textContent=floorBoss?'👑 '+floorBoss.name+' · '+'★'.repeat(CORE.bossStars(stage))+(night()?' · บอส '+bossCount+' ตัว':''):'ยังไม่มีบอสประจำชั้น';
+ $('bestStage').textContent=String(stage).padStart(2,'0');
+ $('normalModeBtn').textContent='NORMAL · '+state.stage;
+ $('nightmareModeBtn').textContent=CORE.nightmareUnlocked(state)?'☾ NIGHTMARE · '+state.nightmare.stage:'🔒 NIGHTMARE · ผ่าน Normal 5';
+ $('normalModeBtn').classList.toggle('selected',!night());$('nightmareModeBtn').classList.toggle('selected',night());
+ $('nightmareModeBtn').disabled=!CORE.nightmareUnlocked(state);
+ const need=CORE.killsNeeded(stage);
+ $('killCounter').textContent=p.kills+' / '+need;
+ $('killFill').style.width=Math.min(100,p.kills/need*100)+'%';
  $('teamCount').textContent=state.squad.length+' / '+CORE.maxSquad(state.stage);
  $('ownedCount').textContent=Object.keys(state.owned).length+' / '+IDS.length;
  $('autoBossBtn').textContent=state.autoBoss?'🔄 AUTO BOSS ON':'⏸ AUTO BOSS OFF';
  $('autoBossBtn').classList.toggle('selected',state.autoBoss);
  $('speedBtn').textContent='⏩ ×'+state.speed;
  refreshFormationControls();
- const floorComplete=!CORE.canChallengeStage(state,HEROES);
- $('challengeBtn').disabled=floorComplete||!!combat?.boss||state.kills<need;
- $('challengeBtn').textContent=floorComplete?'🏆 ถึงขอบเขตชั้นปัจจุบัน · ฟาร์มต่อ':combat?.boss?'👑 กำลังต่อสู้กับบอส':state.kills<need?'👑 ปลดล็อกบอส '+state.kills+'/'+need:'👑 ท้าทาย '+(floorBoss?.name||'บอส')+'!';
+ const floorComplete=!CORE.canChallengeStage(p,HEROES);
+ $('challengeBtn').disabled=floorComplete||!!combat?.boss||p.kills<need;
+ $('challengeBtn').textContent=floorComplete?'🏆 ถึงขอบเขตชั้นปัจจุบัน · ฟาร์มต่อ':combat?.boss?'👑 บอสเหลือ '+enemies.length+' ตัว':p.kills<need?'👑 ปลดล็อกบอส '+p.kills+'/'+need:night()?'👑 ท้าบอส '+bossCount+' ตัว!':'👑 ท้าทาย '+(floorBoss?.name||'บอส')+'!';
  $('bossTimer').hidden=!combat?.boss;
  $('fightLabel').classList.toggle('boss-mode',!!combat?.boss);
  $('fightLabel').textContent=combat?.boss?'BOSS BATTLE':combat?'WAVE '+waveCount:'WAVE READY';
- if(combat?.boss){$('bossCountdown').textContent=Math.max(0,Math.ceil(combat.timeout))}
- const farm=CORE.farmReward(state.stage);
+ if(combat?.boss){$('bossCountdown').textContent=Math.max(0,Math.ceil(bossTime))}
+ const farm=CORE.farmReward(stage,state.mode);
  $('farmGain').textContent='+'+fmt(farm.gold)+' G / +'+fmt(farm.exp)+' EXP / +'+fmt(farm.rubies)+' 💎 · 🎟 '+state.farmTicketKills+'/'+CORE.ECONOMY.killsPerTicket;
  updateSummonWallet();
  refreshUpgradeAvailability();
@@ -523,7 +530,7 @@ function openSkill(id,source='hero',unit=null){
   ['ความแรงคริ','×'+Number(h.critDamage||1.5).toFixed(2)],
   ['ความถี่สกิล','ทุก '+(h.triggerEvery||4)+' ครั้ง']
  ];
- const label=enemy?(active?.boss?'👑 บอสประจำชั้น · '+'★'.repeat(stars):'👹 ฮีโร่เงาศัตรู')+' · ด่าน '+state.stage:progress?
+ const label=enemy?(active?.boss?'👑 บอสประจำชั้น · '+'★'.repeat(stars):'👹 ฮีโร่เงาศัตรู · '+'★'.repeat(stars))+' · ด่าน '+run().stage:progress?
   '⭐ Lv.'+progress.level+' · '+progress.stars+' ดาว':'🔒 ยังไม่อัญเชิญ · ค่าสถานะพื้นฐาน';
  $('skillModalTitle').textContent=h.name+' — '+h.skill;
  $('skillModalContent').innerHTML=
@@ -548,12 +555,13 @@ function closeSkill(){
 }
 function renderQuest(){
  let task;
- if(state.stage<5)task='ผ่านด่าน <b>5</b> เพื่อปลดล็อกช่องทีมที่ 5';
+ if(night())task='☾ NIGHTMARE · รางวัลฟาร์ม ×2 · บอส '+CORE.nightmareBossCount(run().stage)+' ตัว · ความคืบหน้าแยกจาก Normal';
+ else if(state.stage<5)task='ผ่านด่าน <b>5</b> เพื่อปลดล็อกช่องทีมที่ 5';
  else if(state.stage<12)task='ผ่านด่าน <b>12</b> เพื่อปลดล็อกช่องทีมที่ 6';
  else if(state.stage<20)task='ผ่านด่าน <b>20</b> เพื่อปลดล็อกช่องทีมที่ 7';
  else if(!CORE.canChallengeStage(state,HEROES))task='🏆 ถึงขอบเขตชั้นปัจจุบันแล้ว · ฟาร์มและสะสมดาวระหว่างรอชั้นใหม่';
  else task='พิชิตด่าน <b>'+Math.min(state.stage+5,CORE.maxStage(HEROES))+'</b> และสะสมดาวฮีโร่';
- const extra=state.bossRetryWaves?' · ฟาร์มอีก '+state.bossRetryWaves+' เวฟก่อนลองบอสใหม่':'';
+ const extra=run().bossRetryWaves?' · ฟาร์มอีก '+run().bossRetryWaves+' เวฟก่อนลองบอสใหม่':'';
  $('guideQuest').innerHTML='✧ '+task+'<br><small>เวฟเป็นชุด • Auto ฟาร์ม • แพ้บอสไม่ตกด่าน'+extra+'</small>';
 }
 function renderPanels(){
@@ -863,24 +871,23 @@ function buildFighters(preserve=false){
  }
 }
 function beginTravel(seconds=1.6){
- combat=null;enemies=[];fallenEnemies=[];respawn=seconds;travel=0;allyRevives.clear();
+ bossTime=0;combat=null;enemies=[];fallenEnemies=[];respawn=seconds;travel=0;allyRevives.clear();
  clearTftShots();
  $('monsterLayer').replaceChildren();clearFx();buildFighters();travelScene();
- $('battleMessage').textContent=state.bossRetryWaves?
-  '🪙 ฟาร์มด่าน '+state.stage+' • อีก '+state.bossRetryWaves+' เวฟจะท้าบอสใหม่':
+ $('battleMessage').textContent=run().bossRetryWaves?
+  '🪙 ฟาร์มด่าน '+run().stage+' • อีก '+run().bossRetryWaves+' เวฟจะท้าบอสใหม่':
   '♟️ เตรียมรับเวฟ '+(waveCount+1)+'...';
  renderQuest();updateResources();
 }
-function spawnMonster(boss=false,cell=null,quiet=false){
- if(boss&&!CORE.canChallengeStage(state,HEROES))return;
- if(boss){enemies=[];fallenEnemies=[];$('monsterLayer').replaceChildren();clearTftShots()}
- else if(enemies.length>=enemyLimit())return;
+function spawnMonster(boss=false,cell=null,quiet=false,forcedId=null){
+ if(boss&&!CORE.canChallengeStage(run(),HEROES))return;
+ if(!boss&&enemies.length>=enemyLimit())return;
  // Prevent multiple one-shot Explosion casters in the same normal wave.
  const excluded=!boss&&enemies.some(e=>HEROES[e.id]?.effect==='explosion')?IDS.filter(id=>HEROES[id].effect==='explosion'):[];
- const id=boss?CORE.floorBossId(state.stage,HEROES):CORE.pickEnemyId(state.stage,HEROES,Math.random,excluded);
+ const stage=run().stage,id=forcedId||(boss?CORE.floorBossId(stage,HEROES):CORE.pickEnemyId(stage,HEROES,Math.random,excluded));
  if(!id)return;
  if(!boss)encounters++;
- const stat=CORE.enemyStats(HEROES[id],state.stage,boss),hero=CORE.enemyHero(HEROES[id],stat.stars,boss),hp=stat.hp;
+ const stat=CORE.enemyStats(HEROES[id],stage,boss,state.mode,night()&&!boss?CORE.nightmareStars(stage):1),hero=CORE.enemyHero(HEROES[id],stat.stars,boss),hp=stat.hp;
  const entry=cell?boardPoint(cell[0],cell[1]):
   boardPoint(boss?2:(encounters+2)%GRID_COLS,boss?1:encounters%3);
  const foe={id,side:'enemy',boss,stars:stat.stars,hp,maxHp:hp,atk:stat.atk,
@@ -892,7 +899,7 @@ function spawnMonster(boss=false,cell=null,quiet=false){
  node.dataset.inspectId=id;node.dataset.inspectSide='enemy';
  node.tabIndex=0;node.setAttribute('role','button');
  node.setAttribute('aria-label','ดูสกิลศัตรู '+hero.name);
- node.innerHTML='<span class="mini-stars">'+(boss?'👑 '+'★'.repeat(stat.stars):'⚔ ENEMY')+'</span>'+
+ node.innerHTML='<span class="mini-stars">'+(boss?'👑 '+'★'.repeat(stat.stars):night()?'⚔ '+'★'.repeat(stat.stars):'⚔ ENEMY')+'</span>'+
   '<img src="'+hero.images.idle+'" alt="">'+
   '<div class="mini-hp enemy-hp"><i></i></div>'+
   '<span class="fighter-name">'+(boss?'👑 ':'⚔ เงา')+escapeText(hero.name)+'</span>';
@@ -907,6 +914,16 @@ function spawnMonster(boss=false,cell=null,quiet=false){
   updateResources();
  }
 }
+function spawnBossEncounter(){
+ if(!CORE.canChallengeStage(run(),HEROES))return;
+ enemies=[];fallenEnemies=[];$('monsterLayer').replaceChildren();clearTftShots();
+ const stage=run().stage,ids=night()?CORE.nightmareBossIds(stage,HEROES):[CORE.floorBossId(stage,HEROES)];
+ const cells=ids.length===1?[[2,1]]:ids.length===2?[[1,1],[4,1]]:[[1,1],[3,0],[4,2]];
+ bossTime=night()?55:35;
+ ids.forEach((id,i)=>spawnMonster(true,cells[i],true,id));
+ $('battleMessage').textContent='👑 '+(night()?'NIGHTMARE · บอส '+ids.length+' ตัว':HEROES[ids[0]].name)+' · '+'★'.repeat(CORE.bossStars(stage));
+ updateResources();
+}
 function spawnWave(){
  if(combat||enemies.length)return;
  waveCount++;
@@ -918,31 +935,36 @@ function spawnWave(){
 }
 function resetCombat(){beginTravel(.8)}
 function victoryBoss(){
- if(!CORE.canChallengeStage(state,HEROES)){beginTravel(1.5);return;}
- const reward=CORE.bossReward(state.stage);
+ const p=run();if(!CORE.canChallengeStage(p,HEROES)){beginTravel(1.5);return;}
+ const reward=CORE.bossReward(p.stage,state.mode);
  state.gold+=reward.gold;state.heroExp+=reward.exp;
- state.rubies+=reward.rubies;state.tickets+=reward.tickets;state.bossWins++;
- log('🏆 ผ่านด่าน '+state.stage+'! +'+fmt(reward.gold)+' G / +'+fmt(reward.rubies)+' 💎 / +'+fmt(reward.tickets)+' 🎟');
- CORE.clearStage(state,HEROES);waveCount=0;save();
- const complete=!CORE.canChallengeStage(state,HEROES);
+ state.rubies+=reward.rubies;state.tickets+=reward.tickets;p.bossWins++;
+ log('🏆 ผ่าน '+(night()?'Nightmare ':'')+'ด่าน '+p.stage+'! +'+fmt(reward.gold)+' G / +'+fmt(reward.rubies)+' 💎 / +'+fmt(reward.tickets)+' 🎟');
+ CORE.clearStage(p,HEROES);waveCount=0;save();
+ const complete=!CORE.canChallengeStage(p,HEROES);
  beginTravel(1.5);
- renderPanels();toast(complete?'🏆 พิชิตครบทุกชั้น! ฟาร์มต่อได้จนกว่าจะมีชั้นใหม่':'🏆 ผ่านบอส! ด่าน '+state.stage+' • ได้ Rubies และตั๋ว!');
+ renderPanels();toast(complete?'🏆 พิชิตครบทุกชั้น! ฟาร์มต่อได้จนกว่าจะมีชั้นใหม่':'🏆 ผ่านบอส! ด่าน '+p.stage+' • ได้ Rubies และตั๋ว!');
 }
 function failBoss(){
- const stage=state.stage;
- CORE.bossDefeated(state);
+ const stage=run().stage;
+ CORE.bossDefeated(run());
  log('💥 ยังไม่ชนะบอสด่าน '+stage+' · ฟาร์มอีก 3 เวฟแล้ว AUTO จะลองใหม่');
  beginTravel(1.1);save();
  toast('💪 แพ้บอสแต่ยังอยู่ด่าน '+stage+' · Auto ฟาร์ม Gold/EXP ต่อ!');
 }
 function defeatMonster(foe){
  if(!foe||!enemies.includes(foe))return;
- if(foe.boss){victoryBoss();return}
+ if(foe.boss){
+  if(!fallenEnemies.includes(foe))fallenEnemies.push(foe);
+  enemies=enemies.filter(x=>x!==foe);foe.node?.remove();combat=enemies[0]||null;
+  if(!combat){victoryBoss();return;}
+  $('battleMessage').textContent='👑 บอสเหลือ '+enemies.length+' ตัว';updateResources();return;
+ }
  // A revived enemy never pays out its loot twice.
  if(!foe.rewarded){
   foe.rewarded=true;
   const reward=CORE.awardFarmKill(state);
-  state.kills=Math.min(CORE.killsNeeded(state.stage),state.kills+1);
+  const p=run();p.kills=Math.min(CORE.killsNeeded(p.stage),p.kills+1);
   if(reward.tickets){log('🎟️ ฟาร์มครบ '+CORE.ECONOMY.killsPerTicket+' ตัว! ได้ตั๋วสุ่ม +'+reward.tickets);save();}
  }
  if(!fallenEnemies.includes(foe))fallenEnemies.push(foe);
@@ -950,7 +972,7 @@ function defeatMonster(foe){
  combat=enemies[0]||null;
  if(!combat){
   // Only spawn a fresh group AFTER the entire wave is defeated.
-  CORE.waveCleared(state);
+  CORE.waveCleared(run());
   beginTravel(.95);save();
  }else{
   $('battleMessage').textContent='⚔️ เวฟ '+waveCount+' · เหลือ '+enemies.length+' ตัว';
@@ -1248,14 +1270,14 @@ function tick(dt){
  if(!combat){
   respawn-=t;
   if(respawn<=0){
-   if(CORE.nextEncounter(state,HEROES)==='boss')spawnMonster(true);
+   if(CORE.nextEncounter({...run(),autoBoss:state.autoBoss},HEROES)==='boss')spawnBossEncounter();
    else spawnWave();
   }
   return;
  }
  if(combat.boss){
-  combat.timeout-=t;
-  if(combat.timeout<=0){failBoss();return}
+  bossTime-=t;
+  if(bossTime<=0){failBoss();return}
  }
  for(const f of fighters){
   if(!f.alive)continue;
@@ -1303,7 +1325,7 @@ function tick(dt){
   f.node.style.opacity=f.alive?'1':'.2';
  }
  $('bossTimer').hidden=!combat?.boss;
- if(combat?.boss)$('bossCountdown').textContent=Math.ceil(combat.timeout);
+ if(combat?.boss)$('bossCountdown').textContent=Math.ceil(bossTime);
 }
 function frame(now){
  if(!lastFrame)lastFrame=now;
@@ -1551,10 +1573,17 @@ $('autoBossBtn').addEventListener('click',()=>{
  state.autoBoss=!state.autoBoss;updateResources();save();
  toast(state.autoBoss?'🔄 เรียกบอสอัตโนมัติ ON':'⏸ เรียกบอสอัตโนมัติ OFF');
 });
+function switchMode(mode){
+ if(studioMode||state.mode===mode||mode==='nightmare'&&!CORE.nightmareUnlocked(state))return;
+ state.mode=mode;waveCount=0;beginTravel(.8);renderPanels();save();
+ toast(mode==='nightmare'?'☾ Nightmare · ฟาร์ม ×2':'กลับสู่ Normal');
+}
+$('normalModeBtn').addEventListener('click',()=>switchMode('normal'));
+$('nightmareModeBtn').addEventListener('click',()=>switchMode('nightmare'));
 $('challengeBtn').addEventListener('click',()=>{
- if(!CORE.canChallengeStage(state,HEROES)||state.kills<CORE.killsNeeded(state.stage)||combat?.boss)return;
- state.bossRetryWaves=0;
- beginTravel(.2);spawnMonster(true);updateResources();save();
+ const p=run();if(!CORE.canChallengeStage(p,HEROES)||p.kills<CORE.killsNeeded(p.stage)||combat?.boss)return;
+ p.bossRetryWaves=0;
+ beginTravel(.2);spawnBossEncounter();updateResources();save();
 });
 $('speedBtn').addEventListener('click',()=>{
  state.speed=state.speed===1?2:1;updateResources();save();
