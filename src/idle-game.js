@@ -399,8 +399,8 @@ function renderTeam(){
    '" data-slot="'+id+'" aria-label="เลือก '+escapeText(t.name)+' เลเวล '+p.level+' '+p.stars+' ดาว">'+
    '<span class="team-level">'+(CORE.isMaxHero(p)?'MAX':'Lv.'+p.level)+'</span>'+rarityBadge(t)+
    '<img loading="lazy" src="'+t.images.idle+'" alt="">'+
-   '<strong>'+attackTypeMark(t)+escapeText(t.name)+'</strong>'+
-   '<span class="team-stars">'+'★'.repeat(p.stars)+(p.stars>=CORE.MAX_STARS?' MAX':'')+'</span>'+
+   '<strong title="'+escapeText(t.name)+'">'+attackTypeMark(t)+escapeText(t.name)+'</strong>'+
+   '<span class="team-stars" title="'+p.stars+' ดาว'+(p.stars>=CORE.MAX_STARS?' · MAX':'')+'">'+'★'.repeat(p.stars)+'</span>'+
    '<span class="team-ready" title="เสริมแกร่งได้แล้ว">⬆</span></button>';
  }).join('');
 }
