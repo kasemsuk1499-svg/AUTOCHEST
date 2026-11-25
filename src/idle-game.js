@@ -528,18 +528,25 @@ function renderSelected(){
    (inTeam?'↩ ถอนเข้าตัวสำรอง':full?'↔️ ลากทับฮีโร่ในทีม':'⚔️ เพิ่มเข้าทีม')+'</button>'+
    '<button type="button" id="openSkillBtn" class="inspect-skill-btn">ⓘ ดูสกิลทั้งหมด</button></div>';
 }
+function starPerkLabel(step){
+ let label=step.label;
+ if(step.patch?.triggerEvery)label=label.replace(/ทุก\s*\d+\s*ครั้ง/g,'ทุก '+CORE.skillAttackCount(step.patch)+' ครั้ง');
+ if(step.patch?.castSeconds)label=label.replace(/ร่าย(เวท)?\s*[\d.]+\s*วินาที/g,(_,v)=>'ร่าย'+(v||'')+' '+CORE.explosionCastSeconds(step.patch)+' วินาที');
+ if(step.patch?.passive?.explosionRestSeconds)label=label.replace(/พัก\s*[\d.]+\s*วินาที/g,'พัก '+CORE.explosionRestSeconds(step.patch.passive.explosionRestSeconds)+' วินาที');
+ return label;
+}
 function starUpgradeHtml(hero,stars=1){
  if(!hero.starUpgrades?.length)return '';
- return '<div class="star-perks"><strong>✦ STAR AWAKENING · โบนัสสะสม</strong>'+hero.starUpgrades.map(step=>'<div class="star-perk '+(stars>=step.star?'unlocked':'locked-perk')+'"><b>'+step.star+'★</b><span>'+escapeText(step.label)+'</span><small>'+(stars>=step.star?'✓':'🔒')+'</small></div>').join('')+'</div>';
+ return '<div class="star-perks"><strong>✦ STAR AWAKENING · โบนัสสะสม</strong>'+hero.starUpgrades.map(step=>'<div class="star-perk '+(stars>=step.star?'unlocked':'locked-perk')+'"><b>'+step.star+'★</b><span>'+escapeText(starPerkLabel(step))+'</span><small>'+(stars>=step.star?'✓':'🔒')+'</small></div>').join('')+'</div>';
 }
 function skillDescription(t,enemy=false){
- const n=t.triggerEvery||4,lines=['โจมตีปกติ 100% ATK เมื่อเป้าหมายอยู่ในระยะ TFT จริง • มีโอกาสคริติคอล'];
+ const n=CORE.skillAttackCount(t),lines=['โจมตีปกติ 100% ATK เมื่อเป้าหมายอยู่ในระยะ TFT จริง • มีโอกาสคริติคอล'];
  switch(t.effect){
   case 'explosion':
    lines[0]='เริ่มร่ายเวทเมื่อเข้าสู่การต่อสู้โดยอัตโนมัติ';
-   lines.push('ร่าย '+t.castSeconds+' วินาที · ระเบิดศัตรูทั้งหมด '+Math.round(t.skillPower*100)+'% ATK · ร่ายไม่สำเร็จหากตายก่อนครบเวลา');
+   lines.push('ร่าย '+CORE.explosionCastSeconds(t)+' วินาที · ระเบิดศัตรูทั้งหมด '+Math.round(t.skillPower*100)+'% ATK · ร่ายไม่สำเร็จหากตายก่อนครบเวลา');
    lines.push('พาสซีฟ — '+t.passive.name+': หลังระเบิดหมดแรง ไม่โจมตีหรือเดินอีกจนจบเวฟ/บอส แต่ยังถูกโจมตีได้');
-   lines.push('แท็กพิเศษ KonoSuba: เมื่อคาซึมะและอควาฝั่งเดียวกันยังมีชีวิต จะพัก 2 วินาที (1.5 วินาทีเมื่อคาซึมะ 5★) แล้วร่าย Explosion ซ้ำได้ไม่จำกัดครั้ง · หากสมาชิกตายระหว่างร่ายซ้ำจะหยุดร่าย');
+   lines.push('แท็กพิเศษ KonoSuba: เมื่อคาซึมะและอควาฝั่งเดียวกันยังมีชีวิต จะพัก 4 วินาที (3.5 วินาทีเมื่อคาซึมะ 5★) แล้วร่าย Explosion ซ้ำได้ไม่จำกัดครั้ง · หากสมาชิกตายระหว่างร่ายซ้ำจะหยุดร่าย');
    break;
   case 'slash':
    lines.push('ทุก '+n+' การโจมตี: โจมตีเป้าหมายเดียว '+Math.round((t.skillPower||2)*100)+'% ATK'+(t.skillGuaranteedCrit?' · ติดคริติคอลแน่นอน':' พร้อมเอฟเฟกต์วงพลัง'));
@@ -577,6 +584,7 @@ function skillDescription(t,enemy=false){
    break;
   default:lines.push('ทุก '+n+' การโจมตี: ใช้สกิลตามข้อมูลฮีโร่');
  }
+ if(t.effect!=='explosion')lines.push('สกิลมีช่วงเว้นอย่างน้อย '+CORE.SKILL_MIN_INTERVAL+' วินาทีหลังใช้ครั้งก่อน · หากโจมตีครบแล้วจะเก็บความพร้อมไว้จนใช้ได้');
  if(t.cleave)lines.push('โจมตีปกติ: ฟันศัตรูอื่นรอบเป้าหมายในรัศมี '+t.cleave.radius+' px คนละ '+Math.round(t.cleave.power*100)+'% ATK');
  if(t.passive?.bossMultiplier)lines.push('พาสซีฟ — '+t.passive.name+': ดาเมจทุกชนิดต่อบอส ×'+t.passive.bossMultiplier+' ก่อนคริติคอลและการป้องกัน');
  if(t.passive?.healOnAttack)lines.push('พาสซีฟ — '+t.passive.name+': เมื่อโจมตีปกติ ฟื้น HP ให้สมาชิกที่บาดเจ็บหนักที่สุด (ตามเปอร์เซ็นต์ HP) เท่ากับ '+Math.round(t.passive.healOnAttack*100)+'% ของ ATK พื้นฐานในการต่อสู้ของตนเอง');
@@ -585,7 +593,7 @@ function skillDescription(t,enemy=false){
  if(t.passive?.explosionImmune)lines.push('พาสซีฟ — '+t.passive.name+': ไม่ได้รับความเสียหายจาก EXPLOSION ทุกครั้ง');
  if(t.passive?.skillImmortalSeconds)lines.push('เมื่อใช้สกิล: เป็นอมตะ '+t.passive.skillImmortalSeconds+' วินาที');
  if(t.passive?.aquaReviveHp)lines.push('เมื่อ HP เหลือ 0 และอควาฝั่งเดียวกันยังมีชีวิต: คืนชีพ HP '+Math.round(t.passive.aquaReviveHp*100)+'% พร้อมอมตะ '+t.passive.aquaImmortalSeconds+' วินาที · ไม่จำกัดครั้ง · ไม่ใช้โควตาชุบชีวิตของอควา');
- if(t.passive?.explosionRestSeconds)lines.push('แท็กพิเศษ: เมื่อคาซึมะ อควา และเมกุมินยังมีชีวิตครบ เมกุมินพัก '+t.passive.explosionRestSeconds+' วินาทีแล้วร่าย EXPLOSION ซ้ำได้ไม่จำกัดครั้ง');
+ if(t.passive?.explosionRestSeconds)lines.push('แท็กพิเศษ: เมื่อคาซึมะ อควา และเมกุมินยังมีชีวิตครบ เมกุมินพัก '+CORE.explosionRestSeconds(t.passive.explosionRestSeconds)+' วินาทีแล้วร่าย EXPLOSION ซ้ำได้ไม่จำกัดครั้ง');
  if(t.passive?.reviveHp)lines.push('พาสซีฟ — '+t.passive.name+': เมื่อ HP เหลือ 0 คืนชีพด้วย HP '+Math.round(t.passive.reviveHp*100)+'% และเป็นอมตะ '+t.passive.immortalSeconds+' วินาที (ไม่รับดาเมจ) · 1 ครั้งต่อเวฟหรือบอส');
  if(t.globalRange)lines.push('🎯 ระยะยิงทั่วสนาม: ยิงได้จากทุกมุมโดยไม่ต้องเดินเข้าหาเป้าหมาย · ถอยเมื่อศัตรูประชิด');
  else if(Number(t.range)>=1.8)lines.push('🎯 ยิงไกล: กระสุนเดินทางตามเป้าหมายและคำนวณดาเมจเมื่อกระสุนถึง; พยายามรักษาระยะเมื่อศัตรูประชิด');
@@ -605,7 +613,7 @@ function openSkill(id,source='hero',unit=null){
   ['ความเร็วเดิน',String(h.move)],
   ['โอกาสคริ',Math.round((active?active.crit:stat.crit)*100)+'%'],
   ['ความแรงคริ','×'+Number(h.critDamage||1.5).toFixed(2)],
-  ['ความถี่สกิล','ทุก '+(h.triggerEvery||4)+' ครั้ง']
+  ['ความถี่สกิล',h.effect==='explosion'?'ร่าย '+CORE.explosionCastSeconds(h)+' วินาที':'ทุก '+CORE.skillAttackCount(h)+' ครั้ง · เว้น ≥ '+CORE.SKILL_MIN_INTERVAL+'s']
  ];
  const label=enemy?(active?.boss?'👑 บอสประจำชั้น · '+'★'.repeat(stars):'👹 ฮีโร่เงาศัตรู · '+'★'.repeat(stars))+' · ด่าน '+run().stage:progress?
   '⭐ Lv.'+progress.level+' · '+progress.stars+' ดาว':'🔒 ยังไม่อัญเชิญ · ค่าสถานะพื้นฐาน';
@@ -962,7 +970,7 @@ function buildFighters(preserve=false){
   const hp=old?Math.max(0,Math.min(stat.hp,Math.round(old.hp/Math.max(1,old.maxHp)*stat.hp))):stat.hp;
   return {id,side:'ally',x:point.x,y:point.y,startX:point.x,move:HEROES[id].move,
    hp,maxHp:stat.hp,atk:stat.atk,cool:stat.cool,remaining:old?.remaining??i*.12,
-   castUntil:old?.castUntil||0,exhausted:!!old?.exhausted,explosionCount:old?.explosionCount||0,explosionReadyAt:old?.explosionReadyAt||0,attacks:old?.attacks||0,shield:old?.shield||0,tauntUntil:old?.tauntUntil||0,
+   castUntil:old?.castUntil||0,exhausted:!!old?.exhausted,explosionCount:old?.explosionCount||0,explosionReadyAt:old?.explosionReadyAt||0,attacks:old?.attacks||0,nextSkillAt:old?.nextSkillAt||0,shield:old?.shield||0,tauntUntil:old?.tauntUntil||0,
    attackDown:old?.attackDown||null,vulnerability:old?.vulnerability||null,
    attackUp:old?.attackUp||null,speedUp:old?.speedUp||null,
    focusTarget:old?.focusTarget||null,focusHits:old?.focusHits||0,
@@ -1220,7 +1228,7 @@ function showHealing(results,source){
 function startExplosion(actor){
  const hero=combatHero(actor);
  if(!actor.alive||actor.hp<=0||actor.castUntil||actor.exhausted)return false;
- actor.castUntil=stageClock+hero.castSeconds;actor.walking=false;position(actor);
+ actor.castUntil=stageClock+CORE.explosionCastSeconds(hero);actor.walking=false;position(actor);
  visualEffect('cast',actor);unitFx(actor,'ร่าย EXPLOSION!','status');
  if(trialContext)trialContext.note='กำลังร่าย EXPLOSION!';return true;
 }
@@ -1236,7 +1244,7 @@ function advanceExplosion(actor,auto=false){
  if(actor.castUntil&&actor.explosionCount&&!party()){actor.castUntil=0;actor.exhausted=true;position(actor);return true}
  if(!actor.castUntil){const targets=actor.side==='ally'?enemies:fighters;if(auto&&targets.some(e=>e.hp>0&&e.alive!==false))startExplosion(actor);return !!auto}
  if(stageClock+1e-9<actor.castUntil){actor.walking=false;position(actor);return true}
- actor.castUntil=0;actor.exhausted=true;actor.explosionCount=(actor.explosionCount||0)+1;actor.explosionReadyAt=stageClock+(party()?.rest||2);actor.walking=false;pose(actor,false);position(actor);
+ actor.castUntil=0;actor.exhausted=true;actor.explosionCount=(actor.explosionCount||0)+1;actor.explosionReadyAt=stageClock+CORE.explosionRestSeconds(party()?.rest||2);actor.walking=false;pose(actor,false);position(actor);
  visualEffect('aftermath',actor,50,50,2.4);visualEffect('area',actor,50,50,2.4);
  unitFx(actor,'EXPLOSION!','status');
  const foes=(actor.side==='ally'?enemies:fighters).filter(e=>e.hp>0&&e.alive!==false);
@@ -1340,13 +1348,12 @@ function playAttackAnimation(attacker){
   if(node.isConnected&&attacker.attackUntil>(scene?scene.clock:stageClock))node.classList.add('burst');
  });
 }
-function tftAttack(attacker,target){
+function tftAttack(attacker,target,forceSkill=false){
  if(!target||target.hp<=0||attacker.exhausted||attacker.castUntil)return;
  const hero=combatHero(attacker),effect=hero.effect||'';
  const ambush=attacker.ambush&&attacker.cloakUntil<=stageClock;
  if(ambush)attacker.ambush=false;
- attacker.attacks++;
- const special=attacker.attacks%(hero.triggerEvery||4)===0;
+ const special=CORE.consumeSkillAttack(attacker,hero,stageClock,forceSkill);
  let mul=ambush?(hero.cloakShotMultiplier||1.7):1;
  if(special){
   if(effect!=='cloakshot')mul*=hero.skillPower||2;
@@ -1577,8 +1584,8 @@ function tickTrial(dt){
     const close=TFT.pursue(actor,target,h,t,'ally').inRange;
     if(close){
      actor.walking=false;
-     actor.attacks=cmd==='skill'?(h.triggerEvery||4)-1:0;
-     tftAttack(actor,target);
+     actor.attacks=0;
+     tftAttack(actor,target,cmd==='skill');
      if(h.passive?.focusCritStep)scene.note='โอกาสคริติคอลปกติ '+Math.round((actor.crit+Math.min(h.passive.focusCritMax,(actor.focusHits||0)*h.passive.focusCritStep))*100)+'%';
      else scene.note=cmd==='skill'?'ใช้ '+h.skill:cmd==='ambush'?'โจมตีหลังหมดพรางตัว':'โจมตีปกติ';
      scene.active=null;scene.nextAt=stageClock+Math.max(.3,h.cool);
