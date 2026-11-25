@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#101729">
 <meta name="description" content="AUTOCHEST IDLE — เกม SAO Idle RPG ต่อสู้และฟาร์มอัตโนมัติ">
 <title>AUTOCHEST IDLE — SAO Adventure</title>
-<link rel="stylesheet" href="./src/idle-style.css?v=0.20.6">
+<link rel="stylesheet" href="./src/idle-style.css?v=0.20.16">
 <script>
 window.__AUTOCHEST_IDLE_READY__=false;
 window.__idleBootMessage='';
@@ -33,7 +33,7 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
  <header class="app-header">
   <div class="logo-box">✦</div>
   <div class="brand"><small>SAO • HERO COLLECTION • AUTO BATTLE</small><h1>AUTO<span>CHEST</span> <em>IDLE</em></h1></div>
-  <div class="header-badge"><span class="online-dot"></span><b>v0.20.15</b></div>
+  <div class="header-badge"><span class="online-dot"></span><b>v0.20.16</b></div>
  </header>
  <div id="startupError" class="startup-error" role="alert" hidden><b>⚠️ เกมโหลดไม่สำเร็จ</b><span id="startupErrorText"></span><button type="button" onclick="idleHardReload()">🔄 โหลดเวอร์ชันใหม่</button></div>
  <div class="resource-ribbon">
@@ -49,6 +49,7 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
        <div><h2 id="stageName">ทุ่งหญ้าแห่งการเริ่มต้น</h2><div class="stage-sub"><span id="floorProgress">FLOOR 1 / 10</span> · STAGE <b id="stageNumber">1 / 50</b> <span id="fightLabel" class="battle-label">AUTO FARM</span></div><div id="floorBossName" style="font-size:12px;color:#ffdea5;margin-top:5px">👑 บอสประจำชั้น: อาสึนะ · ★</div></div>
        <div class="stage-badge"><small>BEST</small><b id="bestStage">01</b></div>
      </div>
+     <div class="difficulty-switch" aria-label="เลือกโหมดต่อสู้"><button type="button" id="normalModeBtn" class="control-btn selected">NORMAL · 1</button><button type="button" id="nightmareModeBtn" class="control-btn" disabled>🔒 NIGHTMARE · ผ่าน Normal 5</button></div>
      <div class="monster-track"><span>กำจัดฮีโร่ศัตรู <strong id="killCounter">0 / 6</strong></span><div class="track"><i id="killFill"></i></div></div>
      <div id="stageViewport" class="stage-viewport" aria-label="สนาม AUTOCHEST แบบตาราง 6 คอลัมน์ 7 แถว">
        <div class="board-grid" id="boardGrid" role="group" aria-label="กระดานจัดทัพ 6 คอลัมน์ 7 แถว"></div>
@@ -172,8 +173,8 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
 <script defer src="./src/characters/heroes/megumin.js?v=0.20.6"></script>
 <script defer src="./src/characters/heroes/artoria.js?v=0.20.6"></script>
 <script defer src="./src/characters/heroes/aqua.js?v=0.20.14"></script>
-<script defer src="./src/idle-core.js?v=0.20.15"></script>
+<script defer src="./src/idle-core.js?v=0.20.16"></script>
 <script defer src="./src/idle-tft-combat.js?v=0.20.14"></script>
 <script defer src="./src/idle-vfx.js?v=0.20.6"></script>
-<script defer src="./src/idle-game.js?v=0.20.15"></script>
+<script defer src="./src/idle-game.js?v=0.20.16"></script>
 </body></html>
