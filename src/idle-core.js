@@ -196,9 +196,48 @@
    critDamage:hero.critDamage||1.5
   };
  }
+ // Deployed unique heroes activate only the highest reached threshold per tag.
+ const factions={asuna:'sao',kirito:'sao',sinon:'sao',lisbeth:'sao',deathgun:'sao',heathcliff:'sao',silica:'sao',megumin:'konosuba',aqua:'konosuba',artoria:'fate'};
+ const factionOf=h=>h.faction||factions[h.id];
+ const synergyDefs=[
+  {id:'sao',name:'Sword Art Online',icon:'⚔️',match:h=>factionOf(h)==='sao',tiers:[{count:3,hp:.05,atk:.05},{count:5,hp:.10,atk:.10},{count:7,hp:.16,atk:.16}]},
+  {id:'konosuba',name:'KonoSuba',icon:'💥',match:h=>factionOf(h)==='konosuba',tiers:[{count:2,hp:.10,atk:.10}]},
+  {id:'fate',name:'Fate',icon:'👑',match:h=>factionOf(h)==='fate',tiers:[{count:2,hp:.10,atk:.10}]},
+  {id:'duo',name:'คู่ดาบแห่ง Aincrad',icon:'💞',match:h=>h.id==='asuna'||h.id==='kirito',tiers:[{count:2,speed:.08}]},
+  {id:'warrior',name:'นักรบ',icon:'🗡️',match:h=>h.team==='นักรบ',tiers:[{count:2,speed:.10},{count:3,speed:.18}]},
+  {id:'mage',name:'เวท',icon:'🔮',match:h=>h.team==='เวท',tiers:[{count:2,atk:.10},{count:3,atk:.18}]},
+  {id:'ranged',name:'ยิงไกล',icon:'🎯',match:h=>h.team==='ยิงไกล',tiers:[{count:2,crit:.10},{count:3,crit:.18}]},
+  {id:'tank',name:'ป้องกัน',icon:'🛡️',match:h=>h.team==='ป้องกัน',tiers:[{count:2,hp:.18},{count:3,hp:.28}]}
+ ];
+ function teamSynergies(state,roster){
+  const ids=[...new Set(state.squad)].filter(id=>state.owned[id]&&roster[id]);
+  return synergyDefs.map(def=>{
+   const available=Object.keys(roster).filter(id=>def.match({...roster[id],id}));
+   const tiers=def.tiers.filter(t=>t.count<=available.length);
+   const members=ids.filter(id=>available.includes(id));
+   const active=tiers.filter(t=>t.count<=members.length).at(-1)||null;
+   const next=tiers.find(t=>t.count>members.length)||null;
+   return {...def,available,members,tiers,active,next};
+  }).filter(tag=>tag.tiers.length);
+ }
+ function synergyBonus(id,tags){
+  const bonus={hp:0,atk:0,speed:0,crit:0};
+  for(const tag of tags)if(tag.active&&tag.members.includes(id))
+   for(const key of Object.keys(bonus))bonus[key]+=tag.active[key]||0;
+  return bonus;
+ }
+ function teamHeroStats(state,roster,id,progress=state.owned[id],tags=teamSynergies(state,roster)){
+  const s=stats(roster[id],progress);if(!s)return null;
+  const b=synergyBonus(id,tags);
+  return {...s,hp:Math.round(s.hp*(1+b.hp)),atk:Math.round(s.atk*(1+b.atk)),cool:Math.max(.28,s.cool/(1+b.speed)),crit:Math.min(1,s.crit+b.crit)};
+ }
  function power(state,roster){
+  const tags=teamSynergies(state,roster);
   return state.squad.reduce((sum,id)=>{
-   const s=stats(roster[id],state.owned[id]);return sum+(s?Math.round(s.atk*10+s.hp*.3):0);
+   const base=stats(roster[id],state.owned[id]),s=teamHeroStats(state,roster,id,state.owned[id],tags);
+   if(!s||!base)return sum;
+   const critRatio=(1+s.crit*(s.critDamage-1))/(1+base.crit*(base.critDamage-1));
+   return sum+Math.round(s.atk*10*base.cool/s.cool*critRatio+s.hp*.3);
   },0);
  }
  function monster(stage,boss=false){
@@ -321,5 +360,5 @@
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,
   initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,bossStars,floorCount,maxStage,floorBossId,nightmareUnlocked,activeRun,nightmareBossCount,nightmareStars,nightmareBossIds,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,shardsToMax,ascendCost,
-  normalized,heroAtStars,stats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,universalShardYield,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
+  normalized,heroAtStars,stats,teamSynergies,synergyBonus,teamHeroStats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,universalShardYield,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
 })();
