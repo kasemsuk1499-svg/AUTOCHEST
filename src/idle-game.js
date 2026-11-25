@@ -13,6 +13,10 @@ const rarityOrder=()=>[...IDS].sort((a,b)=>HEROES[b].cost-HEROES[a].cost);
 const attackTypeLabel=h=>CORE.damageType(h)==='magic'?'MATK':'PATK';
 const attackTypeName=h=>CORE.damageType(h)==='magic'?'เวทมนตร์':'กายภาพ';
 const attackTypeMark=h=>'<span class="hero-damage-type '+CORE.damageType(h)+'" title="'+attackTypeName(h)+'">'+(CORE.damageType(h)==='magic'?'✦':'⚔')+'</span>';
+const isTankHero=h=>h.team==='ป้องกัน'||!!h.guard;
+const isSupportHero=h=>!!(h.support?.healHp||h.support?.reviveHp||h.support?.attackUp||h.support?.physicalAttackUp||h.support?.magicAttackUp||h.support?.speedUp||/SUPPORT|HEALER|REVIVER/i.test(h.role||''));
+const roleMarks=h=>(isTankHero(h)?'<span class="hero-role-type tank" title="ป้องกัน" aria-label="ป้องกัน">⛨</span>':'')+(isSupportHero(h)?'<span class="hero-role-type support" title="ซัพพอร์ต" aria-label="ซัพพอร์ต">✚</span>':'');
+const heroNameMarks=h=>'<span class="hero-type-marks">'+attackTypeMark(h)+roleMarks(h)+'</span><span class="hero-name-text">'+escapeText(h.name)+'</span>';
 const rarityClass=h=>'rarity-'+h.rarity.toLowerCase();
 const rarityBadge=h=>'<span class="rarity-badge '+rarityClass(h)+'">'+h.rarity+'</span>';
 if(!IDS.length)throw Error('No SAO heroes registered');
@@ -399,7 +403,7 @@ function renderTeam(){
    '" data-slot="'+id+'" aria-label="เลือก '+escapeText(t.name)+' เลเวล '+p.level+' '+p.stars+' ดาว">'+
    '<span class="team-level">'+(CORE.isMaxHero(p)?'MAX':'Lv.'+p.level)+'</span>'+rarityBadge(t)+
    '<img loading="lazy" src="'+t.images.idle+'" alt="">'+
-   '<strong title="'+escapeText(t.name)+'">'+attackTypeMark(t)+escapeText(t.name)+'</strong>'+
+   '<strong title="'+escapeText(t.name)+'">'+heroNameMarks(t)+'</strong>'+
    '<span class="team-stars" title="'+p.stars+' ดาว'+(p.stars>=CORE.MAX_STARS?' · MAX':'')+'">'+'★'.repeat(p.stars)+'</span>'+
    '<span class="team-ready" title="เสริมแกร่งได้แล้ว">⬆</span></button>';
  }).join('');
@@ -457,7 +461,7 @@ function renderHeroes(){
   return '<div class="hero-entry"><button type="button" class="hero-card '+(!p?'locked ':'')+
    (selected===id?'active ':'')+(ready?'is-upgrade-ready ':'')+rarityClass(t)+'" data-hero="'+id+'">'+rarityBadge(t)+
    '<img loading="lazy" src="'+t.portrait+'" alt="">'+
-   '<strong>'+attackTypeMark(t)+escapeText(t.name)+'</strong>'+
+   '<strong>'+heroNameMarks(t)+'</strong>'+
    '<span class="collection-level">'+(p?(CORE.isMaxHero(p)?'✓ MAX':'LEVEL '+p.level+(p.level>=CORE.MAX_LEVEL?' MAX':'')):'🔒 ไม่ได้ปลดล็อก')+'</span>'+
    '<span class="collection-stars">'+(p?'★'.repeat(p.stars)+'☆'.repeat(CORE.MAX_STARS-p.stars)+(p.stars>=CORE.MAX_STARS?' MAX':''):'☆☆☆☆☆')+'</span>'+
    '<span class="collection-ready" title="เสริมแกร่งได้">⬆ อัปได้</span></button>'+
