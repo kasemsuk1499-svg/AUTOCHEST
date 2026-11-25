@@ -150,6 +150,7 @@ function position(actor){
  if(!actor?.node)return;
  setArenaPosition(actor.node,actor.x,actor.y);
  actor.node.classList.toggle('walking',!!actor.walking&&actor.attackUntil<=stageClock);
+ actor.node.classList.toggle('frozen',actor.hp>0&&TFT.isFrozen(actor,stageClock));
  actor.node.classList.toggle('explosion-casting',actor.hp>0&&!!actor.castUntil&&!actor.exhausted);
  actor.node.classList.toggle('explosion-exhausted',actor.hp>0&&!!actor.exhausted);
  actor.node.classList.toggle('cloaked',actor.cloakUntil>stageClock);
@@ -559,7 +560,9 @@ function skillDescription(t,enemy=false){
    lines.push('แท็กพิเศษ KonoSuba: เมื่อคาซึมะและอควาฝั่งเดียวกันยังมีชีวิต จะพัก 4 วินาที (3.5 วินาทีเมื่อคาซึมะ 5★) แล้วร่าย Explosion ซ้ำได้ไม่จำกัดครั้ง · หากสมาชิกตายระหว่างร่ายซ้ำจะหยุดร่าย');
    break;
   case 'dot':
-   lines.push('ทุก '+n+' การโจมตี: โจมตีศัตรูสูงสุด '+t.passive.dotTargets+' ตัว ตัวละ '+Math.round(t.skillPower*100)+'% ATK และติดคำสาป '+Math.round(t.passive.dotPower*100)+'% ATK ทุก 1 วินาที นาน '+t.passive.dotTicks+' วินาที · DOT ไม่คริติคอล · คำสาปจากผู้ร่ายเดิมรีเฟรช ไม่ทับซ้อน · หยุดทำงานเมื่อผู้ร่ายตาย');
+   lines.push('ทุก '+n+' การโจมตี: โจมตีศัตรูสูงสุด '+t.passive.dotTargets+' ตัว ตัวละ '+Math.round(t.skillPower*100)+'% ATK และติดคำสาป '+Math.round(t.passive.dotPower*100)+'% ATK ทุก 1 วินาที นาน '+t.passive.dotTicks+' วินาที · DOT ไม่คริติคอล · คำสาปจากผู้ร่ายเดิมอัปเดตพลังโดยไม่ซ้อนหรือรีเซ็ตจำนวนครั้ง · หยุดทำงานเมื่อผู้ร่ายตาย');
+   if(t.passive.dotPierceShield)lines.push('DOT ทะลุโล่โดยตรง แต่ไม่ทะลุอมตะ');
+   if(t.passive.dotFreezeSeconds)lines.push('เมื่อ DOT ครั้งสุดท้ายโดนเป้าหมายที่ยังมีชีวิต: แช่แข็ง '+t.passive.dotFreezeSeconds+' วินาที หยุดเดิน โจมตี และพักเวลาร่ายสกิล · ไม่ทะลุอมตะ');
    break;
   case 'slash':
    lines.push('ทุก '+n+' การโจมตี: โจมตีเป้าหมายเดียว '+Math.round((t.skillPower||2)*100)+'% ATK'+(t.skillGuaranteedCrit?' · ติดคริติคอลแน่นอน':' พร้อมเอฟเฟกต์วงพลัง'));
@@ -987,7 +990,7 @@ function buildFighters(preserve=false){
    hp,maxHp:stat.hp,atk:stat.atk,cool:stat.cool,remaining:old?.remaining??i*.12,
    castUntil:old?.castUntil||0,exhausted:!!old?.exhausted,explosionCount:old?.explosionCount||0,explosionReadyAt:old?.explosionReadyAt||0,attacks:old?.attacks||0,nextSkillAt:old?.nextSkillAt||0,shield:old?.shield||0,tauntUntil:old?.tauntUntil||0,
    attackDown:old?.attackDown||null,vulnerability:old?.vulnerability||null,
-   dots:old?.dots||[],attackUp:old?.attackUp||null,physicalAttackUp:old?.physicalAttackUp||null,magicAttackUp:old?.magicAttackUp||null,speedUp:old?.speedUp||null,
+   dots:old?.dots||[],freezeUntil:old?.freezeUntil||0,attackUp:old?.attackUp||null,physicalAttackUp:old?.physicalAttackUp||null,magicAttackUp:old?.magicAttackUp||null,speedUp:old?.speedUp||null,
    focusTarget:old?.focusTarget||null,focusHits:old?.focusHits||0,
    crit:stat.crit,critDamage:stat.critDamage,
    cloakUntil:old?.cloakUntil||0,ambush:old?.ambush||false,
@@ -1157,7 +1160,7 @@ function finishDamage(target){
  const bar=target.side==='enemy'?target.bar:target.hpbar;
  if(bar)bar.style.width=Math.max(0,target.hp/target.maxHp*100)+'%';
  if(target.hp===0){
-  target.dots=[];
+  target.dots=[];target.freezeUntil=0;
   const linked=TFT.linkedRevive(target,combatHero(target),target.side==='ally'?fighters:enemies,stageClock);
   if(linked||TFT.tryRevive(target,combatHero(target),stageClock,target.side==='ally'&&allyRevives.has(target.id))){
    if(target.side==='ally'&&!linked)allyRevives.set(target.id,{until:target.immortalUntil});
@@ -1180,7 +1183,8 @@ function advanceDots(){
    if(target.hp<=0||target.alive===false)break;
    const source=hit.source.side==='ally'?fighters.find(u=>u.id===hit.source.id):enemies.find(u=>u===hit.source);
    if(!source||source.hp<=0||source.alive===false)continue;
-   tftDamage(source,target,hit.power,0,false,false,'dot',true);
+   const landed=tftDamage(source,target,hit.power,0,false,hit.pierceShield===true,'dot',true);
+   if(landed&&TFT.applyFreeze(target,hit.freezeSeconds,stageClock)){position(target);visualEffect('freeze',source,target.x,target.y);statusFx(target,'freeze','แช่แข็ง');}
    if(!trialContext&&!combat)return;
   }
  }
@@ -1406,7 +1410,7 @@ function playAttackAnimation(attacker){
  });
 }
 function tftAttack(attacker,target,forceSkill=false){
- if(!target||target.hp<=0||attacker.exhausted||attacker.castUntil)return;
+ if(!target||target.hp<=0||attacker.exhausted||attacker.castUntil||TFT.isFrozen(attacker,stageClock))return;
  const hero=combatHero(attacker),effect=hero.effect||'';
  const ambush=attacker.ambush&&attacker.cloakUntil<=stageClock;
  if(ambush)attacker.ambush=false;
@@ -1472,6 +1476,7 @@ function tick(dt){
  advanceDots();if(!combat)return;
  for(const f of fighters){
   if(!f.alive)continue;
+  if(TFT.isFrozen(f,stageClock)){f.walking=false;if(f.castUntil)f.castUntil+=t;position(f);continue;}
   if(advanceExplosion(f,true)){if(!combat)return;continue}
   f.remaining-=t;
   if(f.attackUntil<stageClock&&f.sprite!==HEROES[f.id].images.idle){
@@ -1489,6 +1494,7 @@ function tick(dt){
  }
  for(const foe of enemies.slice()){
   if(foe.hp<=0)continue;
+  if(TFT.isFrozen(foe,stageClock)){foe.walking=false;if(foe.castUntil)foe.castUntil+=t;position(foe);continue;}
   if(advanceExplosion(foe,true)){if(!combat)return;continue}
   if(foe.attackUntil<stageClock&&foe.sprite!==HEROES[foe.id].images.idle){
    pose(foe,false);foe.node.classList.remove('burst');
@@ -1625,6 +1631,7 @@ function tickTrial(dt){
   }
   if(actor.attackUntil<=stageClock){pose(actor,false);actor.node.classList.remove('burst')}
   advanceTftShots(t);advanceDots();
+  if(TFT.isFrozen(actor,stageClock)){actor.walking=false;if(actor.castUntil)actor.castUntil+=t;renderTrial();return;}
   if(actor.castUntil){advanceExplosion(actor,false);renderTrial();return}
   if(!scene.active&&scene.queue.length&&stageClock>=scene.nextAt&&!shots.length)scene.active=scene.queue.shift();
   if(scene.active){
