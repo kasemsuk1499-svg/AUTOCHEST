@@ -4,7 +4,7 @@
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const pxDist=(a,b)=>Math.hypot((a.x-b.x)*W/100,(a.y-b.y)*H/100);
  const attackRange=hero=>hero.globalRange?Math.hypot(W,H)+1:Math.max(40,Number(hero.range||1)*SX);
- const isRanged=hero=>Number(hero.range)>=1.8;
+ const isRanged=hero=>hero?.melee!==true&&Number(hero?.range)>=1.8;
  function pursue(actor,target,hero,dt,side='ally'){
   if(!actor||!target||!hero||!Number.isFinite(dt))return {inRange:false,moved:false};
   const dx=(target.x-actor.x)*W/100,dy=(target.y-actor.y)*H/100,d=Math.hypot(dx,dy);
@@ -134,7 +134,7 @@
  // Timed debuffs refresh; overlapping applications retain the strongest active amount.
  function applyDebuff(target,config,clock){
   if(!target||target.hp<=0||target.alive===false||!config)return false;
-  for(const k of ['attackDown','vulnerability']){
+  for(const k of ['attackDown','vulnerability','healDown']){
    const amount=clamp(config[k]||0,0,.95);if(!amount)continue;
    const prev=target[k],until=clock+config.duration;
    target[k]={amount:Math.max(prev?.until>clock?prev.amount:0,amount),until:Math.max(prev?.until||0,until)};
@@ -146,18 +146,20 @@
  const outgoingMultiplier=(actor,clock)=>(1-debuffValue(actor,'attackDown',clock))*(1+attackBuff(actor,clock));
  const attackInterval=(actor,base,clock)=>base/(1+debuffValue(actor,'speedUp',clock));
  const vulnerabilityMultiplier=(actor,clock)=>1+debuffValue(actor,'vulnerability',clock);
+ const healDownDamageMultiplier=(hero,target,clock)=>1+(debuffValue(target,'healDown',clock)>0?Math.max(0,hero?.passive?.bonusVsHealDown||0):0);
+ const boostedDebuff=(config,bonus=0)=>config?.healDown?{...config,healDown:Math.min(.95,config.healDown*(1+Math.max(0,bonus)))}:config;
  // Healing only affects living units; priority is lowest percentage HP.
- function healWeakest(allies,count,amount){
+ function healWeakest(allies,count,amount,clock=0,healPower=0){
   const units=[...new Set(allies)].filter(u=>u&&u.alive!==false&&u.hp>0&&u.maxHp>u.hp)
    .sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp).slice(0,count);
   return units.map(u=>{
-   const healed=Math.min(u.maxHp-u.hp,Math.max(0,Math.round(amount(u))));
+   const healed=Math.min(u.maxHp-u.hp,Math.max(0,Math.round(amount(u)*(1+Math.max(0,healPower))*(1-debuffValue(u,'healDown',clock)))));
    u.hp+=healed;return {unit:u,healed};
   });
  }
- function applySupport(allies,config,clock){
+ function applySupport(allies,config,clock,healPower=0){
   const units=[...new Set(allies)].filter(u=>u&&u.hp>0&&u.alive!==false);
-  const healed=healWeakest(units,config.healTargets,u=>u.maxHp*config.healHp);
+  const healed=healWeakest(units,config.healTargets,u=>u.maxHp*config.healHp,clock,healPower);
   for(const u of units)for(const k of ['attackUp','physicalAttackUp','magicAttackUp','speedUp']){
    if(k==='physicalAttackUp'&&u.damageType==='magic'||k==='magicAttackUp'&&u.damageType!=='magic')continue;
    const amount=clamp(config[k]||0,0,1);if(!amount)continue;
@@ -205,5 +207,5 @@
   if(!target.shield)target.shieldSource=null;
   return {damage,absorbed,total};
  }
- window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,reviveAlly,livingHero,linkedRevive,explosionParty,blocksExplosion,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,attackBuff,outgoingMultiplier,vulnerabilityMultiplier,attackInterval,healWeakest,applySupport,applyDot,dueDots,isFrozen,applyFreeze,splitMagicDamage,resolveDamage});
+ window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,reviveAlly,livingHero,linkedRevive,explosionParty,blocksExplosion,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,attackBuff,outgoingMultiplier,vulnerabilityMultiplier,healDownDamageMultiplier,boostedDebuff,attackInterval,healWeakest,applySupport,applyDot,dueDots,isFrozen,applyFreeze,splitMagicDamage,resolveDamage});
 })();

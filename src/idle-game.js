@@ -123,7 +123,7 @@ function defenderApproach(actor,target,t){
 // Enemy melee units rush to the actual target. Ranged units must first approach
 // the front line instead of camping at a spawn tile, then strafe while shooting.
 function invaderApproach(foe,target,t){
- const base=HEROES[foe.id],isRanged=base.range>=1.8;
+ const base=HEROES[foe.id],isRanged=TFT.isRanged(base);
  const x=foe.x,y=foe.y;
  const r=reach(foe.id);
  const advancing=foe.y<INVADER_FRONT_Y&&target.y>foe.y+6;
@@ -188,6 +188,7 @@ function position(actor){
  actor.node.classList.toggle('immortal',TFT.isImmortal(actor,stageClock));
  actor.node.classList.toggle('guard-shield',actor.hp>0&&(actor.shield||0)>0);
  actor.node.classList.toggle('taunting',actor.hp>0&&(actor.tauntUntil||0)>stageClock);
+ actor.node.classList.toggle('heal-down',actor.hp>0&&TFT.debuffValue(actor,'healDown',stageClock)>0);
  actor.node.classList.toggle('weakened',actor.hp>0&&TFT.debuffValue(actor,'attackDown',stageClock)>0);
  actor.node.classList.toggle('vulnerable',actor.hp>0&&TFT.debuffValue(actor,'vulnerability',stageClock)>0);
  actor.node.classList.toggle('support-buffed',actor.hp>0&&(TFT.attackBuff(actor,stageClock)>0||TFT.debuffValue(actor,'speedUp',stageClock)>0));
@@ -438,7 +439,7 @@ function levelBatch(id,maximum=5){
 function neededMaterials(price,have,label){return have>=price?'✓ '+label+' พร้อม':'ขาด '+fmt(price-have)+' '+label}
 function synergyEffect(t){
  if(t.special)return t.special;
- return [['hp','HP'],['atk','ATK ทุกประเภท'],['physicalAtk','PATK'],['magicAtk','MATK'],['dotDamage','DMG ต่อเนื่อง'],['speed','ความเร็วโจมตี'],['crit','CRIT']].filter(([k])=>t[k]).map(([k,label])=>label+' +'+Math.round(t[k]*100)+(k==='crit'?' จุด%':'%')).join(' · ');
+ return [['hp','HP'],['atk','ATK ทุกประเภท'],['physicalAtk','PATK'],['magicAtk','MATK'],['dotDamage','DMG ต่อเนื่อง'],['healPower','ฟื้นฟูทั้งทีม'],['antiHealPower','พลังลดฟื้นฟูทั้งทีม'],['speed','ความเร็วโจมตี'],['crit','CRIT']].filter(([k])=>t[k]).map(([k,label])=>label+' +'+Math.round(t[k]*100)+(k==='crit'?' จุด%':'%')).join(' · ');
 }
 function renderSynergies(){
  const box=$('teamSynergies');if(!box)return;
@@ -649,8 +650,8 @@ function skillDescription(t,enemy=false){
    lines.push('ทุก '+n+' การโจมตี: ปล่อยกระแสพลังใส่ศัตรูสูงสุด '+(t.chainTargets||3)+' ตัว แรงนัดละ '+Math.round((t.chainPower||1.12)*100)+'% ATK');
    break;
   case 'slam':
-   lines.push('ทุก '+n+' การโจมตี: ทุบโจมตีพื้นที่รัศมี '+(t.slamRadius||140)+' พิกเซลของสนาม แรง '+Math.round((t.skillPower||1.8)*100)+'% ATK ต่อเป้าหมาย');
-   if(t.debuff)lines.push('ศัตรูที่รอดจากการโจมตีติดดีบัฟ: พลังโจมตีลด '+Math.round(t.debuff.attackDown*100)+'% และได้รับดาเมจเพิ่ม '+Math.round(t.debuff.vulnerability*100)+'% นาน '+t.debuff.duration+' วินาที · รีเฟรชเวลา ไม่สะสมความแรง');
+   lines.push('ทุก '+n+' การโจมตี: โจมตีหมู่รัศมี '+(t.slamRadius||140)+' พิกเซลของสนาม'+(t.slamTargets?' สูงสุด '+t.slamTargets+' ตัว':'')+' แรง '+Math.round((t.skillPower||1.8)*100)+'% ATK ต่อเป้าหมาย');
+   if(t.debuff)lines.push('ศัตรูที่รอดจากการโจมตี: '+[['attackDown','พลังโจมตีลด'],['vulnerability','ได้รับดาเมจเพิ่ม'],['healDown','ลดฟื้นฟู HP']].filter(([k])=>t.debuff[k]).map(([k,label])=>label+' '+Math.round(t.debuff[k]*100)+'%').join(' · ')+' นาน '+t.debuff.duration+' วินาที · รีเฟรชเวลา ไม่สะสมความแรง'+(t.debuff.healDown?' · มีผลต่อฮีลและดูดเลือด ไม่ลด HP ตอนคืนชีพ':''));
    break;
   case 'shield':
    if(t.guard)lines.push('ทุก '+n+' การโจมตี: สร้างโล่ตนเอง '+Math.round(t.guard.selfShield*100)+'% ของ HP สูงสุด และให้พันธมิตรที่ยังมีชีวิตทุกคนโล่ '+Math.round(t.guard.allyShield*100)+'% ของ HP สูงสุดของแต่ละคน · ยั่วยุศัตรูทั่วสนาม '+t.guard.tauntSeconds+' วินาที · ไม่สร้างดาเมจ · โล่รีเฟรช ไม่สะสมทับ');
@@ -665,6 +666,8 @@ function skillDescription(t,enemy=false){
  }
  if(t.effect!=='explosion')lines.push('สกิลมีช่วงเว้นอย่างน้อย '+CORE.SKILL_MIN_INTERVAL+' วินาทีหลังใช้ครั้งก่อน · หากโจมตีครบแล้วจะเก็บความพร้อมไว้จนใช้ได้');
  if(t.cleave)lines.push('โจมตีปกติ: ฟันศัตรูอื่นรอบเป้าหมายในรัศมี '+t.cleave.radius+' px คนละ '+Math.round(t.cleave.power*100)+'% ATK');
+ if(t.passive?.bonusVsHealDown)lines.push('พาสซีฟ — '+t.passive.name+': ดาเมจต่อศัตรูที่ติดลดฟื้นฟู +'+Math.round(t.passive.bonusVsHealDown*100)+'%');
+ if(t.passive?.skillSpeedUp)lines.push('หลังใช้สกิล: ความเร็วโจมตี +'+Math.round(t.passive.skillSpeedUp*100)+'% นาน '+t.passive.skillSpeedSeconds+' วินาที');
  if(t.passive?.lifesteal)lines.push('ดูดเลือด '+Math.round(t.passive.lifesteal*100)+'% จาก HP ที่ทำให้ศัตรูเสียจริง รวม DOT ไม่รวมโล่');
  if(t.passive?.magicGuard)lines.push('พาสซีฟ — '+t.passive.name+': รับแทน '+Math.round(t.passive.magicGuard*100)+'% ของดาเมจที่เพื่อนสายเวทได้รับ ไม่ว่าดาเมจมาจากสายใด · ไม่รับแทนตนเอง · โล่ของผู้ปกป้องรับได้ · เลือกผู้ปกป้องที่มีอัตราสูงสุดหนึ่งคน · ไม่ส่งต่อซ้ำ');
  if(t.passive?.bossMultiplier)lines.push('พาสซีฟ — '+t.passive.name+': ดาเมจทุกชนิดต่อบอส ×'+t.passive.bossMultiplier+' ก่อนคริติคอลและการป้องกัน');
@@ -1059,7 +1062,7 @@ function buildFighters(preserve=false){
   return {id,side:'ally',damageType:CORE.damageType(HEROES[id]),x:point.x,y:point.y,startX:point.x,move:HEROES[id].move,
    hp,maxHp:stat.hp,atk:stat.atk,dotDamage:stat.dotDamage||0,cool:stat.cool,remaining:old?.remaining??i*.12,
    castUntil:old?.castUntil||0,exhausted:!!old?.exhausted,explosionCount:old?.explosionCount||0,explosionReadyAt:old?.explosionReadyAt||0,attacks:old?.attacks||0,nextSkillAt:old?.nextSkillAt||0,shield:old?.shield||0,shieldSource:old?.shield>0?old.shieldSource||null:null,tauntUntil:old?.tauntUntil||0,
-   attackDown:old?.attackDown||null,vulnerability:old?.vulnerability||null,
+   attackDown:old?.attackDown||null,vulnerability:old?.vulnerability||null,healDown:old?.healDown||null,
    dots:old?.dots||[],freezeUntil:old?.freezeUntil||0,attackUp:old?.attackUp||null,physicalAttackUp:old?.physicalAttackUp||null,magicAttackUp:old?.magicAttackUp||null,speedUp:old?.speedUp||null,
    focusTarget:old?.focusTarget||null,focusHits:old?.focusHits||0,
    crit:stat.crit,critDamage:stat.critDamage,
@@ -1201,14 +1204,18 @@ function defeatMonster(foe){
 function pickEnemy(f){return TFT.findTarget(f,enemies,stageClock)}
 function targetHero(enemy){return TFT.findTarget(enemy,fighters,stageClock)}
 // TFT-style shared damage pipeline. No damage is applied to ranged targets until the bullet lands.
-function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false,pierceShield=false,visual='hit',dot=false){
+function vtuberTeamBonus(actor){
+  const ids=actor.side==='ally'&&!trialContext?state.squad:(actor.side==='ally'?fighters:[...enemies,...fallenEnemies]).map(u=>u.id);
+  return CORE.vtuberBonus(ids,HEROES);
+ }
+ function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false,pierceShield=false,visual='hit',dot=false){
  if(!target||target.hp<=0||target.alive===false)return false;
  if(TFT.isImmortal(target,stageClock)){statusFx(target,'immune','อมตะ · 0');return false}
  const hero=combatHero(attacker)||{};
  if(TFT.blocksExplosion(hero,combatHero(target))){statusFx(target,'immune','กัน EXPLOSION · 0');return false}
  const chance=Math.min(1,Math.max(0,(attacker.crit||0)+bonusCrit));
  const critical=!dot&&(forcedCrit||(chance>0&&Math.random()<chance));
- const raw=TFT.incomingDamage(power*TFT.bossDamageMultiplier(hero,target)*TFT.outgoingMultiplier(attacker,stageClock)*TFT.vulnerabilityMultiplier(target,stageClock)*(critical?(attacker.critDamage||hero.critDamage||1.5):1),combatHero(target));
+ const raw=TFT.incomingDamage(power*TFT.healDownDamageMultiplier(hero,target,stageClock)*TFT.bossDamageMultiplier(hero,target)*TFT.outgoingMultiplier(attacker,stageClock)*TFT.vulnerabilityMultiplier(target,stageClock)*(critical?(attacker.critDamage||hero.critDamage||1.5):1),combatHero(target));
  const split=TFT.splitMagicDamage(target,target.side==='ally'?fighters:enemies,combatHero,stageClock,raw);
  const shieldSource=target.shieldSource;
   const hit=TFT.resolveDamage(target,split.target,pierceShield);
@@ -1224,7 +1231,7 @@ function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false,pierceShie
  const {damage,absorbed}=hit;
  if(hero.passive?.lifesteal&&attacker.alive!==false&&attacker.hp>0){
   const drain=(damage+(transferred?.damage||0))*hero.passive.lifesteal;
-  if(drain>0)showHealing(TFT.healWeakest([attacker],1,()=>drain),attacker);
+  if(drain>0)showHealing(TFT.healWeakest([attacker],1,()=>drain,stageClock,vtuberTeamBonus(attacker).healPower),attacker);
  }
  position(target);
  if(damage>0){unitFx(target,(dot?'DOT ':critical?'CRIT ':'')+'−'+fmt(damage),'damage',critical);if(visual)visualEffect(visual,attacker,target.x,target.y,critical?1.18:1)}
@@ -1238,7 +1245,7 @@ function finishDamage(target){
  const bar=target.side==='enemy'?target.bar:target.hpbar;
  if(bar)bar.style.width=Math.max(0,target.hp/target.maxHp*100)+'%';
  if(target.hp===0){
-  target.dots=[];target.freezeUntil=0;
+  target.dots=[];target.freezeUntil=0;target.healDown=null;
   const linked=TFT.linkedRevive(target,combatHero(target),target.side==='ally'?fighters:enemies,stageClock);
   if(linked||TFT.tryRevive(target,combatHero(target),stageClock,target.side==='ally'&&allyRevives.has(target.id))){
    if(target.side==='ally'&&!linked)allyRevives.set(target.id,{until:target.immortalUntil});
@@ -1398,7 +1405,7 @@ function tftSkill(attacker,target){
   case 'explosion':return startExplosion(attacker);
   case 'heal':{
    const allies=attacker.side==='ally'?fighters:enemies;
-   const result=TFT.applySupport(allies,hero.support,stageClock);
+   const result=TFT.applySupport(allies,hero.support,stageClock,vtuberTeamBonus(attacker).healPower);
    showHealing(result.healed,attacker);
    if(hero.support.attackUp||hero.support.physicalAttackUp||hero.support.magicAttackUp||hero.support.speedUp)for(const u of result.units){const attack=TFT.attackBuff(u,stageClock),speed=TFT.debuffValue(u,'speedUp',stageClock);if(!attack&&!speed)continue;position(u);visualEffect('buff',attacker,u.x,u.y,.85);unitFx(u,[attack?attackTypeLabel(HEROES[u.id])+' +'+Math.round(attack*100)+'%':'',speed?'SPD +'+Math.round(speed*100)+'%':''].filter(Boolean).join(' · '),'buff')}
    if(hero.support.reviveHp){
@@ -1423,13 +1430,18 @@ function tftSkill(attacker,target){
   case 'pierce':
    tftPiercingShot(attacker,target);return true;
   case 'slam':{
-   const nearby=foes().filter(x=>TFT.pxDist(x,target)<=(hero.slamRadius||140));
+   const nearby=foes().filter(x=>TFT.pxDist(x,target)<=(hero.slamRadius||140)).sort((a,b)=>TFT.pxDist(a,target)-TFT.pxDist(b,target)).slice(0,hero.slamTargets||Infinity);
    visualEffect('area',attacker,target.x,target.y,1.3);
    for(const e of nearby){
     const landed=tftDamage(attacker,e,attacker.atk*(hero.skillPower||1.8),0,false,false,null);
-    if(landed&&hero.debuff&&TFT.applyDebuff(e,hero.debuff,stageClock)){
-     position(e);visualEffect('debuff',attacker,e.x,e.y,.75);unitFx(e,'ATK −'+Math.round(TFT.debuffValue(e,'attackDown',stageClock)*100)+'% · DMG +'+Math.round(TFT.debuffValue(e,'vulnerability',stageClock)*100)+'%','debuff');
+    if(landed&&hero.debuff&&TFT.applyDebuff(e,TFT.boostedDebuff(hero.debuff,vtuberTeamBonus(attacker).antiHealPower),stageClock)){
+     const labels=[['attackDown','ATK −'],['vulnerability','DMG +'],['healDown','ฮีล −']].filter(([k])=>hero.debuff[k]).map(([k,label])=>label+Math.round(TFT.debuffValue(e,k,stageClock)*100)+'%');
+     position(e);visualEffect('debuff',attacker,e.x,e.y,.75);unitFx(e,labels.join(' · '),'debuff');
     }
+   }
+   if(hero.passive?.skillSpeedUp&&attacker.hp>0&&attacker.alive!==false){
+    attacker.speedUp={amount:Math.max(TFT.debuffValue(attacker,'speedUp',stageClock),hero.passive.skillSpeedUp),until:Math.max(attacker.speedUp?.until||0,stageClock+hero.passive.skillSpeedSeconds)};
+    position(attacker);visualEffect('buff',attacker);unitFx(attacker,'SPD +'+Math.round(attacker.speedUp.amount*100)+'%','buff');
    }
    return true;
   }
@@ -1506,7 +1518,7 @@ function tftAttack(attacker,target,forceSkill=false){
  }
  if(!special&&hero.passive?.healOnAttack){
   const allies=attacker.side==='ally'?fighters:enemies;
-  showHealing(TFT.healWeakest(allies,1,()=>attacker.atk*hero.passive.healOnAttack),attacker);
+  showHealing(TFT.healWeakest(allies,1,()=>attacker.atk*hero.passive.healOnAttack,stageClock,vtuberTeamBonus(attacker).healPower),attacker);
  }
  const bonusCrit=(ambush?(hero.cloakCritBonus||0):0)+TFT.focusCritBonus(attacker,target,hero);
  attacker.attackUntil=stageClock+(hero.visual?.attackMs||300)/1000;
@@ -1653,12 +1665,12 @@ function resetTrial(){
    trial.fighters.push(trialUnit(other,'ally',x,82,Math.round(max*(h.support?ratio:1)),max,HEROES[other].name));
   }
  }
- const cells=h.cleave?[[50,42],[50,27],[66,37],[25,25],[80,20]]:h.effect==='pierce'?[[50,42],[50,25],[50,10],[24,30],[76,30]]:[[50,38],[33,32],[67,32],[18,15],[82,15]];
+ const cells=h.debuff?.healDown?[[50,42],[50,34],[59,42],[41,42],[50,25]]:h.cleave?[[50,42],[50,27],[66,37],[25,25],[80,20]]:h.effect==='pierce'?[[50,42],[50,25],[50,10],[24,30],[76,30]]:[[50,38],[33,32],[67,32],[18,15],[82,15]];
  for(let i=0;i<count;i++){const [x,y]=cells[i];const dummy=trialUnit('__dummy','enemy',x,y,bossTrial?12000:3000,bossTrial?12000:3000,bossTrial?'👑 หุ่นบอส':'หุ่น '+(i+1));dummy.boss=bossTrial;trial.enemies.push(dummy)}
  $('trialSkillName').innerHTML=rarityBadge(h)+' '+escapeText(h.skill);
  $('trialStats').textContent='HP '+fmt(st.hp)+' · '+attackTypeLabel(h)+' '+fmt(st.atk)+' · '+(h.globalRange?'ทั่วสนาม':h.range+' ช่อง');
  $('trialPassive').disabled=!(h.passive||h.guard||h.effect==='cloakshot');
- $('trialPassive').textContent=h.passive?.magicGuard?'ทดสอบรับดาเมจแทน':h.effect==='explosion'?'ทดลองหมดแรง':h.passive?.reviveHp?'ทดสอบคืนชีพตัวเอง':h.support?.reviveHp?'ทดสอบชุบเพื่อน':h.passive?.aquaReviveHp?'ทดสอบคืนชีพ':h.passive?.focusCritStep?'ทดสอบคริต่อเนื่อง':h.passive?.healOnAttack?'ทดสอบฮีลปกติ':h.guard?'ทดสอบยั่วยุ':h.effect==='cloakshot'?'ทดสอบซุ่มยิง':h.passive?.damageReduction?'ทดสอบลดดาเมจ':'ทดลองพาสซีฟ';
+ $('trialPassive').textContent=h.debuff?.healDown?'ทดสอบตัดฮีล':h.passive?.magicGuard?'ทดสอบรับดาเมจแทน':h.effect==='explosion'?'ทดลองหมดแรง':h.passive?.reviveHp?'ทดสอบคืนชีพตัวเอง':h.support?.reviveHp?'ทดสอบชุบเพื่อน':h.passive?.aquaReviveHp?'ทดสอบคืนชีพ':h.passive?.focusCritStep?'ทดสอบคริต่อเนื่อง':h.passive?.healOnAttack?'ทดสอบฮีลปกติ':h.guard?'ทดสอบยั่วยุ':h.effect==='cloakshot'?'ทดสอบซุ่มยิง':h.passive?.damageReduction?'ทดสอบลดดาเมจ':'ทดลองพาสซีฟ';
  withTrial(renderTrial);
 }
 // Keep the whole delayed skill sequence visible in Hero Trial.
@@ -1675,7 +1687,8 @@ function renderTrial(){
   position(u);u.hpbar.style.width=u.hp/u.maxHp*100+'%';
   const dotLeft=u.hp>0?Math.max(0,...(u.dots||[]).map(d=>d.left)):0;
   const frozen=u.hp>0&&TFT.isFrozen(u,stageClock);
-  const value=fmt(u.hp)+' / '+fmt(u.maxHp)+(u.shield?' · โล่ '+fmt(u.shield):'')+(frozen?' · ❄ '+(Math.ceil((u.freezeUntil-stageClock)*10)/10).toFixed(1)+'s':dotLeft?' · DOT '+dotLeft+' ครั้ง':'');
+  const antiHeal=TFT.debuffValue(u,'healDown',stageClock);
+  const value=fmt(u.hp)+' / '+fmt(u.maxHp)+(antiHeal?' · ฮีล −'+Math.round(antiHeal*100)+'%':'')+(u.shield?' · โล่ '+fmt(u.shield):'')+(frozen?' · ❄ '+(Math.ceil((u.freezeUntil-stageClock)*10)/10).toFixed(1)+'s':dotLeft?' · DOT '+dotLeft+' ครั้ง':'');
   if(u.values.textContent!==value)u.values.textContent=value;
  }
  const scene=trialContext;
@@ -1703,6 +1716,7 @@ function queueTrial(mode){
    if(!fallen||(trial.hero.supportRevives||0)>=h.support.reviveLimit){trial.note='ใช้สิทธิ์ชุบชีวิตครบแล้ว · รีเซ็ตสนามเพื่อทดลองอีกครั้ง';withTrial(renderTrial);return;}
    fallen.hp=0;fallen.alive=false;fallen.node.style.opacity='.2';trial.queue=['skill'];
   }
+  else if(h.debuff?.healDown)trial.queue=['skill','healTest'];
   else if(h.passive?.magicGuard)trial.queue=['protect'];
   else if(h.passive?.aquaReviveHp)trial.queue=['lethal'];
   else if(h.passive?.reviveHp)trial.queue=['lethal','hit'];
@@ -1730,7 +1744,11 @@ function tickTrial(dt){
   if(!scene.active&&scene.queue.length&&stageClock>=scene.nextAt&&!shots.length)scene.active=scene.queue.shift();
   if(scene.active){
    const cmd=scene.active,target=enemies.find(u=>u.hp>0);
-   if(['hit','lethal','taunt','protect'].includes(cmd)){
+   if(cmd==='healTest'){
+     if(target){const blocked=TFT.debuffValue(target,'healDown',stageClock);const result=TFT.healWeakest([target],1,()=>Math.min(400,target.maxHp-target.hp),stageClock);
+      showHealing(result,target);scene.note='ทดลองฟื้นฟู · ลดฮีล '+Math.round(blocked*100)+'%';}
+     scene.active=null;scene.nextAt=stageClock+.3;
+    }else if(['hit','lethal','taunt','protect'].includes(cmd)){
     const dummy=target||enemies[0],victim=cmd==='protect'?fighters.find(u=>u!==actor&&u.damageType==='magic'&&u.hp>0):cmd==='taunt'?TFT.findTarget(dummy,fighters,stageClock):actor;
     if(victim&&victim.alive){
      if(cmd==='taunt')scene.note='AI เลือกเป้าหมาย: '+HEROES[victim.id].name;

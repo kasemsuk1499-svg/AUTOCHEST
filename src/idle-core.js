@@ -245,10 +245,16 @@
  const factions={asuna:'sao',kirito:'sao',sinon:'sao',lisbeth:'sao',deathgun:'sao',heathcliff:'sao',silica:'sao',megumin:'konosuba',aqua:'konosuba',artoria:'fate'};
  const factionOf=h=>h.faction||factions[h.id];
  const damageType=h=>h?.damageType||(h?.team==='เวท'?'magic':'physical');
+ const VTUBER_TIERS=[{count:2,healPower:.20,antiHealPower:.20},{count:3,healPower:.35,antiHealPower:.35},{count:5,healPower:.55,antiHealPower:.55}];
+ function vtuberBonus(ids,roster){
+  const count=[...new Set(ids)].filter(id=>roster[id]&&factionOf({...roster[id],id})==='vtuber').length;
+  return VTUBER_TIERS.filter(t=>t.count<=count).at(-1)||{healPower:0,antiHealPower:0};
+ }
  const synergyDefs=[
   {id:'sao',name:'Sword Art Online',icon:'⚔️',match:h=>factionOf(h)==='sao',tiers:[{count:3,hp:.05,atk:.05},{count:5,hp:.10,atk:.10},{count:7,hp:.16,atk:.16}]},
   {id:'konosuba',name:'KonoSuba',icon:'💥',match:h=>factionOf(h)==='konosuba',tiers:[{count:2,hp:.10,atk:.10}]},
   {id:'konosuba_trio',name:'ปาร์ตี้มหาวิบัติ',icon:'🍀',match:h=>['kazuma','aqua','megumin'].includes(h.id),tiers:[{count:3,special:'อควา + คาซึมะ + เมกุมินมีชีวิตครบ: EXPLOSION ซ้ำได้'}]},
+  {id:'vtuber',name:'วีทูปเบอร์',icon:'🎤',match:h=>factionOf(h)==='vtuber',tiers:VTUBER_TIERS,showFuture:true},
   {id:'celestial_beast',name:'สัตว์สวรรค์',icon:'🦊',match:h=>factionOf(h)==='celestial_beast',tiers:[{count:2,dotDamage:.15},{count:3,dotDamage:.25},{count:5,dotDamage:.40},{count:7,dotDamage:.55}]},
   {id:'fate',name:'Fate',icon:'👑',match:h=>factionOf(h)==='fate',tiers:[{count:2,hp:.10,atk:.10}]},
   {id:'duo',name:'คู่ดาบแห่ง Aincrad',icon:'💞',match:h=>h.id==='asuna'||h.id==='kirito',tiers:[{count:2,speed:.08}]},
@@ -262,7 +268,7 @@
   const ids=[...new Set(state.squad)].filter(id=>state.owned[id]&&roster[id]);
   return synergyDefs.map(def=>{
    const available=Object.keys(roster).filter(id=>def.match({...roster[id],id}));
-   const tiers=def.tiers.filter(t=>t.count<=available.length);
+   const tiers=def.showFuture&&available.length?def.tiers:def.tiers.filter(t=>t.count<=available.length);
    const members=ids.filter(id=>available.includes(id));
    const active=tiers.filter(t=>t.count<=members.length).at(-1)||null;
    const next=tiers.find(t=>t.count>members.length)||null;
@@ -434,5 +440,5 @@
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,DUNGEON_REWARD_MULT,DUNGEON_ENTRY_COST,dungeonTiers,dungeonReward,canEnterDungeon,payDungeonEntry,claimDungeon,
   initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,bossStars,floorCount,maxStage,floorBossId,nightmareUnlocked,activeRun,nightmareBossCount,nightmareStars,nightmareBossIds,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,shardsToMax,ascendCost,
-  normalized,farmMaxStage,clampFarmStage,farming,battleStage,FARM_GOALS,farmRates,recordFarmWave,smartFarmStage,heroAtStars,damageType,SKILL_MIN_INTERVAL,skillAttackCount,consumeSkillAttack,explosionCastSeconds,explosionRestSeconds,stats,teamSynergies,synergyBonus,teamHeroStats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,universalShardYield,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
+  normalized,farmMaxStage,clampFarmStage,farming,battleStage,FARM_GOALS,farmRates,recordFarmWave,smartFarmStage,heroAtStars,damageType,SKILL_MIN_INTERVAL,skillAttackCount,consumeSkillAttack,explosionCastSeconds,explosionRestSeconds,stats,teamSynergies,synergyBonus,vtuberBonus,teamHeroStats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,universalShardYield,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
 })();

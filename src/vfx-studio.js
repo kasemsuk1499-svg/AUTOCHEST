@@ -6,7 +6,7 @@ const labels={freeze:'แช่แข็ง · เมื่อคำสาปค
 let file=null,dataURL='',ext='',busy=false,sequence=0,sheet=null,pick='start',loop=false,loopTimer=0;
 const status=(id,msg,error=false)=>{$(id).textContent=msg;$(id).classList.toggle('error',error)};
 function eventsFor(h){
- const ranged=Number(h.range)>=1.8,events=['hit'];
+ const ranged=h.melee!==true&&Number(h.range)>=1.8,events=['hit'];
  if(h.effect==='explosion')return ['hit','projectile','cast','area','aftermath'];
  const direct=!['heal','shield','slam','chain'].includes(h.effect);
  if(direct||h.support?.damageTargets)events.push('skillHit');
@@ -23,7 +23,7 @@ function eventsFor(h){
  if(h.support?.attackUp||h.support?.speedUp)events.push('buff');
  if(h.effect==='shield'||h.guard)events.push('shield');
  if(h.passive?.reviveHp||h.passive?.aquaReviveHp||h.support?.reviveHp)events.push('revive');
- if(h.passive?.skillImmortalSeconds&&!events.includes('buff'))events.push('buff');
+ if((h.passive?.skillImmortalSeconds||h.passive?.skillSpeedUp)&&!events.includes('buff'))events.push('buff');
  if(h.effect==='cloakshot')events.push('cloak');
  return events;
 }
