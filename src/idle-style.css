@@ -715,3 +715,17 @@ body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
 .synergy-members img{width:100%;height:100%;object-fit:cover;object-position:top}
 .synergy-row>small{display:block;font-size:10px;margin-top:4px}
 .hero-synergy-note{border:1px solid #548c70;border-radius:6px;background:#1d392f;padding:7px;color:#b4eacb;font-size:11px;margin:6px 0}
+
+/* Shared scalable hero search and collection paging. */
+.hero-filter-bar{display:grid;gap:6px;margin:8px 0}
+.hero-search-line{display:flex;gap:5px;align-items:center}
+.hero-search-line input,.hero-filter-grid select{min-width:0;width:100%;background:#142238;color:#e1eaf7;border:1px solid #455a75;border-radius:7px;padding:7px;font:inherit;font-size:12px}
+.hero-search-line input{flex:1;min-height:34px}
+.hero-search-line input::placeholder{color:#a1b3cb}
+.hero-search-line button,.hero-page-nav button{flex:none;background:#24374e;color:#dae8fb;border:1px solid #455a75;border-radius:7px;padding:7px 10px;font:inherit;font-size:11px;cursor:pointer}
+.hero-filter-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.hero-filter-count{font-size:10px;color:#a5b9d2}
+.hero-filter-empty{grid-column:1/-1;color:#a5b9d2;font-size:12px;text-align:center;padding:12px 4px}
+.hero-page-nav{display:flex;justify-content:center;align-items:center;gap:12px;margin:8px 0;font-size:11px}
+.hero-page-nav[hidden]{display:none}
+.hero-page-nav button:disabled{opacity:.35;cursor:default}
