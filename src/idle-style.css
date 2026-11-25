@@ -744,3 +744,9 @@ body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
 .hero-favorites-toggle{width:100%;margin:4px 0;padding:7px;border-radius:7px;border:1px solid #53657c;background:#1b2c43;color:#d5dfec;font-size:12px;cursor:pointer}
 .hero-favorites-toggle[aria-pressed="true"]{color:#ffdb7e;border-color:#d3a44e;background:#44371f}
 @media(max-width:540px){.hero-favorite-btn{top:21px;width:18px;height:18px;font-size:12px;right:2px}}
+
+/* One damage-type marker per hero; no additional attack stat. */
+.hero-damage-type{display:inline!important;font-size:inherit!important;margin-right:2px;line-height:1}
+.hero-damage-type.physical,#teamDamageMix .physical{color:#ffb46c}
+.hero-damage-type.magic,#teamDamageMix .magic{color:#8cb9ff}
+#teamDamageMix{display:flex;gap:12px;justify-content:center;margin:5px 0;font-size:11px}
