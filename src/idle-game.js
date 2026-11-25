@@ -270,12 +270,12 @@ function renderDungeonControls(){
   dungeonTierKey=key;
  }
  const kind=type.value,stage=Number(tier.value);
- $('dungeonRemaining').textContent='∞ ไม่จำกัดรอบ';
+ $('dungeonRemaining').textContent='💎 '+fmt(CORE.DUNGEON_ENTRY_COST)+' / รอบ';
  $('dungeonRepeat').checked=state.dungeonRepeat;
- $('dungeonReward').textContent='ชนะรับ '+fmt(CORE.dungeonReward(kind,stage))+' '+(kind==='gold'?'Gold':'EXP')+' · ลงซ้ำได้ไม่จำกัด';
+ $('dungeonReward').textContent='ชนะรับ '+fmt(CORE.dungeonReward(kind,stage))+' '+(kind==='gold'?'Gold':'EXP')+' · ค่าเข้า '+fmt(CORE.DUNGEON_ENTRY_COST)+' 💎'+(state.rubies<CORE.DUNGEON_ENTRY_COST?' · รูบี้ไม่พอ':'');
  $('enterDungeonBtn').disabled=!!dungeon||!CORE.canEnterDungeon(state,kind,stage,HEROES);
  type.disabled=tier.disabled=!!dungeon;
- $('dungeonReward').textContent=dungeon?'ชนะ '+dungeon.wins+' รอบ · รับสะสม '+fmt(dungeon.earned)+' '+(dungeon.kind==='gold'?'Gold':'EXP')+' · '+(state.dungeonRepeat?'AUTO REPEAT ON':'จบแล้วกลับด่านหลัก'):$('dungeonReward').textContent;
+ $('dungeonReward').textContent=dungeon?'ชนะ '+dungeon.wins+' รอบ · รับสะสม '+fmt(dungeon.earned)+' '+(dungeon.kind==='gold'?'Gold':'EXP')+' · จ่าย '+fmt(dungeon.spent)+' 💎 · '+(state.dungeonRepeat?'AUTO REPEAT ON':'จบแล้วกลับด่านหลัก'):$('dungeonReward').textContent;
 }
 function updateResources(){
  $('goldValue').textContent=fmt(state.gold);
@@ -1864,20 +1864,24 @@ function enterDungeon(){
  const kind=$('dungeonType').value,stage=Number($('dungeonTier').value);
  if(!CORE.canEnterDungeon(state,kind,stage,HEROES))return;
  const tier=CORE.dungeonTiers(state,HEROES).find(t=>t.stage===stage).tier;
- dungeon={kind,stage,tier,wins:0,earned:0};formationMode=false;state.autoBattle=true;
+ dungeon={kind,stage,tier,wins:0,earned:0,spent:0,paid:false};formationMode=false;state.autoBattle=true;
  beginTravel(.2);spawnDungeonBoss();save();
 }
 function spawnDungeonBoss(){
  if(!dungeon||combat||enemies.length)return;
+ if(!CORE.payDungeonEntry(state,dungeon.kind,dungeon.stage,HEROES)){
+  dungeon=null;beginTravel(.8);renderPanels();save();toast('💎 รูบี้ไม่พอ · หยุดฟาร์มดันเจี้ยน');return;
+ }
+ dungeon.paid=true;dungeon.spent+=CORE.DUNGEON_ENTRY_COST;save();
  bossTime=45;spawnMonster(true,[2,1],true,dungeon.kind==='gold'?'asuna':'sinon');
  $('battleMessage').textContent='✦ '+dungeonName(dungeon.kind)+' · ระดับ '+dungeon.tier+' · รอบ '+(dungeon.wins+1);updateResources();
 }
 function finishDungeon(success,cancel=false){
  const d=dungeon;if(!d)return;
  dungeon=null;
- const amount=success?CORE.claimDungeon(state,d.kind,d.stage,HEROES):0;
- if(amount&&state.dungeonRepeat){d.wins++;d.earned+=amount;dungeon=d;log('🏆 '+dungeonName(d.kind)+' รอบ '+d.wins+' · +'+fmt(amount));save();beginTravel(.8);$('battleMessage').textContent='✦ ชนะรอบ '+d.wins+' · เตรียมฟาร์มรอบต่อไป';return;}
- const message=amount?'🏆 '+dungeonName(d.kind)+' สำเร็จ! +'+fmt(amount)+' '+(d.kind==='gold'?'Gold':'EXP'):cancel?'ออกจากดันเจี้ยน · รางวัลที่ได้รับแล้วคงอยู่':success?'รางวัลไม่พร้อมใช้งาน · กลับด่านหลัก':'ดันเจี้ยนยังไม่ผ่าน · หยุดฟาร์ม ลองระดับที่ง่ายลงได้';
+ const amount=success&&d.paid?CORE.claimDungeon(state,d.kind,d.stage,HEROES):0;d.paid=false;
+ if(amount&&state.dungeonRepeat&&CORE.canEnterDungeon(state,d.kind,d.stage,HEROES)){d.wins++;d.earned+=amount;dungeon=d;log('🏆 '+dungeonName(d.kind)+' รอบ '+d.wins+' · +'+fmt(amount));save();beginTravel(.8);$('battleMessage').textContent='✦ ชนะรอบ '+d.wins+' · เตรียมฟาร์มรอบต่อไป';return;}
+ const message=amount?'🏆 '+dungeonName(d.kind)+' สำเร็จ! +'+fmt(amount)+' '+(d.kind==='gold'?'Gold':'EXP')+(state.dungeonRepeat&&state.rubies<CORE.DUNGEON_ENTRY_COST?' · รูบี้ไม่พอรอบถัดไป':''):cancel?'ออกจากดันเจี้ยน · ไม่คืนค่าเข้ารอบที่เริ่มแล้ว':success?'รางวัลไม่พร้อมใช้งาน · กลับด่านหลัก':'ดันเจี้ยนยังไม่ผ่าน · หยุดฟาร์ม ลองระดับที่ง่ายลงได้';
  log(message);save();beginTravel(.8);renderPanels();toast(message);
 }
 $('dungeonRepeat').addEventListener('change',()=>{state.dungeonRepeat=$('dungeonRepeat').checked;renderDungeonControls();save();});
@@ -1886,7 +1890,7 @@ $('dungeonTier').addEventListener('change',renderDungeonControls);
 $('enterDungeonBtn').addEventListener('click',enterDungeon);
 function switchMode(mode){
  if(studioMode||mode==='nightmare'&&!CORE.nightmareUnlocked(state))return;
- if(dungeon){if(!confirm('ออกจากดันเจี้ยนโดยไม่รับรางวัล?'))return;finishDungeon(false,true);}
+ if(dungeon){if(!confirm('ออกจากดันเจี้ยน? ไม่คืนค่าเข้ารอบที่เริ่มแล้ว'))return;finishDungeon(false,true);}
  if(state.mode===mode)return;
  state.mode=mode;waveCount=0;beginTravel(.8);renderPanels();save();
  toast(mode==='nightmare'?'☾ Nightmare · ฟาร์ม ×2':'กลับสู่ Normal');
@@ -1894,7 +1898,7 @@ function switchMode(mode){
 $('normalModeBtn').addEventListener('click',()=>switchMode('normal'));
 $('nightmareModeBtn').addEventListener('click',()=>switchMode('nightmare'));
 $('challengeBtn').addEventListener('click',()=>{
- if(dungeon){if(confirm('ออกจากดันเจี้ยน? รางวัลที่รับแล้วจะไม่หาย'))finishDungeon(false,true);return;}
+ if(dungeon){if(confirm('ออกจากดันเจี้ยน? รางวัลที่รับแล้วไม่หาย แต่ไม่คืนค่าเข้ารอบที่เริ่มแล้ว'))finishDungeon(false,true);return;}
  const p=run();if(!CORE.canChallengeStage(p,HEROES)||p.kills<CORE.killsNeeded(p.stage)||combat?.boss)return;
  p.bossRetryWaves=0;
  beginTravel(.2);spawnBossEncounter();updateResources();save();
