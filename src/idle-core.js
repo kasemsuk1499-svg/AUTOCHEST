@@ -2,7 +2,7 @@
 (function(){'use strict';
  const KEY='AUTOCHEST_SAO_IDLE_V1';
  const MAX_LEVEL=100,MAX_STARS=5,OFFLINE_CAP_MS=8*60*60*1000;
- const FLOOR_RESET_EVENT=1,START_TICKETS=100,DUNGEON_REWARD_MULT=10;
+ const FLOOR_RESET_EVENT=1,START_TICKETS=100,DUNGEON_REWARD_MULT=10,DUNGEON_ENTRY_COST=1000;
  const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
  const number=(n,fallback=0)=>Number.isFinite(Number(n))?Number(n):fallback;
  const initial=()=>({
@@ -296,11 +296,18 @@
   if(!['gold','exp'].includes(kind))return 0;
   return Math.round(bossReward(stage,'normal')[kind]*DUNGEON_REWARD_MULT);
  }
- function canEnterDungeon(state,kind,stage,roster){
+ function dungeonUnlocked(state,kind,stage,roster){
   return ['gold','exp'].includes(kind)&&dungeonTiers(state,roster).some(t=>t.stage===stage&&t.unlocked);
  }
+ function canEnterDungeon(state,kind,stage,roster){
+  return dungeonUnlocked(state,kind,stage,roster)&&state.rubies>=DUNGEON_ENTRY_COST;
+ }
+ function payDungeonEntry(state,kind,stage,roster){
+  if(!canEnterDungeon(state,kind,stage,roster))return false;
+  state.rubies-=DUNGEON_ENTRY_COST;return true;
+ }
  function claimDungeon(state,kind,stage,roster,now=Date.now()){
-  if(!canEnterDungeon(state,kind,stage,roster,now))return 0;
+  if(!dungeonUnlocked(state,kind,stage,roster))return 0;
   const amount=dungeonReward(kind,stage);
   if(kind==='gold')state.gold+=amount;else state.heroExp+=amount;
   return amount;
@@ -392,7 +399,7 @@
  function draw(state,roster,count,rng=Math.random){
   return drawDetailed(state,roster,count,rng)?.rewards.map(u=>u.id)||null;
  }
- window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,DUNGEON_REWARD_MULT,dungeonTiers,dungeonReward,canEnterDungeon,claimDungeon,
+ window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,DUNGEON_REWARD_MULT,DUNGEON_ENTRY_COST,dungeonTiers,dungeonReward,canEnterDungeon,payDungeonEntry,claimDungeon,
   initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,bossStars,floorCount,maxStage,floorBossId,nightmareUnlocked,activeRun,nightmareBossCount,nightmareStars,nightmareBossIds,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,shardsToMax,ascendCost,
   normalized,heroAtStars,damageType,SKILL_MIN_INTERVAL,skillAttackCount,consumeSkillAttack,explosionCastSeconds,explosionRestSeconds,stats,teamSynergies,synergyBonus,teamHeroStats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,universalShardYield,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
 })();
