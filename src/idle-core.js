@@ -216,6 +216,7 @@
   {id:'sao',name:'Sword Art Online',icon:'⚔️',match:h=>factionOf(h)==='sao',tiers:[{count:3,hp:.05,atk:.05},{count:5,hp:.10,atk:.10},{count:7,hp:.16,atk:.16}]},
   {id:'konosuba',name:'KonoSuba',icon:'💥',match:h=>factionOf(h)==='konosuba',tiers:[{count:2,hp:.10,atk:.10}]},
   {id:'konosuba_trio',name:'ปาร์ตี้มหาวิบัติ',icon:'🍀',match:h=>['kazuma','aqua','megumin'].includes(h.id),tiers:[{count:3,special:'อควา + คาซึมะ + เมกุมินมีชีวิตครบ: EXPLOSION ซ้ำได้'}]},
+  {id:'celestial_beast',name:'สัตว์สวรรค์',icon:'🦊',match:h=>factionOf(h)==='celestial_beast',tiers:[{count:2,dotDamage:.15},{count:3,dotDamage:.25},{count:5,dotDamage:.40},{count:7,dotDamage:.55}]},
   {id:'fate',name:'Fate',icon:'👑',match:h=>factionOf(h)==='fate',tiers:[{count:2,hp:.10,atk:.10}]},
   {id:'duo',name:'คู่ดาบแห่ง Aincrad',icon:'💞',match:h=>h.id==='asuna'||h.id==='kirito',tiers:[{count:2,speed:.08}]},
   {id:'warrior',name:'นักรบ',icon:'🗡️',match:h=>h.team==='นักรบ',tiers:[{count:2,speed:.10},{count:3,speed:.18}]},
@@ -236,7 +237,7 @@
   }).filter(tag=>tag.tiers.length);
  }
  function synergyBonus(id,tags){
-  const bonus={hp:0,atk:0,physicalAtk:0,magicAtk:0,speed:0,crit:0};
+  const bonus={hp:0,atk:0,physicalAtk:0,magicAtk:0,dotDamage:0,speed:0,crit:0};
   for(const tag of tags)if(tag.active&&tag.members.includes(id))
    for(const key of Object.keys(bonus))bonus[key]+=tag.active[key]||0;
   return bonus;
@@ -244,7 +245,7 @@
  function teamHeroStats(state,roster,id,progress=state.owned[id],tags=teamSynergies(state,roster)){
   const s=stats(roster[id],progress);if(!s)return null;
   const b=synergyBonus(id,tags);
-  return {...s,hp:Math.round(s.hp*(1+b.hp)),atk:Math.round(s.atk*(1+b.atk+(damageType(roster[id])==='magic'?b.magicAtk:b.physicalAtk))),cool:Math.max(.28,s.cool/(1+b.speed)),crit:Math.min(1,s.crit+b.crit)};
+  return {...s,dotDamage:b.dotDamage,hp:Math.round(s.hp*(1+b.hp)),atk:Math.round(s.atk*(1+b.atk+(damageType(roster[id])==='magic'?b.magicAtk:b.physicalAtk))),cool:Math.max(.28,s.cool/(1+b.speed)),crit:Math.min(1,s.crit+b.crit)};
  }
  function power(state,roster){
   const tags=teamSynergies(state,roster);
