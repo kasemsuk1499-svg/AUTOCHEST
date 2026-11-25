@@ -393,8 +393,51 @@ function renderTeam(){
    '<span class="team-ready" title="เสริมแกร่งได้แล้ว">⬆</span></button>';
  }).join('');
 }
+const heroPageSize=24;
+let heroPage=0;
+function filterHeroes(ids,prefix){
+ const q=($('filterQuery'+prefix)?.value||'').trim().toLocaleLowerCase();
+ const tier=$('filterTier'+prefix)?.value||'',role=$('filterRole'+prefix)?.value||'',tag=$('filterTag'+prefix)?.value||'',status=$('filterStatus'+prefix)?.value||'',sort=$('filterSort'+prefix)?.value||'rarity';
+ const tags=CORE.teamSynergies(state,HEROES);
+ const memberTags=id=>tags.filter(t=>t.available.includes(id));
+ const faction=id=>HEROES[id].faction||(id==='artoria'?'fate':['aqua','megumin'].includes(id)?'konosuba':['asuna','kirito','sinon','lisbeth','deathgun','heathcliff','silica'].includes(id)?'sao':'');
+ return ids.filter(id=>{
+  const h=HEROES[id],p=state.owned[id],mt=memberTags(id);
+  const hay=[id,h.name,h.subtitle,h.role,h.team,h.rarity,faction(id),...(h.traits||[]),...mt.map(t=>t.name)].join(' ').toLocaleLowerCase();
+  return (!q||q.split(/\s+/).every(x=>hay.includes(x)))&&(!tier||h.rarity===tier)&&(!role||h.team===role)&&(!tag||faction(id)===tag||mt.some(t=>t.id===tag))&&(!status||(status==='owned'&&p)||(status==='locked'&&!p)||(status==='ready'&&readyUpgrade(id))||(status==='max'&&CORE.isMaxHero(p))||(status==='unfinished'&&p&&!CORE.isMaxHero(p))||(status==='team'&&state.squad.includes(id)));
+ }).sort((a,b)=>{
+  const pa=state.owned[a],pb=state.owned[b];
+  if(sort==='name')return HEROES[a].name.localeCompare(HEROES[b].name,'th');
+  if(sort==='level')return (pb?.level||0)-(pa?.level||0)||HEROES[b].cost-HEROES[a].cost;
+  if(sort==='stars')return (pb?.stars||0)-(pa?.stars||0)||HEROES[b].cost-HEROES[a].cost;
+  if(sort==='ready')return Number(readyUpgrade(b))-Number(readyUpgrade(a))||HEROES[b].cost-HEROES[a].cost;
+  return HEROES[b].cost-HEROES[a].cost;
+ });
+}
+function createHeroFilters(prefix,host,mode,refresh){
+ const tags=CORE.teamSynergies(state,HEROES),tagOptions=new Map([['sao','Sword Art Online'],['konosuba','KonoSuba'],['fate','Fate']]);
+ for(const t of tags)if(!tagOptions.has(t.id))tagOptions.set(t.id,t.name);
+ for(const h of Object.values(HEROES))if(h.faction&&!tagOptions.has(h.faction))tagOptions.set(h.faction,h.faction);
+ const opt=(items)=>items.map(([v,n])=>'<option value="'+escapeText(v)+'">'+escapeText(n)+'</option>').join('');
+ const select=(id,label,items)=>'<select id="'+id+prefix+'" aria-label="'+label+'">'+opt(items)+'</select>';
+ const root=el('div',{class:'hero-filter-bar'});
+ root.innerHTML='<div class="hero-search-line"><input type="search" id="filterQuery'+prefix+'" placeholder="🔎 ค้นหาชื่อ / ID / แท็ก" aria-label="ค้นหาฮีโร่"><button type="button" class="filter-clear">ล้าง</button></div><div class="hero-filter-grid">'+
+  select('filterTier','ระดับ',[['','ทุกเทียร์'],...['UR','SSR','SR','R'].map(x=>[x,x])])+
+  select('filterRole','อาชีพ',[['','ทุกอาชีพ'],...['นักรบ','เวท','ยิงไกล','ป้องกัน'].map(x=>[x,x])])+
+  select('filterTag','แท็ก',[['','ทุกแท็ก'],...tagOptions])+
+  (mode==='collection'?select('filterStatus','สถานะ',[['','ทุกสถานะ'],['owned','มีแล้ว'],['locked','ยังไม่มี'],['ready','พร้อมอัป'],['unfinished','ยังไม่ MAX'],['max','MAX'],['team','ในทีม']]):'')+
+  select('filterSort','เรียงลำดับ',[['rarity','เทียร์สูงก่อน'],['name','ชื่อ A–Z / ก–ฮ'],['level','เลเวลสูงก่อน'],['stars','ดาวสูงก่อน'],['ready','พร้อมอัปก่อน']])+
+  '</div><small id="filterCount'+prefix+'" class="hero-filter-count"></small>';
+ host.before(root);
+ root.addEventListener('input',e=>{if(e.target.matches('input,select'))refresh()});
+ root.querySelector('.filter-clear').addEventListener('click',()=>{root.querySelector('input').value='';for(const n of root.querySelectorAll('select'))n.selectedIndex=0;refresh()});
+}
 function renderHeroes(){
- $('heroList').innerHTML=rarityOrder().map(id=>{
+ const ids=filterHeroes(IDS,'Collection'),pages=Math.max(1,Math.ceil(ids.length/heroPageSize));
+ heroPage=Math.min(heroPage,pages-1);
+ if($('filterCountCollection'))$('filterCountCollection').textContent='พบ '+ids.length+' / '+IDS.length+' ตัว';
+ const nav=$('heroPageNav');if(nav){nav.hidden=pages<=1;$('heroPageLabel').textContent=(heroPage+1)+' / '+pages;$('heroPrevPage').disabled=heroPage===0;$('heroNextPage').disabled=heroPage>=pages-1;}
+ $('heroList').innerHTML=ids.slice(heroPage*heroPageSize,(heroPage+1)*heroPageSize).map(id=>{
   const t=HEROES[id],p=state.owned[id],ready=readyUpgrade(id);
   return '<div class="hero-entry"><button type="button" class="hero-card '+(!p?'locked ':'')+
    (selected===id?'active ':'')+(ready?'is-upgrade-ready ':'')+rarityClass(t)+'" data-hero="'+id+'">'+rarityBadge(t)+
@@ -404,7 +447,7 @@ function renderHeroes(){
    '<span class="collection-stars">'+(p?'★'.repeat(p.stars)+'☆'.repeat(CORE.MAX_STARS-p.stars)+(p.stars>=CORE.MAX_STARS?' MAX':''):'☆☆☆☆☆')+'</span>'+
    '<span class="collection-ready" title="เสริมแกร่งได้">⬆ อัปได้</span></button>'+
    '<button type="button" class="hero-info-btn" data-skill-hero="'+id+'" aria-label="ดูสกิล '+escapeText(t.name)+'">ⓘ</button></div>';
- }).join('');
+ }).join('')||'<p class="hero-filter-empty">ไม่พบฮีโร่ที่ตรงกับตัวกรอง</p>';
 }
 function renderSelected(){
  const id=selected,hero=HEROES[id],p=state.owned[id],box=$('heroDetails');
@@ -644,7 +687,7 @@ function applyLiveHeroStats(id){
 }
 function movePastMax(){
  if(!CORE.isMaxHero(state.owned[selected])||managementPanel?.id!=='panel-upgrade')return;
- const next=IDS.find(id=>state.owned[id]&&!CORE.isMaxHero(state.owned[id]));
+ const next=filterHeroes(IDS.filter(id=>state.owned[id]&&!CORE.isMaxHero(state.owned[id])),'Upgrade')[0];
  if(next){choose(next);refreshUpgradePicker();}
 }
 function upgrade(count=1){
@@ -736,13 +779,14 @@ let exchangeRenderKey='';
 function renderExchange(){
  const box=$('exchangeList');if(!box)return;
  $('exchangeShardValue').textContent=fmt(state.universalShards);
- const ids=rarityOrder().filter(id=>CORE.exchangeOffer(state,HEROES,id));
+ const all=IDS.filter(id=>CORE.exchangeOffer(state,HEROES,id)),ids=filterHeroes(all,'Exchange');
+ if($('filterCountExchange'))$('filterCountExchange').textContent='พบ '+ids.length+' / '+all.length+' ตัว';
  const key=JSON.stringify([state.universalShards,ids.map(id=>[id,CORE.exchangeOffer(state,HEROES,id)])]);
  if(exchangeRenderKey===key)return;exchangeRenderKey=key;
  box.innerHTML=ids.length?ids.map(id=>{
   const h=HEROES[id],offer=CORE.exchangeOffer(state,HEROES,id);
   return '<div class="exchange-row"><img loading="lazy" src="'+h.images.art+'" alt=""><div><strong>'+escapeText(h.name)+' '+rarityBadge(h)+'</strong><small>'+(offer.kind==='unlock'?'ปลดล็อกฮีโร่ใหม่':'แลกชิ้นส่วนฮีโร่ ×'+offer.amount)+'</small></div><button type="button" class="control-btn" data-exchange-hero="'+id+'"'+(state.universalShards<offer.cost?' disabled':'')+'>🧩 '+fmt(offer.cost)+'</button></div>';
- }).join(''):'<p>ไม่มีฮีโร่ที่ต้องแลกเพิ่มในขณะนี้</p>';
+ }).join(''):'<p class="hero-filter-empty">ไม่พบฮีโร่ที่แลกได้ตามตัวกรอง</p>';
 }
 function renderSummonPool(){
  const odds=CORE.summonOdds(HEROES).sort((a,b)=>HEROES[b.id].cost-HEROES[a.id].cost);
@@ -1530,10 +1574,17 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('trialModal').hi
 if(typeof ResizeObserver==='function')new ResizeObserver(()=>{if(trial){trial.size={width:$('trialArena').clientWidth,height:$('trialArena').clientHeight};withTrial(()=>{renderTrial();for(const shot of shots)positionShot(shot)})}}).observe($('trialArena'));
 function refreshUpgradePicker(){
  const picker=$('upgradePicker');if(!picker)return;
- const eligible=IDS.filter(id=>state.owned[id]&&!CORE.isMaxHero(state.owned[id]));
+ const all=IDS.filter(id=>state.owned[id]&&!CORE.isMaxHero(state.owned[id])),eligible=filterHeroes(all,'Upgrade');
+ if($('filterCountUpgrade'))$('filterCountUpgrade').textContent='พบ '+eligible.length+' / '+all.length+' ตัวที่ยังไม่ MAX';
  const ids=eligible.includes(selected)?eligible:[selected,...eligible].filter(id=>HEROES[id]);
  picker.innerHTML=ids.map(id=>'<option value="'+id+'"'+(id===selected?' selected':'')+'>'+HEROES[id].rarity+' · '+escapeText(HEROES[id].name)+(CORE.isMaxHero(state.owned[id])?' · MAX':state.owned[id]?' · Lv.'+state.owned[id].level:' · ล็อก')+'</option>').join('');
  picker.disabled=!eligible.length;
+}
+function searchUpgrade(){
+ const eligible=filterHeroes(IDS.filter(id=>state.owned[id]&&!CORE.isMaxHero(state.owned[id])),'Upgrade');
+ if(eligible.length&&!eligible.includes(selected))choose(eligible[0]);
+ refreshUpgradePicker();
+ $('heroDetails').hidden=!eligible.length;
 }
 function closeManagement(){
  if(!managementPanel)return;
@@ -1545,13 +1596,18 @@ function openManagement(name,button){
  const next=$('panel-'+name);if(!next)return;
  if(managementPanel)managementPanel.hidden=true;
  managementPanel=next;managementFocus=button;
- if(name==='upgrade'){const eligible=IDS.filter(id=>state.owned[id]&&!CORE.isMaxHero(state.owned[id]));if(eligible.length&&!eligible.includes(selected))choose(eligible[0]);renderSelected();refreshUpgradePicker()}
+ if(name==='upgrade'){const eligible=filterHeroes(IDS.filter(id=>state.owned[id]&&!CORE.isMaxHero(state.owned[id])),'Upgrade');if(eligible.length&&!eligible.includes(selected))choose(eligible[0]);$('heroDetails').hidden=false;renderSelected();refreshUpgradePicker()}
  if(name==='summon'){renderSummonPool();if(!summonBusy)showSummonBanner();updateSummonWallet()}
  next.hidden=false;document.body.classList.add('management-open');
  next.querySelector('.panel-close').focus();
 }
 const picker=el('select',{id:'upgradePicker','aria-label':'เลือกฮีโร่ที่จะเสริมแกร่ง'});
 $('heroDetails').before(picker);
+createHeroFilters('Collection',$('heroList'),'collection',()=>{heroPage=0;renderHeroes()});
+createHeroFilters('Upgrade',picker,'upgrade',searchUpgrade);
+createHeroFilters('Exchange',$('exchangeList'),'exchange',renderExchange);
+$('heroPrevPage').addEventListener('click',()=>{heroPage=Math.max(0,heroPage-1);renderHeroes()});
+$('heroNextPage').addEventListener('click',()=>{heroPage++;renderHeroes()});
 picker.addEventListener('change',()=>{choose(picker.value);refreshUpgradePicker()});
 document.querySelectorAll('[data-open-panel]').forEach(button=>button.addEventListener('click',()=>openManagement(button.dataset.openPanel,button)));
 document.querySelectorAll('[data-close-panel]').forEach(button=>button.addEventListener('click',closeManagement));
