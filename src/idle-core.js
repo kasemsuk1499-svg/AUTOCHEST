@@ -2,12 +2,12 @@
 (function(){'use strict';
  const KEY='AUTOCHEST_SAO_IDLE_V1';
  const MAX_LEVEL=100,MAX_STARS=5,OFFLINE_CAP_MS=8*60*60*1000;
- const FLOOR_RESET_EVENT=1,START_TICKETS=100;
+ const FLOOR_RESET_EVENT=1,START_TICKETS=100,DUNGEON_DAILY_LIMIT=3;
  const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
  const number=(n,fallback=0)=>Number.isFinite(Number(n))?Number(n):fallback;
  const initial=()=>({
   version:1,floorResetEvent:FLOOR_RESET_EVENT,accountEpoch:'',mode:'normal',nightmare:{stage:1,clearedStage:0,kills:0,bossRetryWaves:0,bossWins:0},stage:1,clearedStage:0,kills:0,bossRetryWaves:0,gold:3000,heroExp:1800,rubies:1200,tickets:START_TICKETS,universalShards:0,
-  favorites:[],squad:['asuna','kirito','silica'],owned:{
+  dungeons:{day:'',gold:0,exp:0},favorites:[],squad:['asuna','kirito','silica'],owned:{
    asuna:{level:1,stars:1,shards:0},
    kirito:{level:1,stars:1,shards:0},
    silica:{level:1,stars:1,shards:0}
@@ -137,6 +137,7 @@
    p.bossWins=Math.floor(clamp(number(nr.bossWins,0),0,1e12));
   }
   state.mode=raw.mode==='nightmare'&&nightmareUnlocked(state)?'nightmare':'normal';
+  state.dungeons=normalizeDungeons(raw.dungeons);
   state.autoBoss=raw.autoBoss!==false;
   state.autoWalk=raw.autoWalk!==false;
   state.autoBattle=raw.autoBattle!==false;
@@ -287,6 +288,32 @@
   return {gold:Math.round((420+stage*110)*ECONOMY.boss*mult),exp:Math.round((280+stage*70)*ECONOMY.boss*mult),
    rubies:Math.round((75+stage*8)*ECONOMY.bossRubies*mult),tickets:(stage%STAGES_PER_FLOOR===0?5:3)*mult};
  }
+ // Daily resource trials share the account's roster, not its stage progression.
+ const dungeonDay=(now=Date.now())=>new Date(now+7*3600000).toISOString().slice(0,10);
+ function normalizeDungeons(raw,now=Date.now()){
+  const day=dungeonDay(now),valid=raw?.day===day;
+  return {day,gold:valid?Math.floor(clamp(number(raw.gold,0),0,DUNGEON_DAILY_LIMIT)):0,exp:valid?Math.floor(clamp(number(raw.exp,0),0,DUNGEON_DAILY_LIMIT)):0};
+ }
+ function dungeonTiers(state,roster){
+  return [5,...Array.from({length:Math.floor(maxStage(roster)/10)},(_,i)=>(i+1)*10)].filter(stage=>stage<=maxStage(roster)).map((stage,i)=>({stage,tier:i+1,unlocked:state.clearedStage>=stage}));
+ }
+ function dungeonReward(kind,stage){
+  if(!['gold','exp'].includes(kind))return 0;
+  return Math.round(bossReward(stage,'normal')[kind]*2);
+ }
+ function dungeonRemaining(state,kind,now=Date.now()){
+  return ['gold','exp'].includes(kind)?DUNGEON_DAILY_LIMIT-normalizeDungeons(state.dungeons,now)[kind]:0;
+ }
+ function canEnterDungeon(state,kind,stage,roster,now=Date.now()){
+  return dungeonRemaining(state,kind,now)>0&&dungeonTiers(state,roster).some(t=>t.stage===stage&&t.unlocked);
+ }
+ function claimDungeon(state,kind,stage,roster,now=Date.now()){
+  if(!canEnterDungeon(state,kind,stage,roster,now))return 0;
+  state.dungeons=normalizeDungeons(state.dungeons,now);state.dungeons[kind]++;
+  const amount=dungeonReward(kind,stage);
+  if(kind==='gold')state.gold+=amount;else state.heroExp+=amount;
+  return amount;
+ }
  function offlineLoot(lastSaved,now,stage,carry=0){
   const ms=clamp(now-lastSaved,0,OFFLINE_CAP_MS);
   const mins=Math.floor(ms/60000);
@@ -374,7 +401,7 @@
  function draw(state,roster,count,rng=Math.random){
   return drawDetailed(state,roster,count,rng)?.rewards.map(u=>u.id)||null;
  }
- window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,
+ window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,DUNGEON_DAILY_LIMIT,dungeonDay,normalizeDungeons,dungeonTiers,dungeonReward,dungeonRemaining,canEnterDungeon,claimDungeon,
   initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,bossStars,floorCount,maxStage,floorBossId,nightmareUnlocked,activeRun,nightmareBossCount,nightmareStars,nightmareBossIds,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,shardsToMax,ascendCost,
   normalized,heroAtStars,damageType,SKILL_MIN_INTERVAL,skillAttackCount,consumeSkillAttack,explosionCastSeconds,explosionRestSeconds,stats,teamSynergies,synergyBonus,teamHeroStats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,universalShardYield,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
 })();
