@@ -465,6 +465,25 @@
         "delayMs": 0,
         "airtimeMs": 0,
         "loopFrames": false
+      },
+      "skillHit": {
+        "src": "./assets/effects/aqua/skillHit-8b43bc17faf0.png",
+        "cols": 8,
+        "rows": 3,
+        "row": 0,
+        "col": 0,
+        "frames": 24,
+        "size": 105,
+        "ms": 500,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 90,
+        "thickness": 48,
+        "orientation": "horizontal",
+        "delayMs": 0,
+        "airtimeMs": 0,
+        "loopFrames": false
       }
     }
   }
