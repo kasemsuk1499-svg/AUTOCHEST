@@ -202,6 +202,36 @@ function toast(msg){
 function teamStats(){
  return state.squad.map(id=>CORE.stats(HEROES[id],state.owned[id])).filter(Boolean);
 }
+// Stage backgrounds: upload matching PNG files under assets/backgrounds.
+const STAGE_BACKGROUNDS=[
+ './assets/backgrounds/grassland.png',
+ './assets/backgrounds/forest.png',
+ './assets/backgrounds/iron-valley.png',
+ './assets/backgrounds/night-temple.png',
+ './assets/backgrounds/sky-castle.png'
+];
+let stageBackgroundTheme=-1;
+function updateStageBackground(stage){
+ const theme=Math.floor((Math.max(1,stage)-1)/5)%STAGE_BACKGROUNDS.length;
+ if(theme===stageBackgroundTheme)return;
+ stageBackgroundTheme=theme;
+ const arena=$('stageViewport'),src=STAGE_BACKGROUNDS[theme];
+ // Restore the existing CSS background while the next image is loading or absent.
+ arena.style.removeProperty('background-image');
+ arena.style.removeProperty('background-size');
+ arena.style.removeProperty('background-position');
+ arena.style.removeProperty('background-repeat');
+ if(!src)return;
+ const img=new Image();
+ img.onload=()=>{
+  if(stageBackgroundTheme!==theme)return;
+  arena.style.backgroundImage='url('+JSON.stringify(src)+')';
+  arena.style.backgroundSize='cover';
+  arena.style.backgroundPosition='center';
+  arena.style.backgroundRepeat='no-repeat';
+ };
+ img.src=src;
+}
 function updateResources(){
  $('goldValue').textContent=fmt(state.gold);
  $('expValue').textContent=fmt(state.heroExp);
@@ -209,6 +239,7 @@ function updateResources(){
  $('ticketValue').textContent=fmt(state.tickets);
  $('teamPower').textContent=fmt(CORE.power(state,HEROES));
  $('stageName').textContent=CORE.stageName(state.stage);
+ updateStageBackground(state.stage);
  $('stageNumber').textContent=fmt(state.stage);
  $('bestStage').textContent=String(state.stage).padStart(2,'0');
  const need=CORE.killsNeeded(state.stage);
