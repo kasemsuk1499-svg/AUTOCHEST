@@ -11,7 +11,7 @@
    asuna:{level:1,stars:1,shards:0},
    kirito:{level:1,stars:1,shards:0},
    silica:{level:1,stars:1,shards:0}
-  },placements:{asuna:{col:2,row:6},kirito:{col:3,row:6},silica:{col:1,row:5}},autoBoss:true,autoWalk:true,autoBattle:true,speed:1,bossWins:0,totalSummons:0,offlineBank:{minutes:0,gold:0,exp:0},lastSaved:Date.now()
+  },placements:{asuna:{col:2,row:6},kirito:{col:3,row:6},silica:{col:1,row:5}},autoBoss:true,autoWalk:true,autoBattle:true,speed:1,bossWins:0,totalSummons:0,farmTicketKills:0,offlineTicketMinutes:0,offlineBank:{minutes:0,gold:0,exp:0,rubies:0,tickets:0},lastSaved:Date.now()
  });
  const maxSquad=stage=>stage>=20?7:stage>=12?6:stage>=5?5:4;
  // Same 6x7 board as the original AUTOCHEST (friendly deployment: rows 4-6).
@@ -108,8 +108,10 @@
   state.autoBattle=raw.autoBattle!==false;
   state.speed=raw.speed===2?2:1;
   state.lastSaved=clamp(number(raw.lastSaved,Date.now()),0,Date.now());
+  state.farmTicketKills=Math.floor(clamp(number(raw.farmTicketKills,0),0,19));
+  state.offlineTicketMinutes=Math.floor(clamp(number(raw.offlineTicketMinutes,0),0,29));
   if(raw.offlineBank&&typeof raw.offlineBank==='object'){
-   for(const key of ['minutes','gold','exp'])
+   for(const key of ['minutes','gold','exp','rubies','tickets'])
     state.offlineBank[key]=Math.floor(clamp(number(raw.offlineBank[key],0),0,1e12));
   }
   state.owned={};
@@ -171,18 +173,28 @@
   return {hp,atk,delay:boss?1.45:2.15};
  }
  // Economy balance: speed up levelling without devaluing duplicate hero shards.
- const ECONOMY=Object.freeze({farm:3,boss:3,offline:5});
+ const ECONOMY=Object.freeze({farm:3,boss:3,offline:5,bossRubies:3,killsPerTicket:20,offlineMinutesPerTicket:30});
  function farmReward(stage){
-  return {gold:Math.round((28+stage*8)*ECONOMY.farm),exp:Math.round((18+stage*5)*ECONOMY.farm)};
+  return {gold:Math.round((28+stage*8)*ECONOMY.farm),exp:Math.round((18+stage*5)*ECONOMY.farm),rubies:3+floorNumber(stage)};
  }
  function bossReward(stage){
   return {gold:Math.round((420+stage*110)*ECONOMY.boss),exp:Math.round((280+stage*70)*ECONOMY.boss),
-   rubies:Math.round(75+stage*8),tickets:stage%3===0?2:1};
+   rubies:Math.round((75+stage*8)*ECONOMY.bossRubies),tickets:stage%STAGES_PER_FLOOR===0?5:3};
  }
- function offlineLoot(lastSaved,now,stage){
+ function offlineLoot(lastSaved,now,stage,carry=0){
   const ms=clamp(now-lastSaved,0,OFFLINE_CAP_MS);
   const mins=Math.floor(ms/60000);
-  return {minutes:mins,gold:mins*(24+stage*6)*ECONOMY.offline,exp:mins*(14+stage*4)*ECONOMY.offline};
+  const total=Math.max(0,Math.min(ECONOMY.offlineMinutesPerTicket-1,Math.floor(number(carry,0))))+mins;
+  return {minutes:mins,gold:mins*(24+stage*6)*ECONOMY.offline,exp:mins*(14+stage*4)*ECONOMY.offline,
+   rubies:mins*(4+floorNumber(stage)),tickets:Math.floor(total/ECONOMY.offlineMinutesPerTicket),ticketRemainder:total%ECONOMY.offlineMinutesPerTicket};
+ }
+ function awardFarmKill(state){
+  const reward=farmReward(state.stage);
+  state.gold+=reward.gold;state.heroExp+=reward.exp;state.rubies+=reward.rubies;
+  const kills=(state.farmTicketKills||0)+1;
+  const tickets=Math.floor(kills/ECONOMY.killsPerTicket);
+  state.farmTicketKills=kills%ECONOMY.killsPerTicket;state.tickets+=tickets;
+  return {...reward,tickets};
  }
  function spendLevel(state,id){
   const h=state.owned[id];if(!h||h.level>=MAX_LEVEL)return false;
@@ -229,5 +241,5 @@
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,
   initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,floorCount,maxStage,floorBossId,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,ascendCost,
-  normalized,heroAtStars,stats,power,monster,farmReward,bossReward,offlineLoot,spendLevel,ascend,draw,summonCost,summonOdds,drawDetailed});
+  normalized,heroAtStars,stats,power,monster,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,draw,summonCost,summonOdds,drawDetailed});
 })();
