@@ -1027,6 +1027,27 @@
         "delayMs": 0,
         "airtimeMs": 0,
         "loopFrames": true
+      },
+      "groundFire": {
+        "src": "./assets/effects/qingmei/groundFire-77d4262cfb91.png",
+        "cols": 8,
+        "rows": 1,
+        "row": 0,
+        "col": 0,
+        "frames": 4,
+        "size": 150,
+        "ms": 800,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "thickness": 48,
+        "orientation": "horizontal",
+        "delayMs": 0,
+        "airtimeMs": 0,
+        "loopFrames": false
       }
     }
   }
