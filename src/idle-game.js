@@ -1499,7 +1499,7 @@ function resetTrial(){
  $('trialSkillName').innerHTML=rarityBadge(h)+' '+escapeText(h.skill);
  $('trialStats').textContent='HP '+fmt(st.hp)+' · ATK '+fmt(st.atk)+' · '+(h.globalRange?'ทั่วสนาม':h.range+' ช่อง');
  $('trialPassive').disabled=!(h.passive||h.guard||h.effect==='cloakshot');
- $('trialPassive').textContent=h.effect==='explosion'?'ทดลองหมดแรง':h.support?.reviveHp?'ทดสอบชุบเพื่อน':(h.passive?.reviveHp||h.passive?.aquaReviveHp)?'ทดสอบคืนชีพ':h.passive?.focusCritStep?'ทดสอบคริต่อเนื่อง':h.passive?.healOnAttack?'ทดสอบฮีลปกติ':h.guard?'ทดสอบยั่วยุ':h.effect==='cloakshot'?'ทดสอบซุ่มยิง':h.passive?.damageReduction?'ทดสอบลดดาเมจ':'ทดลองพาสซีฟ';
+ $('trialPassive').textContent=h.effect==='explosion'?'ทดลองหมดแรง':h.passive?.reviveHp?'ทดสอบคืนชีพตัวเอง':h.support?.reviveHp?'ทดสอบชุบเพื่อน':h.passive?.aquaReviveHp?'ทดสอบคืนชีพ':h.passive?.focusCritStep?'ทดสอบคริต่อเนื่อง':h.passive?.healOnAttack?'ทดสอบฮีลปกติ':h.guard?'ทดสอบยั่วยุ':h.effect==='cloakshot'?'ทดสอบซุ่มยิง':h.passive?.damageReduction?'ทดสอบลดดาเมจ':'ทดลองพาสซีฟ';
  withTrial(renderTrial);
 }
 function renderTrial(){
@@ -1526,6 +1526,7 @@ function queueTrial(mode){
  const h=combatHero(trial.hero);
  if(mode==='passive'){
   if(h.effect==='explosion')trial.queue=['skill'];
+  else if(h.passive?.reviveHp&&h.support?.reviveHp)trial.queue=['lethal','hit'];
   else if(h.support?.reviveHp){
    const fallen=trial.fighters.find(u=>u!==trial.hero&&u.alive&&!u.revivedByAlly);
    if(!fallen||(trial.hero.supportRevives||0)>=h.support.reviveLimit){trial.note='ใช้สิทธิ์ชุบชีวิตครบแล้ว · รีเซ็ตสนามเพื่อทดลองอีกครั้ง';withTrial(renderTrial);return;}
