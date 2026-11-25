@@ -772,3 +772,12 @@ body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
 .trial-dummy.frozen .dummy-icon{color:#d3f7ff!important;background:#21628e!important;border-color:#95e7ff!important;box-shadow:0 0 0 2px #84dcff,0 0 18px #53c7f4;filter:none}
 .trial-dummy.frozen .trial-values{color:#b0edff!important}
 .trial-dummy.frozen .mini-stars::after{content:' ❄';color:#b0edff}
+
+/* Resource dungeons: compact, collapsible side activity with optional custom arena backgrounds. */
+.resource-dungeons{margin:5px 9px 7px;border:1px solid #49627b;background:#17273b;border-radius:8px;padding:7px 9px;color:#dceaf4;font-size:12px}
+.resource-dungeons summary{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;font-weight:700;color:#f1db9f;list-style:none}
+.resource-dungeons summary::-webkit-details-marker{display:none}.resource-dungeons summary::before{content:'▸';color:#f1db9f}.resource-dungeons[open] summary::before{content:'▾'}
+.resource-dungeons summary span{flex:1}.resource-dungeons summary small{font-size:10px;color:#afc2d6;text-align:right;white-space:nowrap}
+.dungeon-controls{display:grid;grid-template-columns:1fr 1.4fr auto;gap:5px;margin-top:8px;align-items:end}.dungeon-controls label{display:grid;gap:3px;min-width:0;font-size:10px;color:#afc2d6}.dungeon-controls select{width:100%;min-width:0;background:#102033;color:#e3eff9;border:1px solid #49627b;border-radius:6px;padding:7px 4px;font:inherit}.dungeon-controls button{min-height:32px;padding:5px 8px;font-size:11px}.dungeon-controls button:disabled{opacity:.45;cursor:not-allowed}.dungeon-reward{margin-top:6px;font-size:11px;color:#9fe0bd}.dungeon-help{margin:4px 0 0;color:#9aacbf;font-size:10px;line-height:1.4}
+.stage-viewport.gold-dungeon{background:radial-gradient(ellipse at 50% 40%,#70542a 0%,#30281c 70%);border-color:#b69a52}.stage-viewport.exp-dungeon{background:radial-gradient(ellipse at 50% 40%,#2d5968 0%,#172c3d 72%);border-color:#70b1c4}
+@media(max-width:420px){.resource-dungeons{margin:4px 5px;padding:6px}.dungeon-controls{grid-template-columns:1fr 1.4fr}.dungeon-controls button{grid-column:1/-1}.resource-dungeons summary small{font-size:9px}}
