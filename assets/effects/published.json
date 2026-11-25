@@ -337,20 +337,25 @@
     },
     "heathcliff": {
       "hit": {
-        "src": "./assets/effects/heathcliff/hit-f7a58531ca41.png",
+        "src": "./assets/effects/heathcliff/hit-872bee02b2b2.png",
         "cols": 8,
         "rows": 2,
         "row": 0,
         "col": 0,
-        "frames": 13,
+        "frames": 16,
         "size": 120,
         "ms": 800,
         "mode": "point",
         "scaleX": 1,
         "scaleY": 1,
         "rotation": 0,
+        "offsetX": 0,
+        "offsetY": 0,
         "thickness": 48,
-        "orientation": "horizontal"
+        "orientation": "horizontal",
+        "delayMs": 0,
+        "airtimeMs": 0,
+        "loopFrames": false
       },
       "shield": {
         "src": "./assets/effects/heathcliff/shield-a704f7474106.png",
