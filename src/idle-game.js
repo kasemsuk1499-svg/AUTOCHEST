@@ -788,13 +788,29 @@ function renderExchange(){
   return '<div class="exchange-row"><img loading="lazy" src="'+h.images.art+'" alt=""><div><strong>'+escapeText(h.name)+' '+rarityBadge(h)+'</strong><small>'+(offer.kind==='unlock'?'ปลดล็อกฮีโร่ใหม่':'แลกชิ้นส่วนฮีโร่ ×'+offer.amount)+'</small></div><button type="button" class="control-btn" data-exchange-hero="'+id+'"'+(state.universalShards<offer.cost?' disabled':'')+'>🧩 '+fmt(offer.cost)+'</button></div>';
  }).join(''):'<p class="hero-filter-empty">ไม่พบฮีโร่ที่แลกได้ตามตัวกรอง</p>';
 }
+const summonPageSize=12;
+let summonPage=0;
+function summonPageData(odds,filtered,page){
+ const rates=new Map(odds.map(o=>[o.id,o.rate]));
+ const ids=filtered.filter(id=>rates.has(id));
+ const pages=Math.max(1,Math.ceil(ids.length/summonPageSize));
+ const current=Math.max(0,Math.min(page,pages-1));
+ return {ids,pages,current,visible:ids.slice(current*summonPageSize,(current+1)*summonPageSize),rates};
+}
 function renderSummonPool(){
- const odds=CORE.summonOdds(HEROES).sort((a,b)=>HEROES[b.id].cost-HEROES[a.id].cost);
+ const odds=CORE.summonOdds(HEROES);
+ const p=summonPageData(odds,filterHeroes(odds.map(o=>o.id),'Summon'),summonPage);
+ summonPage=p.current;
  $('summonPoolCount').textContent=odds.length;
- $('summonPool').innerHTML=odds.map(({id})=>{const h=HEROES[id];return '<button type="button" class="summon-pool-hero tier-'+h.cost+' '+rarityClass(h)+'" data-trial-hero="'+id+'" aria-label="ทดลอง '+escapeText(h.name)+'">'+rarityBadge(h)+'<img src="'+h.images.art+'" alt=""><span>'+escapeText(h.name)+'</span><small>▶ ทดลอง</small></button>'}).join('');
+ $('filterCountSummon').textContent='พบ '+p.ids.length+' / '+odds.length+' ตัว · ตัวกรองไม่เปลี่ยนอัตราสุ่ม';
+ $('summonPageNav').hidden=p.pages<=1;
+ $('summonPageLabel').textContent=(p.current+1)+' / '+p.pages;
+ $('summonPrevPage').disabled=p.current===0;
+ $('summonNextPage').disabled=p.current>=p.pages-1;
+ $('summonPool').innerHTML=p.visible.map(id=>{const h=HEROES[id];return '<button type="button" class="summon-pool-hero tier-'+h.cost+' '+rarityClass(h)+'" data-trial-hero="'+id+'" aria-label="ทดลอง '+escapeText(h.name)+'">'+rarityBadge(h)+'<img loading="lazy" src="'+h.images.art+'" alt=""><span>'+escapeText(h.name)+'</span><small>▶ ทดลอง</small></button>'}).join('')||'<p class="hero-filter-empty">ไม่พบฮีโร่ที่ตรงกับตัวกรอง</p>';
  const totals=Object.create(null);for(const {id,rate} of odds){const tier=HEROES[id].rarity;totals[tier]=(totals[tier]||0)+rate}
  $('summonTierRates').innerHTML=['UR','SSR','SR','R'].filter(t=>totals[t]>0).map(t=>'<span class="rarity-badge rarity-'+t.toLowerCase()+'">'+t+' '+(totals[t]*100).toFixed(0)+'%</span>').join('');
- $('summonRates').innerHTML=odds.map(({id,rate})=>'<div><span>'+rarityBadge(HEROES[id])+' '+escapeText(HEROES[id].name)+'</span><b>'+ (rate*100).toFixed(2)+'%</b></div>').join('');
+ $('summonRates').innerHTML=p.visible.map(id=>'<div><span>'+rarityBadge(HEROES[id])+' '+escapeText(HEROES[id].name)+'</span><b>'+ (p.rates.get(id)*100).toFixed(2)+'%</b></div>').join('')||'<p class="hero-filter-empty">ไม่มีรายการที่ตรงกับตัวกรอง</p>';
 }
 function showSummonBanner(){
  if(summonBusy)return;
@@ -1606,6 +1622,9 @@ $('heroDetails').before(picker);
 createHeroFilters('Collection',$('heroList'),'collection',()=>{heroPage=0;renderHeroes()});
 createHeroFilters('Upgrade',picker,'upgrade',searchUpgrade);
 createHeroFilters('Exchange',$('exchangeList'),'exchange',renderExchange);
+createHeroFilters('Summon',$('summonPool'),'summon',()=>{summonPage=0;renderSummonPool()});
+$('summonPrevPage').addEventListener('click',()=>{summonPage--;renderSummonPool()});
+$('summonNextPage').addEventListener('click',()=>{summonPage++;renderSummonPool()});
 $('heroPrevPage').addEventListener('click',()=>{heroPage=Math.max(0,heroPage-1);renderHeroes()});
 $('heroNextPage').addEventListener('click',()=>{heroPage++;renderHeroes()});
 picker.addEventListener('change',()=>{choose(picker.value);refreshUpgradePicker()});
