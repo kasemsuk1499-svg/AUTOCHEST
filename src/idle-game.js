@@ -749,7 +749,7 @@ function showSummonOutcome(){
  $('summonResults').innerHTML=rewards.map((reward,i)=>{
   const h=HEROES[reward.id];
   return '<article class="summon-result-card tier-'+h.cost+' '+rarityClass(h)+(reward.isNew?' new-hero':'')+'" style="--delay:'+Math.min(i*65,550)+'ms">'+
-   '<div class="summon-result-art">'+rarityBadge(h)+'<img src="'+h.images.art+'" alt="'+escapeText(h.name)+'"><span class="result-tag">'+(reward.isNew?'NEW':reward.universal?'ครบเศษ 5★ · +1 เศษรวม':'+1 ชิ้นส่วน')+'</span></div>'+
+   '<div class="summon-result-art">'+rarityBadge(h)+'<img src="'+h.images.art+'" alt="'+escapeText(h.name)+'"><span class="result-tag">'+(reward.isNew?'NEW':reward.universal?'ครบเศษ 5★ · +'+fmt(reward.universal)+' เศษรวม':'+1 ชิ้นส่วน')+'</span></div>'+
    '<strong>'+escapeText(h.name)+'</strong><small>'+escapeText(h.role||h.team)+'</small></article>';
  }).join('');
  $('summonReceipt').textContent='ใช้ '+summonCostLabel(cost)+' · อัญเชิญ '+count+' ครั้ง';
