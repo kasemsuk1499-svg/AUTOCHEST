@@ -763,3 +763,7 @@ body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
 .hero-role-type{display:inline!important;font-size:inherit!important;line-height:1}
 .hero-role-type.tank{color:#b6cfe1}.hero-role-type.support{color:#78e8b3}
 .hero-name-text{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Freeze is presentation only; combat state is controlled by freezeUntil. */
+.fighter.frozen img{filter:brightness(1.18) saturate(.65) drop-shadow(0 0 5px #80ddff)}
+.fighter.frozen .mini-stars::after{content:' ❄';color:#a0e4ff}
