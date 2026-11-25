@@ -1184,7 +1184,7 @@ function advanceDots(){
    const source=hit.source.side==='ally'?fighters.find(u=>u.id===hit.source.id):enemies.find(u=>u===hit.source);
    if(!source||source.hp<=0||source.alive===false)continue;
    const landed=tftDamage(source,target,hit.power,0,false,hit.pierceShield===true,'dot',true);
-   if(landed&&TFT.applyFreeze(target,hit.freezeSeconds,stageClock)){position(target);visualEffect('freeze',source,target.x,target.y);statusFx(target,'freeze','แช่แข็ง');}
+   if(landed&&TFT.applyFreeze(target,hit.freezeSeconds,stageClock)){position(target);visualEffect('freeze',source,target.x,target.y);statusFx(target,'freeze','❄ แช่แข็ง');if(trialContext)trialContext.note='ทดสอบสำเร็จ · คำสาปครบและแช่แข็งแล้ว';}
    if(!trialContext&&!combat)return;
   }
  }
@@ -1579,27 +1579,39 @@ function resetTrial(){
  $('trialPassive').textContent=h.passive?.magicGuard?'ทดสอบรับดาเมจแทน':h.effect==='explosion'?'ทดลองหมดแรง':h.passive?.reviveHp?'ทดสอบคืนชีพตัวเอง':h.support?.reviveHp?'ทดสอบชุบเพื่อน':h.passive?.aquaReviveHp?'ทดสอบคืนชีพ':h.passive?.focusCritStep?'ทดสอบคริต่อเนื่อง':h.passive?.healOnAttack?'ทดสอบฮีลปกติ':h.guard?'ทดสอบยั่วยุ':h.effect==='cloakshot'?'ทดสอบซุ่มยิง':h.passive?.damageReduction?'ทดสอบลดดาเมจ':'ทดลองพาสซีฟ';
  withTrial(renderTrial);
 }
+// Keep the whole delayed skill sequence visible in Hero Trial.
+function trialDotProgress(scene,clock){
+ const living=scene.enemies.filter(u=>u.hp>0&&u.alive!==false);
+ const pending=living.flatMap(u=>(u.dots||[]).filter(d=>d.source.side==='ally'&&d.source.id===scene.hero.id&&scene.hero.hp>0&&scene.hero.alive!==false));
+ const frozen=living.filter(u=>TFT.isFrozen(u,clock));
+ const left=Math.max(0,...pending.map(d=>d.left));
+ const seconds=Math.max(0,...frozen.map(u=>u.freezeUntil-clock));
+ return {pending:pending.length,frozen:frozen.length,left,seconds,busy:pending.length>0||frozen.length>0};
+}
 function renderTrial(){
  for(const u of [...fighters,...enemies]){
   position(u);u.hpbar.style.width=u.hp/u.maxHp*100+'%';
-  const value=fmt(u.hp)+' / '+fmt(u.maxHp)+(u.shield?' · โล่ '+fmt(u.shield):'');
+  const dotLeft=u.hp>0?Math.max(0,...(u.dots||[]).map(d=>d.left)):0;
+  const frozen=u.hp>0&&TFT.isFrozen(u,stageClock);
+  const value=fmt(u.hp)+' / '+fmt(u.maxHp)+(u.shield?' · โล่ '+fmt(u.shield):'')+(frozen?' · ❄ '+(Math.ceil((u.freezeUntil-stageClock)*10)/10).toFixed(1)+'s':dotLeft?' · DOT '+dotLeft+' ครั้ง':'');
   if(u.values.textContent!==value)u.values.textContent=value;
  }
  const scene=trialContext;
- const busy=!!scene.error||!!scene.hero.castUntil||!!scene.active||scene.queue.length>0||shots.length>0||stageClock<scene.nextAt;
+ const progress=trialDotProgress(scene,stageClock);
+ const busy=!!scene.error||!!scene.hero.castUntil||!!scene.active||scene.queue.length>0||shots.length>0||stageClock<scene.nextAt||progress.busy;
  $('trialNormal').disabled=busy||!scene.hero.alive||!!scene.hero.exhausted;
  $('trialSkill').disabled=busy||!scene.hero.alive||!!scene.hero.exhausted;
  $('trialHit').disabled=busy||!scene.hero.alive||!!scene.hero.exhausted;
  const h=combatHero(scene.hero);
  $('trialPassive').disabled=busy||!scene.hero.alive||!!scene.hero.exhausted||!(h.passive||h.guard||h.effect==='cloakshot');
- $('trialNote').textContent=scene.note;
+ $('trialNote').textContent=progress.frozen?'❄ แช่แข็ง '+progress.frozen+' เป้าหมาย · เหลือ '+(Math.ceil(progress.seconds*10)/10).toFixed(1)+' วินาที':progress.pending?'คำสาปกำลังทำงาน · เหลือ '+progress.left+' ครั้งก่อนจบ'+(h.passive?.dotFreezeSeconds?'และแช่แข็ง':''):scene.note;
  const key=JSON.stringify(scene.events);
  if(scene.lastLog!==key){
   scene.lastLog=key;$('trialLog').innerHTML=scene.events.map(e=>'<div class="trial-event '+e.kind+'"><span>'+escapeText(e.name)+'</span><b>'+escapeText(e.label)+'</b></div>').join('');
  }
 }
 function queueTrial(mode){
- if(!trial||trial.hero.exhausted||trial.hero.castUntil||trial.error||trial.active||trial.queue.length||trial.shots.length||trial.clock<trial.nextAt)return;
+ if(!trial||trial.hero.exhausted||trial.hero.castUntil||trial.error||trial.active||trial.queue.length||trial.shots.length||trial.clock<trial.nextAt||trialDotProgress(trial,trial.clock).busy)return;
  const h=combatHero(trial.hero);
  if(mode==='passive'){
   if(h.effect==='explosion')trial.queue=['skill'];
