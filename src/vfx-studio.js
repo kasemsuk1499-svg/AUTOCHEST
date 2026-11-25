@@ -9,15 +9,16 @@ function eventsFor(h){
  const ranged=Number(h.range)>=1.8,events=['hit'];
  if(h.effect==='explosion')return ['hit','projectile','cast','area','aftermath'];
  const direct=!['heal','shield','slam','chain'].includes(h.effect);
- if(direct)events.push('skillHit');
+ if(direct||h.support?.damageTargets)events.push('skillHit');
  if(ranged)events.push('projectile');
  if((ranged&&direct)||h.effect==='pierce')events.push('skillProjectile');
  if(h.cleave)events.push('cleave');
  for(const event of Object.keys(h.visual?.layout||{}))if(labels[event]&&!events.includes(event))events.push(event);
  if(h.effect==='slam')events.push('area','debuff');
- if(h.effect==='heal'||h.support||h.passive?.healOnAttack)events.push('heal','buff');
+ if(h.effect==='heal'||h.support||h.passive?.healOnAttack)events.push('heal');
+ if(h.support?.attackUp||h.support?.speedUp)events.push('buff');
  if(h.effect==='shield'||h.guard)events.push('shield');
- if(h.passive?.reviveHp)events.push('revive');
+ if(h.passive?.reviveHp||h.support?.reviveHp)events.push('revive');
  if(h.effect==='cloakshot')events.push('cloak');
  return events;
 }
@@ -27,7 +28,7 @@ function selectHero(){
  selectEvent();
 }
 function selectEvent(){
- const event=$('event').value;const notes={skillHit:'ใช้กับสกิลที่สร้างดาเมจโดยตรง ไม่ใช่สกิลฮีล/โล่/กระแทกวงกว้าง',skillProjectile:'ใช้กับกระสุนสกิลที่เดินทางไปยังเป้าหมาย',heal:'แสดงที่พันธมิตรที่ได้รับการฮีลจริง',area:'แสดงตรงเป้าหมายของค้อน',revive:'แสดงเมื่อฮีโร่คืนชีพ',shield:'แสดงเมื่อได้รับหรือถูกตีโล่'};
+ const event=$('event').value;const notes={skillHit:'แสดงที่ศัตรูแต่ละตัวที่ได้รับดาเมจจากสกิลโดยตรง รวมถึงสกิลเวทโจมตีพร้อมฮีล',skillProjectile:'ใช้กับกระสุนสกิลที่เดินทางไปยังเป้าหมาย',heal:'แสดงที่พันธมิตรที่ได้รับการฮีลจริง',area:'แสดงตรงเป้าหมายของค้อน',revive:'แสดงที่ตัวละครที่คืนชีพหรือได้รับการชุบชีวิตจากเพื่อน',shield:'แสดงเมื่อได้รับหรือถูกตีโล่'};
  const hero=H[$('hero').value],mode=V.slotLayout(hero,event),spec=V.getSpec(hero,event);
  $('eventHint').textContent=mode==='beam'?'ลำแสงยืดตามแนวโจมตีจริงอัตโนมัติ · ไม่ต้องสร้างภาพยาวเท่าสนาม':mode==='field'?'ภาพยืดตามพื้นที่สนามโดยอัตโนมัติ':notes[event]||'แสดงเมื่อกลไกนี้ทำงานจริงในสนาม';
  $('beamSettings').hidden=mode!=='beam';$('pointSettings').hidden=mode==='beam';$('slotMode').textContent=mode==='beam'?'BEAM · ยืดตามแนวยิง':mode==='field'?'FIELD · พื้นที่สนาม':'POINT · จุดแสดงผล';
@@ -114,7 +115,7 @@ async function loadFile(){
  }catch(e){if(seq!==sequence)return;status('fileInfo',e.message,true);sync()}
 }
 function draft(){if(!validDraft())throw Error('เลือกภาพก่อน');return {hero:$('hero').value,event:$('event').value,spec:settings(dataURL)}}
-function openTrial(){try{const d=draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&v=0.20.6';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
+function openTrial(){try{const d=draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&v=0.20.14';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
 function closeTrial(){$('trialFrame').src='about:blank';$('trialPanel').hidden=true;try{sessionStorage.removeItem(draftKey)}catch(_){}}
 function exportDraft(){try{const d=draft(),url=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='vfx-'+d.hero+'-'+d.event+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){status('publishStatus',e.message,true)}}
 async function api(token,path,method='GET',body){
