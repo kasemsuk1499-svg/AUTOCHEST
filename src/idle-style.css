@@ -750,3 +750,8 @@ body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
 .hero-damage-type.physical,#teamDamageMix .physical{color:#ffb46c}
 .hero-damage-type.magic,#teamDamageMix .magic{color:#8cb9ff}
 #teamDamageMix{display:flex;gap:12px;justify-content:center;margin:5px 0;font-size:11px}
+
+/* Team cards: reserve separate fixed-height lines for name and stars. */
+#teamSlots .team-slot:not(.empty) strong{bottom:13px;height:13px;line-height:13px;padding:0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#teamSlots .team-stars{bottom:1px;height:11px;line-height:11px;white-space:nowrap;overflow:hidden;font-size:9px;letter-spacing:0;text-align:center}
+@media(max-width:540px){#teamSlots .team-slot:not(.empty) strong{bottom:11px;height:11px;line-height:11px;font-size:8px;padding:0 1px}#teamSlots .team-stars{height:9px;line-height:9px;font-size:clamp(6px,1.7vw,8px)}}
