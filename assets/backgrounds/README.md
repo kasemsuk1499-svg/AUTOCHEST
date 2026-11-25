@@ -1,13 +1,18 @@
 # Stage backgrounds
 
-Upload PNG images with these exact names:
+Each registered hero adds one published floor (5 stages). The first five backgrounds keep their existing filenames. New floors use the numbered pattern `floor-NN.png`; no image is required to unlock a floor.
 
-| Stage | File |
-| --- | --- |
-| 1–5 | `grassland.png` |
-| 6–10 | `forest.png` |
-| 11–15 | `iron-valley.png` |
-| 16–20 | `night-temple.png` |
-| 21–25 | `sky-castle.png` |
+| Floor | Stages | File |
+| --- | --- | --- |
+| 1 | 1–5 | `grassland.png` |
+| 2 | 6–10 | `forest.png` |
+| 3 | 11–15 | `iron-valley.png` |
+| 4 | 16–20 | `night-temple.png` |
+| 5 | 21–25 | `sky-castle.png` |
+| 6 | 26–30 | `floor-06.png` |
+| 7 | 31–35 | `floor-07.png` |
+| 8 | 36–40 | `floor-08.png` |
+| 9 | 41–45 | `floor-09.png` |
+| 10 (next hero) | 46–50 | `floor-10.png` |
 
-Themes repeat every 25 stages. Recommended image size: 1520 × 1550 pixels (2× the original 760:775 board ratio). Images are centered and use CSS cover; the 6×7 grid, units, and effects remain above them. Missing images retain the original CSS background. No image is required for the game to work.
+Recommended size: 1520 × 1550 px (board ratio 760:775). Images use centered CSS cover beneath the 6×7 grid, units, and effects. Missing images retain the original CSS background. After the last published boss is cleared, normal farming continues without repeated boss rewards. Adding a hero to the loaded registry opens another floor automatically; cleared saves resume at the next stage on reload. Older saves beyond the published frontier are not reset.
