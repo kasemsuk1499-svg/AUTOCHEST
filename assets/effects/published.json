@@ -484,6 +484,25 @@
         "delayMs": 0,
         "airtimeMs": 0,
         "loopFrames": false
+      },
+      "projectile": {
+        "src": "./assets/effects/aqua/projectile-c5ad0a5e07a1.png",
+        "cols": 6,
+        "rows": 1,
+        "row": 0,
+        "col": 0,
+        "frames": 6,
+        "size": 30,
+        "ms": 500,
+        "mode": "point",
+        "scaleX": 3,
+        "scaleY": 1,
+        "rotation": 0,
+        "thickness": 48,
+        "orientation": "horizontal",
+        "delayMs": 0,
+        "airtimeMs": 0,
+        "loopFrames": false
       }
     }
   }
