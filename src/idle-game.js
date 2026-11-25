@@ -47,7 +47,7 @@ const cellAtClient=(clientX,clientY)=>{
 };
 let boardGesture=null,ignoreInspectUntil=0,dragGhost=null,dropHighlight=null;
 // Hero-shaped enemies share art and skills with the player's SAO roster.
-const ENEMY_IDS=IDS.filter(id=>HEROES[id].effect!=='explosion'&&!HEROES[id].playerOnly);
+// Normal enemies unlock with their assigned floor, including former boss-only heroes.
 // Floor bosses use the whole registered roster, including boss-only heroes.
 const enemyLimit=()=>CORE.waveSize(state.stage);
 const waveSlots=[[1,0],[4,0],[2,1],[0,1],[5,1]]; // finite TFT wave formation
@@ -859,9 +859,11 @@ function spawnMonster(boss=false,cell=null,quiet=false){
  if(boss&&!CORE.canChallengeStage(state,HEROES))return;
  if(boss){enemies=[];$('monsterLayer').replaceChildren();clearTftShots()}
  else if(enemies.length>=enemyLimit())return;
- const id=boss?CORE.floorBossId(state.stage,HEROES):
-  ENEMY_IDS[(state.stage+state.kills+encounters++)%ENEMY_IDS.length];
+ // Prevent multiple one-shot Explosion casters in the same normal wave.
+ const excluded=!boss&&enemies.some(e=>HEROES[e.id]?.effect==='explosion')?IDS.filter(id=>HEROES[id].effect==='explosion'):[];
+ const id=boss?CORE.floorBossId(state.stage,HEROES):CORE.pickEnemyId(state.stage,HEROES,Math.random,excluded);
  if(!id)return;
+ if(!boss)encounters++;
  const hero=HEROES[id],stat=CORE.monster(state.stage,boss);
  const hp=Math.max(1,Math.round(stat.hp*(.8+hero.hp/3000)));
  const entry=cell?boardPoint(cell[0],cell[1]):
