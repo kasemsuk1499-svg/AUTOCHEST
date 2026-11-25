@@ -85,6 +85,27 @@
         "delayMs": 0,
         "airtimeMs": 0,
         "loopFrames": false
+      },
+      "aftermath": {
+        "src": "./assets/effects/megumin/aftermath-d56dc26befce.png",
+        "cols": 8,
+        "rows": 3,
+        "row": 0,
+        "col": 1,
+        "frames": 19,
+        "size": 300,
+        "ms": 2000,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "offsetX": 0,
+        "offsetY": -150,
+        "thickness": 48,
+        "orientation": "horizontal",
+        "delayMs": 0,
+        "airtimeMs": 0,
+        "loopFrames": false
       }
     },
     "kirito": {
