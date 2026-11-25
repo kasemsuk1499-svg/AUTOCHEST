@@ -28,6 +28,8 @@ const studioMode=!!studioTrialId&&!!HEROES[studioTrialId];
 let loaded=studioMode?null:safe(()=>JSON.parse(localStorage.getItem(CORE.KEY)),null);
 let state=CORE.normalized(loaded,HEROES);
 const run=()=>CORE.activeRun(state),night=()=>state.mode==='nightmare';
+let dungeon=null,dungeonTierKey='';
+const dungeonName=kind=>kind==='gold'?'ดันเจี้ยนทอง':'ดันเจี้ยน EXP';
 const floorResetGift=!!loaded&&loaded.version===1&&Number(loaded.floorResetEvent||0)<CORE.FLOOR_RESET_EVENT;
 let suppressSave=false;
 if(loaded){
@@ -237,11 +239,12 @@ const STAGE_BACKGROUNDS=[
 ];
 let stageBackgroundTheme=-1;
 function updateStageBackground(stage){
- const theme=CORE.floorNumber(stage)-1,key=state.mode+':'+theme;
+ const theme=CORE.floorNumber(stage)-1,key=dungeon?'dungeon:'+dungeon.kind:state.mode+':'+theme;
  if(key===stageBackgroundTheme)return;
  stageBackgroundTheme=key;
- const arena=$('stageViewport'),src=night()?'./assets/backgrounds/nightmare-floor-'+String(theme+1).padStart(2,'0')+'.png':STAGE_BACKGROUNDS[theme]||('./assets/backgrounds/floor-'+String(theme+1).padStart(2,'0')+'.png');
- arena.classList.toggle('nightmare-arena',night());
+ const arena=$('stageViewport'),src=dungeon?'./assets/backgrounds/dungeon-'+dungeon.kind+'.png':night()?'./assets/backgrounds/nightmare-floor-'+String(theme+1).padStart(2,'0')+'.png':STAGE_BACKGROUNDS[theme]||('./assets/backgrounds/floor-'+String(theme+1).padStart(2,'0')+'.png');
+ arena.classList.toggle('nightmare-arena',!dungeon&&night());
+ arena.classList.toggle('gold-dungeon',dungeon?.kind==='gold');arena.classList.toggle('exp-dungeon',dungeon?.kind==='exp');
  // Restore the existing CSS background while the next image is loading or absent.
  arena.style.removeProperty('background-image');
  arena.style.removeProperty('background-size');
@@ -257,6 +260,21 @@ function updateStageBackground(stage){
   arena.style.backgroundRepeat='no-repeat';
  };
  img.src=src;
+}
+function renderDungeonControls(){
+ const type=$('dungeonType'),tier=$('dungeonTier');if(!type||!tier)return;
+ const tiers=CORE.dungeonTiers(state,HEROES),key=tiers.map(t=>t.stage+':'+t.unlocked).join('|');
+ if(key!==dungeonTierKey){
+  const previous=Number(tier.value);tier.replaceChildren(...tiers.map(t=>{const o=new Option('ระดับ '+t.tier+' · '+(t.unlocked?'ผ่าน Normal '+t.stage:'🔒 ผ่าน Normal '+t.stage),String(t.stage));o.disabled=!t.unlocked;return o}));
+  tier.value=String(tiers.find(t=>t.stage===previous&&t.unlocked)?.stage||tiers.filter(t=>t.unlocked).at(-1)?.stage||tiers[0]?.stage||5);
+  dungeonTierKey=key;
+ }
+ const kind=type.value,stage=Number(tier.value),remain=CORE.dungeonRemaining(state,kind);
+ $('dungeonRemaining').textContent='ทอง '+CORE.dungeonRemaining(state,'gold')+'/'+CORE.DUNGEON_DAILY_LIMIT+' · EXP '+CORE.dungeonRemaining(state,'exp')+'/'+CORE.DUNGEON_DAILY_LIMIT;
+ $('dungeonReward').textContent='ชนะรับ '+fmt(CORE.dungeonReward(kind,stage))+' '+(kind==='gold'?'Gold':'EXP')+' · เหลือ '+remain+' ครั้งวันนี้';
+ $('enterDungeonBtn').disabled=!!dungeon||!CORE.canEnterDungeon(state,kind,stage,HEROES);
+ type.disabled=tier.disabled=!!dungeon;
+ $('dungeonReward').textContent=dungeon?'กำลังต่อสู้ · '+dungeonName(dungeon.kind):$('dungeonReward').textContent;
 }
 function updateResources(){
  $('goldValue').textContent=fmt(state.gold);
@@ -274,7 +292,7 @@ function updateResources(){
  $('bestStage').textContent=String(stage).padStart(2,'0');
  $('normalModeBtn').textContent='NORMAL · '+state.stage;
  $('nightmareModeBtn').textContent=CORE.nightmareUnlocked(state)?'☾ NIGHTMARE · '+state.nightmare.stage:'🔒 NIGHTMARE · ผ่าน Normal 5';
- $('normalModeBtn').classList.toggle('selected',!night());$('nightmareModeBtn').classList.toggle('selected',night());
+ $('normalModeBtn').classList.toggle('selected',!dungeon&&!night());$('nightmareModeBtn').classList.toggle('selected',!dungeon&&night());
  $('nightmareModeBtn').disabled=!CORE.nightmareUnlocked(state);
  const need=CORE.killsNeeded(stage);
  $('killCounter').textContent=p.kills+' / '+need;
@@ -294,7 +312,21 @@ function updateResources(){
  if(combat?.boss){$('bossCountdown').textContent=Math.max(0,Math.ceil(bossTime))}
  const farm=CORE.farmReward(stage,state.mode);
  $('farmGain').textContent='+'+fmt(farm.gold)+' G / +'+fmt(farm.exp)+' EXP / +'+fmt(farm.rubies)+' 💎 · 🎟 '+state.farmTicketKills+'/'+CORE.ECONOMY.killsPerTicket;
- updateSummonWallet();
+ $('autoBossBtn').disabled=!!dungeon;
+ $('farmGainLabel').textContent=dungeon?'รางวัลเมื่อชนะ':'รางวัลต่อศัตรู';
+ if(dungeon){
+  $('stageName').textContent=dungeonName(dungeon.kind);
+  $('stageNumber').textContent='ระดับ '+dungeon.tier;
+  $('floorProgress').textContent='RESOURCE DUNGEON';
+  $('floorBossName').textContent='👑 ผู้พิทักษ์ · ความยากแบบผ่อนปรน';
+  $('bestStage').textContent=String(state.stage).padStart(2,'0');
+  $('killCounter').textContent='0 / 1';
+  $('killFill').style.width=Math.max(0,Math.min(100,(1-(combat?.hp||0)/Math.max(1,combat?.maxHp||1))*100))+'%';
+  $('challengeBtn').disabled=false;$('challengeBtn').textContent='↩ ออกจากดันเจี้ยน';
+  $('fightLabel').textContent='DUNGEON';
+  $('farmGain').textContent='+'+fmt(CORE.dungeonReward(dungeon.kind,dungeon.stage))+' '+(dungeon.kind==='gold'?'Gold':'EXP');
+ }
+ renderDungeonControls();updateSummonWallet();
  refreshUpgradeAvailability();
 }
 function refreshFormationControls(){
@@ -659,7 +691,8 @@ function closeSkill(){
 }
 function renderQuest(){
  let task;
- if(night())task='☾ NIGHTMARE · รางวัลฟาร์ม ×2 · บอส '+CORE.nightmareBossCount(run().stage)+' ตัว · ความคืบหน้าแยกจาก Normal';
+ if(dungeon)task='✦ '+dungeonName(dungeon.kind)+' · ชนะผู้พิทักษ์เพื่อรับทรัพยากร · ไม่กระทบด่านหลัก';
+ else if(night())task='☾ NIGHTMARE · รางวัลฟาร์ม ×2 · บอส '+CORE.nightmareBossCount(run().stage)+' ตัว · ความคืบหน้าแยกจาก Normal';
  else if(state.stage<5)task='ผ่านด่าน <b>5</b> เพื่อปลดล็อกช่องทีมที่ 5';
  else if(state.stage<12)task='ผ่านด่าน <b>12</b> เพื่อปลดล็อกช่องทีมที่ 6';
  else if(state.stage<20)task='ผ่านด่าน <b>20</b> เพื่อปลดล็อกช่องทีมที่ 7';
@@ -1024,14 +1057,16 @@ function beginTravel(seconds=1.6){
  renderQuest();updateResources();
 }
 function spawnMonster(boss=false,cell=null,quiet=false,forcedId=null){
- if(boss&&!CORE.canChallengeStage(run(),HEROES))return;
+ if(boss&&!dungeon&&!CORE.canChallengeStage(run(),HEROES))return;
  if(!boss&&enemies.length>=enemyLimit())return;
  // Prevent multiple one-shot Explosion casters in the same normal wave.
  const excluded=!boss&&enemies.some(e=>HEROES[e.id]?.effect==='explosion')?IDS.filter(id=>HEROES[id].effect==='explosion'):[];
- const stage=run().stage,id=forcedId||(boss?CORE.floorBossId(stage,HEROES):CORE.pickEnemyId(stage,HEROES,Math.random,excluded));
+ const stage=dungeon?.stage||run().stage,id=forcedId||(boss?CORE.floorBossId(stage,HEROES):CORE.pickEnemyId(stage,HEROES,Math.random,excluded));
  if(!id)return;
  if(!boss)encounters++;
- const stat=CORE.enemyStats(HEROES[id],stage,boss,state.mode,night()&&!boss?CORE.nightmareStars(stage):1),hero=CORE.enemyHero(HEROES[id],stat.stars,boss),hp=stat.hp;
+ const stat=CORE.enemyStats(HEROES[id],stage,boss,dungeon?'normal':state.mode,night()&&!boss?CORE.nightmareStars(stage):1);
+ if(dungeon){stat.hp=Math.max(1,Math.round(stat.hp*.45));stat.atk=Math.max(1,Math.round(stat.atk*.5));stat.stars=1;}
+ const hero=CORE.enemyHero(HEROES[id],stat.stars,boss),hp=stat.hp;
  const entry=cell?boardPoint(cell[0],cell[1]):
   boardPoint(boss?2:(encounters+2)%GRID_COLS,boss?1:encounters%3);
  const foe={id,side:'enemy',damageType:CORE.damageType(hero),boss,stars:stat.stars,hp,maxHp:hp,atk:stat.atk,
@@ -1079,6 +1114,7 @@ function spawnWave(){
 }
 function resetCombat(){beginTravel(.8)}
 function victoryBoss(){
+ if(dungeon){finishDungeon(true);return;}
  const p=run();if(!CORE.canChallengeStage(p,HEROES)){beginTravel(1.5);return;}
  const reward=CORE.bossReward(p.stage,state.mode);
  state.gold+=reward.gold;state.heroExp+=reward.exp;
@@ -1090,6 +1126,7 @@ function victoryBoss(){
  renderPanels();toast(complete?'🏆 พิชิตครบทุกชั้น! ฟาร์มต่อได้จนกว่าจะมีชั้นใหม่':'🏆 ผ่านบอส! ด่าน '+p.stage+' • ได้ Rubies และตั๋ว!');
 }
 function failBoss(){
+ if(dungeon){finishDungeon(false);return;}
  const stage=run().stage;
  CORE.bossDefeated(run());
  log('💥 ยังไม่ชนะบอสด่าน '+stage+' · ฟาร์มอีก 3 เวฟแล้ว AUTO จะลองใหม่');
@@ -1820,14 +1857,38 @@ $('autoBossBtn').addEventListener('click',()=>{
  state.autoBoss=!state.autoBoss;updateResources();save();
  toast(state.autoBoss?'🔄 เรียกบอสอัตโนมัติ ON':'⏸ เรียกบอสอัตโนมัติ OFF');
 });
+function enterDungeon(){
+ if(studioMode||dungeon)return;
+ const kind=$('dungeonType').value,stage=Number($('dungeonTier').value);
+ if(!CORE.canEnterDungeon(state,kind,stage,HEROES))return;
+ const tier=CORE.dungeonTiers(state,HEROES).find(t=>t.stage===stage).tier;
+ dungeon={kind,stage,tier};formationMode=false;state.autoBattle=true;
+ beginTravel(.2);bossTime=45;
+ spawnMonster(true,[2,1],true,kind==='gold'?'asuna':'sinon');
+ $('battleMessage').textContent='✦ '+dungeonName(kind)+' · ระดับ '+tier;
+ updateResources();save();
+}
+function finishDungeon(success,cancel=false){
+ const d=dungeon;if(!d)return;
+ dungeon=null;
+ const amount=success?CORE.claimDungeon(state,d.kind,d.stage,HEROES):0;
+ const message=amount?'🏆 '+dungeonName(d.kind)+' สำเร็จ! +'+fmt(amount)+' '+(d.kind==='gold'?'Gold':'EXP'):cancel?'ออกจากดันเจี้ยน · ไม่เสียสิทธิ์':success?'รางวัลไม่พร้อมใช้งาน · กลับด่านหลัก':'ดันเจี้ยนยังไม่ผ่าน · ไม่เสียสิทธิ์ ลองระดับที่ง่ายลงได้';
+ log(message);save();beginTravel(.8);renderPanels();toast(message);
+}
+$('dungeonType').addEventListener('change',renderDungeonControls);
+$('dungeonTier').addEventListener('change',renderDungeonControls);
+$('enterDungeonBtn').addEventListener('click',enterDungeon);
 function switchMode(mode){
- if(studioMode||state.mode===mode||mode==='nightmare'&&!CORE.nightmareUnlocked(state))return;
+ if(studioMode||mode==='nightmare'&&!CORE.nightmareUnlocked(state))return;
+ if(dungeon){if(!confirm('ออกจากดันเจี้ยนโดยไม่รับรางวัล?'))return;finishDungeon(false,true);}
+ if(state.mode===mode)return;
  state.mode=mode;waveCount=0;beginTravel(.8);renderPanels();save();
  toast(mode==='nightmare'?'☾ Nightmare · ฟาร์ม ×2':'กลับสู่ Normal');
 }
 $('normalModeBtn').addEventListener('click',()=>switchMode('normal'));
 $('nightmareModeBtn').addEventListener('click',()=>switchMode('nightmare'));
 $('challengeBtn').addEventListener('click',()=>{
+ if(dungeon){if(confirm('ออกจากดันเจี้ยนโดยไม่เสียสิทธิ์?'))finishDungeon(false,true);return;}
  const p=run();if(!CORE.canChallengeStage(p,HEROES)||p.kills<CORE.killsNeeded(p.stage)||combat?.boss)return;
  p.bossRetryWaves=0;
  beginTravel(.2);spawnBossEncounter();updateResources();save();
