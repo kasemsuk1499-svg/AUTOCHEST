@@ -18,7 +18,8 @@ function eventsFor(h){
  if(h.effect==='heal'||h.support||h.passive?.healOnAttack)events.push('heal');
  if(h.support?.attackUp||h.support?.speedUp)events.push('buff');
  if(h.effect==='shield'||h.guard)events.push('shield');
- if(h.passive?.reviveHp||h.support?.reviveHp)events.push('revive');
+ if(h.passive?.reviveHp||h.passive?.aquaReviveHp||h.support?.reviveHp)events.push('revive');
+ if(h.passive?.skillImmortalSeconds&&!events.includes('buff'))events.push('buff');
  if(h.effect==='cloakshot')events.push('cloak');
  return events;
 }
