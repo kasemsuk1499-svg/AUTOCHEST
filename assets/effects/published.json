@@ -404,13 +404,18 @@
         "col": 0,
         "frames": 8,
         "size": 30,
-        "ms": 500,
+        "ms": 150,
         "mode": "point",
-        "scaleX": 4,
+        "scaleX": 2,
         "scaleY": 1,
         "rotation": 0,
+        "offsetX": 0,
+        "offsetY": 0,
         "thickness": 48,
-        "orientation": "horizontal"
+        "orientation": "horizontal",
+        "delayMs": 0,
+        "airtimeMs": 0,
+        "loopFrames": true
       },
       "heal": {
         "src": "./assets/effects/silica/heal-6519f75b9417.png",
