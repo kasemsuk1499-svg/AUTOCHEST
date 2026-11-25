@@ -26,6 +26,7 @@
  const bounded=(value,fallback,min,max)=>Number.isFinite(Number(value))&&value!==null&&value!==''?Math.max(min,Math.min(max,Number(value))):fallback;
  function appearance(raw,mode='point'){
   return {mode,scaleX:bounded(raw.scaleX,1,.1,5),scaleY:bounded(raw.scaleY,1,.1,5),rotation:bounded(raw.rotation,0,-180,180),
+   offsetX:bounded(raw.offsetX,0,-540,540),offsetY:bounded(raw.offsetY,0,-540,540),
    thickness:bounded(raw.thickness,48,4,300),orientation:raw.orientation==='vertical'?'vertical':'horizontal'};
  }
  // Backward compatible: zero airtime means playback duration for regions,
@@ -58,15 +59,17 @@
   const t=Math.min(dx>0?(100-from.x)/dx:dx<0?-from.x/dx:Infinity,dy>0?(100-from.y)/dy:dy<0?-from.y/dy:Infinity);
   return {x:from.x+dx*Math.max(0,t),y:from.y+dy*Math.max(0,t)};
  }
+ // Screen-axis offsets are authored in reference pixels at a 540px arena width.
+ function visualOffset(spec,area){const factor=Math.min(1.1,Math.max(1,area.width)/540);return {x:bounded(spec?.offsetX,0,-540,540)*factor,y:bounded(spec?.offsetY,0,-540,540)*factor};}
  function geometry(spec,area,from,to,scale=1){
   const w=Math.max(1,area.width),h=Math.max(1,area.height),factor=Math.min(1.1,w/540)*scale;
-  const sx=from.x*w/100,sy=from.y*h/100;
+  const sx=from.x*w/100,sy=from.y*h/100,offset=visualOffset(spec,area);
   if(spec.mode==='beam'&&to){
    const ex=to.x*w/100,ey=to.y*h/100,dx=ex-sx,dy=ey-sy;
-   return {left:(sx+ex)/2,top:(sy+ey)/2,width:Math.max(1,Math.hypot(dx,dy)),height:spec.thickness*factor,angle:Math.atan2(dy,dx)*180/Math.PI};
+   return {left:(sx+ex)/2+offset.x,top:(sy+ey)/2+offset.y,width:Math.max(1,Math.hypot(dx,dy)),height:spec.thickness*factor,angle:Math.atan2(dy,dx)*180/Math.PI};
   }
-  if(spec.mode==='field')return {left:w/2,top:h/2,width:w*spec.scaleX,height:h*spec.scaleY,angle:spec.rotation};
-  return {left:sx,top:sy,width:spec.size*factor*spec.scaleX,height:spec.size*factor*spec.scaleY,angle:spec.rotation};
+  if(spec.mode==='field')return {left:w/2+offset.x,top:h/2+offset.y,width:w*spec.scaleX,height:h*spec.scaleY,angle:spec.rotation};
+  return {left:sx+offset.x,top:sy+offset.y,width:spec.size*factor*spec.scaleX,height:spec.size*factor*spec.scaleY,angle:spec.rotation};
  }
  function placeRegion(node,spec,region){
   node.style.left=region.left+'px';node.style.top=region.top+'px';node.style.width=region.width+'px';node.style.height=region.height+'px';
@@ -105,5 +108,5 @@
   for(const hero of Object.values(heroes))for(const event of Object.keys(generic)){const s=getSpec(hero,event);if(s)urls.add(s.src)}
   for(const url of urls){const img=new Image();img.src=url;img.decode?.().catch(()=>{});}
  }
- window.AUTOCHEST_VFX=Object.freeze({getSpec,paint,preload,loadPublished,slotLayout,appearance,rayEnd,geometry,placeRegion,timing,lifetime,animateLifetime});
+ window.AUTOCHEST_VFX=Object.freeze({getSpec,paint,preload,loadPublished,slotLayout,appearance,rayEnd,visualOffset,geometry,placeRegion,timing,lifetime,animateLifetime});
 })();
