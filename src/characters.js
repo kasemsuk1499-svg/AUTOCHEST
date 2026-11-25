@@ -22,7 +22,7 @@
        unit.executeMultiplier<1||unit.executeMultiplier>3)throw Error('Invalid cloakshot effect configuration for '+unit.id);
   }
   for(const key of ['hp','dmg','range','cool','move'])if(!(Number.isFinite(unit[key])&&unit[key]>0))throw Error('Invalid '+key+' for '+unit.id);
-  if(!['นักรบ','เวท','ยิงไกล','ป้องกัน'].includes(unit.team)||!['slash','chain','triple','shield','blink','slam','cloakshot','pierce','heal','explosion'].includes(unit.effect)||!Number.isInteger(unit.triggerEvery)||unit.triggerEvery<=0)throw Error('Invalid hero class/skill: '+unit.id);
+  if(!['นักรบ','เวท','ยิงไกล','ป้องกัน'].includes(unit.team)||!['slash','chain','triple','shield','blink','slam','cloakshot','pierce','heal','explosion','dot'].includes(unit.effect)||!Number.isInteger(unit.triggerEvery)||unit.triggerEvery<=0)throw Error('Invalid hero class/skill: '+unit.id);
   if(unit.effect==='explosion'&&(!(unit.castSeconds>=1&&unit.castSeconds<=10)||!(unit.skillPower>0&&unit.skillPower<=20)))throw Error('Invalid explosion configuration');
   if(unit.cleave&&(!(unit.cleave.radius>0&&unit.cleave.radius<=500)||!(unit.cleave.power>0&&unit.cleave.power<=5)))throw Error('Invalid cleave');
   if(unit.passive?.bossMultiplier!==undefined&&!(unit.passive.bossMultiplier>=1&&unit.passive.bossMultiplier<=5))throw Error('Invalid boss multiplier');
