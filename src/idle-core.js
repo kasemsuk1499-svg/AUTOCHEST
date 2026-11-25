@@ -7,7 +7,7 @@
  const number=(n,fallback=0)=>Number.isFinite(Number(n))?Number(n):fallback;
  const initial=()=>({
   version:1,floorResetEvent:FLOOR_RESET_EVENT,accountEpoch:'',mode:'normal',nightmare:{stage:1,clearedStage:0,kills:0,bossRetryWaves:0,bossWins:0},stage:1,clearedStage:0,kills:0,bossRetryWaves:0,gold:3000,heroExp:1800,rubies:1200,tickets:START_TICKETS,universalShards:0,
-  squad:['asuna','kirito','silica'],owned:{
+  favorites:[],squad:['asuna','kirito','silica'],owned:{
    asuna:{level:1,stars:1,shards:0},
    kirito:{level:1,stars:1,shards:0},
    silica:{level:1,stars:1,shards:0}
@@ -160,6 +160,7 @@
    for(const id of ['asuna','kirito','silica'].filter(id=>roster[id]))
     state.owned[id]={level:1,stars:1,shards:0};
   }
+  state.favorites=Array.isArray(raw.favorites)?[...new Set(raw.favorites)].filter(id=>typeof id==='string'&&Object.hasOwn(roster,id)):[];
   state.squad=Array.isArray(raw.squad)?[...new Set(raw.squad)].filter(id=>state.owned[id]&&roster[id]).slice(0,maxSquad(state.stage)):[];
   if(!state.squad.length)state.squad=Object.keys(state.owned).slice(0,maxSquad(state.stage));
   fillPlacements(state,raw.placements);
