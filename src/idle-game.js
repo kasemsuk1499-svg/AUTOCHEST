@@ -38,7 +38,7 @@ let skillReturnFocus=null,managementPanel=null,managementFocus=null;
 let summonBusy=false,summonTimer=0,lastSummon=null;
 let trial=null,trialContext=null,trialReturnFocus=null;
 let formationMode=false,shots=[];
-let allyRevives=new Map();
+let allyRevives=new Map(),fallenEnemies=[];
 let combat=null,enemies=[],fighters=[],stageClock=0,respawn=1.8,waveCount=0,travel=0,travelDistance=0,encounters=0,lastFrame=0,lastSave=0,lastHUD=0,toastTimer=0;
 let logLines=['✦ เริ่มการผจญภัย SAO IDLE แล้ว!'];
 const GRID_COLS=6,GRID_ROWS=7,ALLY_START_ROW=4;
@@ -474,8 +474,10 @@ function skillDescription(t,enemy=false){
    lines.push('ทุก '+n+' การโจมตี: ยิงกระสุนหลักแรง 200% ATK และกระสุนรองอีก 2 นัด นัดละ 85% ATK (เลือกเป้าหมายอื่นได้)');
    break;
   case 'heal':
-   lines.push('ทุก '+n+' การโจมตี: ฟื้น HP ให้สมาชิกที่มีเปอร์เซ็นต์ HP ต่ำสุด '+t.support.healTargets+' คน คนละ '+Math.round(t.support.healHp*100)+'% ของ HP สูงสุด · ไม่ชุบชีวิต');
-   lines.push('เพิ่ม ATK '+Math.round(t.support.attackUp*100)+'% และความเร็วโจมตี '+Math.round(t.support.speedUp*100)+'% ให้ทีมที่ยังมีชีวิตทั้งหมด '+t.support.duration+' วินาที · รีเฟรชเวลา ไม่สะสมความแรง · ไม่สร้างดาเมจ');
+   lines.push('ทุก '+n+' การโจมตี: ฟื้น HP ให้สมาชิกที่มีเปอร์เซ็นต์ HP ต่ำสุด '+t.support.healTargets+' คน คนละ '+Math.round(t.support.healHp*100)+'% ของ HP สูงสุด'+(t.support.reviveHp?'':' · ไม่ชุบชีวิต'));
+   if(t.support.reviveHp)lines.push('ชุบชีวิตเพื่อนที่ตาย 1 คน (HP สูงสุดมากที่สุดก่อน) ด้วย HP '+Math.round(t.support.reviveHp*100)+'% และอมตะ '+t.support.reviveImmortalSeconds+' วินาที · '+t.support.reviveLimit+' ครั้งต่อเวฟหรือบอสต่อผู้ร่าย · เป้าหมายถูกเพื่อนชุบได้ครั้งเดียว');
+   if(t.support.damageTargets)lines.push('โจมตีเวทศัตรูสูงสุด '+t.support.damageTargets+' ตัว ตัวละ '+Math.round(t.skillPower*100)+'% ATK');
+   if(t.support.attackUp||t.support.speedUp)lines.push('เพิ่ม ATK '+Math.round(t.support.attackUp*100)+'% และความเร็วโจมตี '+Math.round(t.support.speedUp*100)+'% ให้ทีมที่ยังมีชีวิตทั้งหมด '+t.support.duration+' วินาที · รีเฟรชเวลา ไม่สะสมความแรง'+(t.support.damageTargets?'':' · ไม่สร้างดาเมจ'));
    break;
   case 'chain':
    lines.push('ทุก '+n+' การโจมตี: ปล่อยกระแสพลังใส่ศัตรูสูงสุด '+(t.chainTargets||3)+' ตัว แรงนัดละ '+Math.round((t.chainPower||1.12)*100)+'% ATK');
@@ -840,7 +842,7 @@ function buildFighters(preserve=false){
    focusTarget:old?.focusTarget||null,focusHits:old?.focusHits||0,
    crit:stat.crit,critDamage:stat.critDamage,
    cloakUntil:old?.cloakUntil||0,ambush:old?.ambush||false,
-   reviveUsed:!!revive,immortalUntil:revive?.until||0,
+   reviveUsed:!!revive,supportRevives:old?.supportRevives||0,revivedByAlly:!!old?.revivedByAlly,immortalUntil:Math.max(old?.immortalUntil||0,revive?.until||0),
    attackUntil:0,alive:old?old.alive&&hp>0:true,walking:false,progress:state.owned[id]};
  });
  const layer=$('heroLayer');layer.replaceChildren();
@@ -860,7 +862,7 @@ function buildFighters(preserve=false){
  }
 }
 function beginTravel(seconds=1.6){
- combat=null;enemies=[];respawn=seconds;travel=0;allyRevives.clear();
+ combat=null;enemies=[];fallenEnemies=[];respawn=seconds;travel=0;allyRevives.clear();
  clearTftShots();
  $('monsterLayer').replaceChildren();clearFx();buildFighters();travelScene();
  $('battleMessage').textContent=state.bossRetryWaves?
@@ -870,7 +872,7 @@ function beginTravel(seconds=1.6){
 }
 function spawnMonster(boss=false,cell=null,quiet=false){
  if(boss&&!CORE.canChallengeStage(state,HEROES))return;
- if(boss){enemies=[];$('monsterLayer').replaceChildren();clearTftShots()}
+ if(boss){enemies=[];fallenEnemies=[];$('monsterLayer').replaceChildren();clearTftShots()}
  else if(enemies.length>=enemyLimit())return;
  // Prevent multiple one-shot Explosion casters in the same normal wave.
  const excluded=!boss&&enemies.some(e=>HEROES[e.id]?.effect==='explosion')?IDS.filter(id=>HEROES[id].effect==='explosion'):[];
@@ -936,9 +938,14 @@ function failBoss(){
 function defeatMonster(foe){
  if(!foe||!enemies.includes(foe))return;
  if(foe.boss){victoryBoss();return}
- const reward=CORE.awardFarmKill(state);
- if(reward.tickets){log('🎟️ ฟาร์มครบ '+CORE.ECONOMY.killsPerTicket+' ตัว! ได้ตั๋วสุ่ม +'+reward.tickets);save();}
- state.kills=Math.min(CORE.killsNeeded(state.stage),state.kills+1);
+ // A revived enemy never pays out its loot twice.
+ if(!foe.rewarded){
+  foe.rewarded=true;
+  const reward=CORE.awardFarmKill(state);
+  state.kills=Math.min(CORE.killsNeeded(state.stage),state.kills+1);
+  if(reward.tickets){log('🎟️ ฟาร์มครบ '+CORE.ECONOMY.killsPerTicket+' ตัว! ได้ตั๋วสุ่ม +'+reward.tickets);save();}
+ }
+ if(!fallenEnemies.includes(foe))fallenEnemies.push(foe);
  enemies=enemies.filter(x=>x!==foe);foe.node?.remove();
  combat=enemies[0]||null;
  if(!combat){
@@ -1100,7 +1107,24 @@ function tftSkill(attacker,target){
    const allies=attacker.side==='ally'?fighters:enemies;
    const result=TFT.applySupport(allies,hero.support,stageClock);
    showHealing(result.healed,attacker);
-   for(const u of result.units){position(u);visualEffect('buff',attacker,u.x,u.y,.85);unitFx(u,'ATK +'+Math.round(TFT.debuffValue(u,'attackUp',stageClock)*100)+'% · SPD +'+Math.round(TFT.debuffValue(u,'speedUp',stageClock)*100)+'%','buff')}
+   if(hero.support.attackUp||hero.support.speedUp)for(const u of result.units){position(u);visualEffect('buff',attacker,u.x,u.y,.85);unitFx(u,'ATK +'+Math.round(TFT.debuffValue(u,'attackUp',stageClock)*100)+'% · SPD +'+Math.round(TFT.debuffValue(u,'speedUp',stageClock)*100)+'%','buff')}
+   if(hero.support.reviveHp){
+    const candidates=attacker.side==='ally'||trialContext?allies:fallenEnemies;
+    const revived=TFT.reviveAlly(attacker,candidates,hero.support,stageClock);
+    if(revived){
+     if(revived.side==='enemy'&&!trialContext){
+      fallenEnemies=fallenEnemies.filter(u=>u!==revived);enemies.push(revived);$('monsterLayer').appendChild(revived.node);
+     }
+     if(revived.node)revived.node.style.opacity='1';
+     const bar=revived.side==='enemy'?revived.bar:revived.hpbar;
+     if(bar)bar.style.width=revived.hp/revived.maxHp*100+'%';
+     pose(revived,false);position(revived);visualEffect('revive',attacker,revived.x,revived.y,1.3);unitFx(revived,'ชุบชีวิต +'+fmt(revived.hp),'heal');statusFx(revived,'revive','อมตะ');
+    }
+   }
+   if(hero.support.damageTargets){
+    const targets=foes().sort((a,b)=>TFT.pxDist(a,target)-TFT.pxDist(b,target)).slice(0,hero.support.damageTargets);
+    for(const e of targets)tftDamage(attacker,e,attacker.atk*hero.skillPower,0,false,false,'skillHit');
+   }
    ring(attacker.x,attacker.y);return true;
   }
   case 'pierce':
@@ -1331,7 +1355,7 @@ function resetTrial(){
  $('trialSkillName').innerHTML=rarityBadge(h)+' '+escapeText(h.skill);
  $('trialStats').textContent='HP '+fmt(st.hp)+' · ATK '+fmt(st.atk)+' · '+(h.globalRange?'ทั่วสนาม':h.range+' ช่อง');
  $('trialPassive').disabled=!(h.passive||h.guard||h.effect==='cloakshot');
- $('trialPassive').textContent=h.effect==='explosion'?'ทดลองหมดแรง':h.passive?.reviveHp?'ทดสอบคืนชีพ':h.passive?.focusCritStep?'ทดสอบคริต่อเนื่อง':h.passive?.healOnAttack?'ทดสอบฮีลปกติ':h.guard?'ทดสอบยั่วยุ':h.effect==='cloakshot'?'ทดสอบซุ่มยิง':h.passive?.damageReduction?'ทดสอบลดดาเมจ':'ทดลองพาสซีฟ';
+ $('trialPassive').textContent=h.effect==='explosion'?'ทดลองหมดแรง':h.support?.reviveHp?'ทดสอบชุบเพื่อน':h.passive?.reviveHp?'ทดสอบคืนชีพ':h.passive?.focusCritStep?'ทดสอบคริต่อเนื่อง':h.passive?.healOnAttack?'ทดสอบฮีลปกติ':h.guard?'ทดสอบยั่วยุ':h.effect==='cloakshot'?'ทดสอบซุ่มยิง':h.passive?.damageReduction?'ทดสอบลดดาเมจ':'ทดลองพาสซีฟ';
  withTrial(renderTrial);
 }
 function renderTrial(){
@@ -1358,6 +1382,11 @@ function queueTrial(mode){
  const h=combatHero(trial.hero);
  if(mode==='passive'){
   if(h.effect==='explosion')trial.queue=['skill'];
+  else if(h.support?.reviveHp){
+   const fallen=trial.fighters.find(u=>u!==trial.hero&&u.alive&&!u.revivedByAlly);
+   if(!fallen||(trial.hero.supportRevives||0)>=h.support.reviveLimit){trial.note='ใช้สิทธิ์ชุบชีวิตครบแล้ว · รีเซ็ตสนามเพื่อทดลองอีกครั้ง';withTrial(renderTrial);return;}
+   fallen.hp=0;fallen.alive=false;fallen.node.style.opacity='.2';trial.queue=['skill'];
+  }
   else if(h.passive?.reviveHp)trial.queue=['lethal','hit'];
   else if(h.passive?.focusCritStep)trial.queue=Array(5).fill('normal');
   else if(h.guard)trial.queue=['skill','taunt'];
