@@ -12,7 +12,7 @@
   silica:{projectile:'bullet',heal:'heal',buff:'buff',hit:'impact'},
   deathgun:{projectile:'darkBullet',skillProjectile:'darkBullet',hit:'impact',cloak:'cloak',skillHit:'impact'}
  };
- const generic={hit:'impact',skillHit:'impact',projectile:'bullet',skillProjectile:'bullet',area:'hammer',heal:'heal',shield:'shield',revive:'revive',buff:'buff',debuff:'debuff',cloak:'cloak',cast:'buff',aftermath:'impact',cleave:'slashGold'};
+ const generic={dot:'debuff',hit:'impact',skillHit:'impact',projectile:'bullet',skillProjectile:'bullet',area:'hammer',heal:'heal',shield:'shield',revive:'revive',buff:'buff',debuff:'debuff',cloak:'cloak',cast:'buff',aftermath:'impact',cleave:'slashGold'};
  let published={},draft=null;
  const studioMode=new URLSearchParams(window.location?.search||'').has('studioTrial');
  if(studioMode){try{draft=JSON.parse(sessionStorage.getItem('AUTOCHEST_VFX_DRAFT')||'null')}catch(_){}}
