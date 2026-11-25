@@ -394,7 +394,7 @@ function renderTeam(){
  }).join('');
 }
 const heroPageSize=24;
-let heroPage=0;
+let heroPage=0, favoritesOnly=false;
 function filterHeroes(ids,prefix){
  const q=($('filterQuery'+prefix)?.value||'').trim().toLocaleLowerCase();
  const tier=$('filterTier'+prefix)?.value||'',role=$('filterRole'+prefix)?.value||'',tag=$('filterTag'+prefix)?.value||'',status=$('filterStatus'+prefix)?.value||'',sort=$('filterSort'+prefix)?.value||'rarity';
@@ -402,11 +402,13 @@ function filterHeroes(ids,prefix){
  const memberTags=id=>tags.filter(t=>t.available.includes(id));
  const faction=id=>HEROES[id].faction||(id==='artoria'?'fate':['aqua','megumin'].includes(id)?'konosuba':['asuna','kirito','sinon','lisbeth','deathgun','heathcliff','silica'].includes(id)?'sao':'');
  return ids.filter(id=>{
+  if(prefix==='Collection'&&favoritesOnly&&!state.favorites.includes(id))return false;
   const h=HEROES[id],p=state.owned[id],mt=memberTags(id);
   const hay=[id,h.name,h.subtitle,h.role,h.team,h.rarity,faction(id),...(h.traits||[]),...mt.map(t=>t.name)].join(' ').toLocaleLowerCase();
   return (!q||q.split(/\s+/).every(x=>hay.includes(x)))&&(!tier||h.rarity===tier)&&(!role||h.team===role)&&(!tag||faction(id)===tag||mt.some(t=>t.id===tag))&&(!status||(status==='owned'&&p)||(status==='locked'&&!p)||(status==='ready'&&readyUpgrade(id))||(status==='max'&&CORE.isMaxHero(p))||(status==='unfinished'&&p&&!CORE.isMaxHero(p))||(status==='team'&&state.squad.includes(id)));
  }).sort((a,b)=>{
   const pa=state.owned[a],pb=state.owned[b];
+  if(prefix==='Collection'||prefix==='Upgrade'){const fav=Number(state.favorites.includes(b))-Number(state.favorites.includes(a));if(fav)return fav;}
   if(sort==='name')return HEROES[a].name.localeCompare(HEROES[b].name,'th');
   if(sort==='level')return (pb?.level||0)-(pa?.level||0)||HEROES[b].cost-HEROES[a].cost;
   if(sort==='stars')return (pb?.stars||0)-(pa?.stars||0)||HEROES[b].cost-HEROES[a].cost;
@@ -434,6 +436,7 @@ function createHeroFilters(prefix,host,mode,refresh){
 }
 function renderHeroes(){
  const ids=filterHeroes(IDS,'Collection'),pages=Math.max(1,Math.ceil(ids.length/heroPageSize));
+ const favBtn=$('heroFavoritesToggle');if(favBtn){favBtn.setAttribute('aria-pressed',String(favoritesOnly));favBtn.textContent='★ ตัวโปรด ('+state.favorites.length+')';}
  heroPage=Math.min(heroPage,pages-1);
  if($('filterCountCollection'))$('filterCountCollection').textContent='พบ '+ids.length+' / '+IDS.length+' ตัว';
  const nav=$('heroPageNav');if(nav){nav.hidden=pages<=1;$('heroPageLabel').textContent=(heroPage+1)+' / '+pages;$('heroPrevPage').disabled=heroPage===0;$('heroNextPage').disabled=heroPage>=pages-1;}
@@ -446,7 +449,8 @@ function renderHeroes(){
    '<span class="collection-level">'+(p?(CORE.isMaxHero(p)?'✓ MAX':'LEVEL '+p.level+(p.level>=CORE.MAX_LEVEL?' MAX':'')):'🔒 ไม่ได้ปลดล็อก')+'</span>'+
    '<span class="collection-stars">'+(p?'★'.repeat(p.stars)+'☆'.repeat(CORE.MAX_STARS-p.stars)+(p.stars>=CORE.MAX_STARS?' MAX':''):'☆☆☆☆☆')+'</span>'+
    '<span class="collection-ready" title="เสริมแกร่งได้">⬆ อัปได้</span></button>'+
-   '<button type="button" class="hero-info-btn" data-skill-hero="'+id+'" aria-label="ดูสกิล '+escapeText(t.name)+'">ⓘ</button></div>';
+   '<button type="button" class="hero-info-btn" data-skill-hero="'+id+'" aria-label="ดูสกิล '+escapeText(t.name)+'">ⓘ</button>'+
+   '<button type="button" class="hero-favorite-btn '+(state.favorites.includes(id)?'is-favorite':'')+'" data-favorite-hero="'+id+'" aria-pressed="'+state.favorites.includes(id)+'" title="'+(state.favorites.includes(id)?'นำออกจากตัวโปรด':'ตั้งเป็นตัวโปรด')+'" aria-label="ตัวโปรด '+escapeText(t.name)+'">'+(state.favorites.includes(id)?'★':'☆')+'</button></div>';
  }).join('')||'<p class="hero-filter-empty">ไม่พบฮีโร่ที่ตรงกับตัวกรอง</p>';
 }
 function renderSelected(){
@@ -1593,7 +1597,7 @@ function refreshUpgradePicker(){
  const all=IDS.filter(id=>state.owned[id]&&!CORE.isMaxHero(state.owned[id])),eligible=filterHeroes(all,'Upgrade');
  if($('filterCountUpgrade'))$('filterCountUpgrade').textContent='พบ '+eligible.length+' / '+all.length+' ตัวที่ยังไม่ MAX';
  const ids=eligible.includes(selected)?eligible:[selected,...eligible].filter(id=>HEROES[id]);
- picker.innerHTML=ids.map(id=>'<option value="'+id+'"'+(id===selected?' selected':'')+'>'+HEROES[id].rarity+' · '+escapeText(HEROES[id].name)+(CORE.isMaxHero(state.owned[id])?' · MAX':state.owned[id]?' · Lv.'+state.owned[id].level:' · ล็อก')+'</option>').join('');
+ picker.innerHTML=ids.map(id=>'<option value="'+id+'"'+(id===selected?' selected':'')+'>'+HEROES[id].rarity+' · '+(state.favorites.includes(id)?'★ ':'')+escapeText(HEROES[id].name)+(CORE.isMaxHero(state.owned[id])?' · MAX':state.owned[id]?' · Lv.'+state.owned[id].level:' · ล็อก')+'</option>').join('');
  picker.disabled=!eligible.length;
 }
 function searchUpgrade(){
@@ -1620,6 +1624,7 @@ function openManagement(name,button){
 const picker=el('select',{id:'upgradePicker','aria-label':'เลือกฮีโร่ที่จะเสริมแกร่ง'});
 $('heroDetails').before(picker);
 createHeroFilters('Collection',$('heroList'),'collection',()=>{heroPage=0;renderHeroes()});
+$('heroFavoritesToggle').addEventListener('click',()=>{favoritesOnly=!favoritesOnly;heroPage=0;renderHeroes()});
 createHeroFilters('Upgrade',picker,'upgrade',searchUpgrade);
 createHeroFilters('Exchange',$('exchangeList'),'exchange',renderExchange);
 createHeroFilters('Summon',$('summonPool'),'summon',()=>{summonPage=0;renderSummonPool()});
@@ -1634,6 +1639,8 @@ document.addEventListener('keydown',e=>{
  if(e.key==='Escape'&&!trial&&managementPanel&&$('skillModal').hidden&&$('rewardModal').hidden){e.preventDefault();closeManagement()}
 });
 $('heroList').addEventListener('click',e=>{
+ const favorite=e.target.closest('[data-favorite-hero]');
+ if(favorite){const id=favorite.dataset.favoriteHero;if(!HEROES[id])return;const was=state.favorites.includes(id);state.favorites=was?state.favorites.filter(x=>x!==id):[...state.favorites,id];save();renderHeroes();refreshUpgradePicker();toast(was?'☆ นำออกจากตัวโปรดแล้ว':'★ ตั้ง '+HEROES[id].name+' เป็นตัวโปรดแล้ว');return;}
  const info=e.target.closest('[data-skill-hero]');
  if(info){choose(info.dataset.skillHero);openSkill(info.dataset.skillHero);return}
  const hero=e.target.closest('[data-hero]');
