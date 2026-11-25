@@ -676,3 +676,11 @@ body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
 
 /* Star Awakening: compact cumulative milestones. */
 .star-perks{display:grid;gap:5px;margin:9px 0;padding:9px;border:1px solid #9b814550;border-radius:8px;background:#192636}.star-perks>strong{font-size:11px;letter-spacing:.5px;color:#efc77e}.star-perk{display:grid;grid-template-columns:30px minmax(0,1fr) 16px;align-items:start;gap:7px;border-radius:5px;padding:6px;background:#213248;color:#d4e1ee;font-size:11px;line-height:1.4}.star-perk b{color:#e7c478}.star-perk.unlocked{background:#3c412f;border-left:2px solid #e3bc61}.star-perk.unlocked small{color:#9ce5b4}.star-perk.locked-perk{color:#a8b8cc}.star-perk small{text-align:center;font-size:10px}.trial-controls{flex-wrap:wrap}
+
+/* Nightmare mode: distinct color treatment without altering the battlefield grid. */
+.difficulty-switch{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 10px 8px}
+.difficulty-switch button{min-width:0;padding:8px 5px;font-size:11px;white-space:normal}
+.difficulty-switch #nightmareModeBtn.selected{background:#493063;border-color:#b18ce3;color:#f4deff}
+.difficulty-switch #nightmareModeBtn:disabled{opacity:.55;cursor:not-allowed}
+.stage-viewport.nightmare-arena{background:radial-gradient(ellipse at 50% 40%,#36254c 0%,#1b142c 72%);border-color:#9274be}
+.stage-viewport.nightmare-arena .board-enemy-label{color:#e0c4ff}
