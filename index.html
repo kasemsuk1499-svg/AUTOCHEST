@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#101729">
 <meta name="description" content="AUTOCHEST IDLE — เกม SAO Idle RPG ต่อสู้และฟาร์มอัตโนมัติ">
 <title>AUTOCHEST IDLE — SAO Adventure</title>
-<link rel="stylesheet" href="./src/idle-style.css?v=0.20.24">
+<link rel="stylesheet" href="./src/idle-style.css?v=0.20.30">
 <script>
 window.__AUTOCHEST_IDLE_READY__=false;
 window.__idleBootMessage='';
@@ -33,7 +33,7 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
  <header class="app-header">
   <div class="logo-box">✦</div>
   <div class="brand"><small>SAO • HERO COLLECTION • AUTO BATTLE</small><h1>AUTO<span>CHEST</span> <em>IDLE</em></h1></div>
-  <div class="header-badge"><span class="online-dot"></span><b>v0.20.29</b></div>
+  <div class="header-badge"><span class="online-dot"></span><b>v0.20.30</b></div>
  </header>
  <div id="startupError" class="startup-error" role="alert" hidden><b>⚠️ เกมโหลดไม่สำเร็จ</b><span id="startupErrorText"></span><button type="button" onclick="idleHardReload()">🔄 โหลดเวอร์ชันใหม่</button></div>
  <div class="resource-ribbon">
@@ -78,7 +78,7 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
          <button type="button" id="autoBattleBtn" class="auto-battle-action" aria-pressed="true">⚔️ AUTO ON</button>
        </div>
        <div id="formationStatus" class="formation-status" role="status">⚔️ ระบบ Auto กำลังต่อสู้ · ลากจัดทีมได้เลย</div>
-       <div id="teamSlots" class="team-slots"></div><details class="team-synergy-panel"><summary>✦ TEAM SYNERGY <span id="synergyCount">0 แท็กทำงาน</span></summary><div id="teamSynergies"></div></details><div id="benchDrop" aria-label="พื้นที่ถอนฮีโร่ออกจากทีม">↩ ลากฮีโร่มาที่นี่เพื่อเก็บเป็นตัวสำรอง</div>
+       <div id="teamDamageMix" aria-label="ประเภทพลังโจมตีในทีม"></div><div id="teamSlots" class="team-slots"></div><details class="team-synergy-panel"><summary>✦ TEAM SYNERGY <span id="synergyCount">0 แท็กทำงาน</span></summary><div id="teamSynergies"></div></details><div id="benchDrop" aria-label="พื้นที่ถอนฮีโร่ออกจากทีม">↩ ลากฮีโร่มาที่นี่เพื่อเก็บเป็นตัวสำรอง</div>
        <div class="swap-help" id="swapHelp">ลากฮีโร่จากคลังหรือทีมลงสนาม · ลากทับตัวเดิมเพื่อสลับ</div>
        
        <button id="autoTeamBtn" class="soft-btn auto-lineup">จัดทีมอัตโนมัติ</button>
@@ -163,7 +163,7 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
  </section>
 </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-<script defer src="./src/characters.js?v=0.20.6"></script>
+<script defer src="./src/characters.js?v=0.20.30"></script>
 <script defer src="./src/characters/heroes/asuna.js?v=0.20.6"></script>
 <script defer src="./src/characters/heroes/kirito.js?v=0.20.6"></script>
 <script defer src="./src/characters/heroes/sinon.js?v=0.20.6"></script>
@@ -174,9 +174,9 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
 <script defer src="./src/characters/heroes/megumin.js?v=0.20.28"></script>
 <script defer src="./src/characters/heroes/artoria.js?v=0.20.6"></script>
 <script defer src="./src/characters/heroes/aqua.js?v=0.20.26"></script>
-<script defer src="./src/characters/heroes/kazuma.js?v=0.20.25"></script>
-<script defer src="./src/idle-core.js?v=0.20.29"></script>
-<script defer src="./src/idle-tft-combat.js?v=0.20.25"></script>
+<script defer src="./src/characters/heroes/kazuma.js?v=0.20.30"></script>
+<script defer src="./src/idle-core.js?v=0.20.30"></script>
+<script defer src="./src/idle-tft-combat.js?v=0.20.30"></script>
 <script defer src="./src/idle-vfx.js?v=0.20.27"></script>
-<script defer src="./src/idle-game.js?v=0.20.28"></script>
+<script defer src="./src/idle-game.js?v=0.20.30"></script>
 </body></html>
