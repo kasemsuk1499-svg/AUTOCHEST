@@ -163,7 +163,7 @@
   state.squad=Array.isArray(raw.squad)?[...new Set(raw.squad)].filter(id=>state.owned[id]&&roster[id]).slice(0,maxSquad(state.stage)):[];
   if(!state.squad.length)state.squad=Object.keys(state.owned).slice(0,maxSquad(state.stage));
   fillPlacements(state,raw.placements);
-  for(const id of Object.keys(state.owned))convertMaxShards(state,id);
+  for(const id of Object.keys(state.owned))convertMaxShards(state,id,roster[id]);
   return state;
  }
  const starCache=new WeakMap();
@@ -256,10 +256,12 @@
  // Overflow currency is a long-term targeted reward, not a cheap replacement for summons.
  const shardExchangeRate=hero=>[0,3,6,15,40][hero?.cost]||0;
  const heroExchangeCost=hero=>shardExchangeRate(hero)*10;
- function convertMaxShards(state,id){
+ const universalShardYield=hero=>[0,1,2,5,20][hero?.cost]||1;
+ function convertMaxShards(state,id,hero=window.AUTOCHEST_CHARACTERS?.HEROES?.[id]){
   const p=state.owned[id];if(!p)return 0;
   const n=Math.max(0,p.shards-shardsToMax(p.stars));
-  if(n){state.universalShards=(state.universalShards||0)+n;p.shards-=n;}return n;
+  const gained=n*universalShardYield(hero);
+  if(n){state.universalShards=(state.universalShards||0)+gained;p.shards-=n;}return gained;
  }
  function exchangeOffer(state,roster,id){
   const hero=roster[id],rate=shardExchangeRate(hero),p=state.owned[id];
@@ -309,7 +311,7 @@
    const isNew=!state.owned[id];
    let universal=0;
    if(isNew)state.owned[id]={level:1,stars:1,shards:0};
-   else {state.owned[id].shards++;universal=convertMaxShards(state,id);}
+   else {state.owned[id].shards++;universal=convertMaxShards(state,id,roster[id]);}
    rewards.push({id,isNew,shards:isNew||universal?0:1,universal});state.totalSummons++;
   }
   return {count,cost,rewards};
@@ -319,5 +321,5 @@
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,
   initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,bossStars,floorCount,maxStage,floorBossId,nightmareUnlocked,activeRun,nightmareBossCount,nightmareStars,nightmareBossIds,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,shardsToMax,ascendCost,
-  normalized,heroAtStars,stats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
+  normalized,heroAtStars,stats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,universalShardYield,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
 })();
