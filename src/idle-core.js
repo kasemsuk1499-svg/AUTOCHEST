@@ -173,7 +173,7 @@
   state.autoBoss=raw.autoBoss!==false;
   state.autoWalk=raw.autoWalk!==false;
   state.autoBattle=raw.autoBattle!==false;
-  state.speed=raw.speed===2?2:1;
+  state.speed=1; // Legacy accelerated saves migrate to normal battle speed.
   state.lastSaved=clamp(number(raw.lastSaved,Date.now()),0,Date.now());
   state.farmTicketKills=Math.floor(clamp(number(raw.farmTicketKills,0),0,19));
   state.offlineTicketMinutes=Math.floor(clamp(number(raw.offlineTicketMinutes,0),0,29));

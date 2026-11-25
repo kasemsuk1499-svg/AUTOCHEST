@@ -68,7 +68,7 @@ let boardGesture=null,ignoreInspectUntil=0,dragGhost=null,dropHighlight=null;
 const battleStage=()=>CORE.battleStage(state),farming=()=>CORE.farming(state);
 let farmRecords={},farmRecordKey='',farmWave=null,farmElapsed=0,farmOptionKey='';
 function farmSignature(){
- return JSON.stringify([state.mode,state.speed,state.squad.map(id=>[id,state.owned[id]?.level,state.owned[id]?.stars,state.placements[id]])]);
+ return JSON.stringify([state.mode,state.squad.map(id=>[id,state.owned[id]?.level,state.owned[id]?.stars,state.placements[id]])]);
 }
 function syncFarmRecords(){
  const key=farmSignature();if(key!==farmRecordKey){farmRecords={};farmRecordKey=key;}
@@ -333,7 +333,6 @@ function updateResources(){
  $('ownedCount').textContent=Object.keys(state.owned).length+' / '+IDS.length;
  $('autoBossBtn').textContent=state.autoBoss?'🔄 AUTO BOSS ON':'⏸ AUTO BOSS OFF';
  $('autoBossBtn').classList.toggle('selected',state.autoBoss);
- $('speedBtn').textContent='⏩ ×'+state.speed;
  refreshFormationControls();
  const floorComplete=!CORE.canChallengeStage(p,HEROES);
  $('challengeBtn').disabled=floorComplete||!!combat?.boss||p.kills<need;
@@ -1495,7 +1494,7 @@ function playAttackAnimation(attacker){
  const node=attacker.node;
  if(!node)return;
  const scene=trialContext;
- node.style.setProperty('--strike-duration',Math.max(90,260/(scene?1:state.speed))+'ms');
+ node.style.setProperty('--strike-duration',260+'ms');
  node.classList.remove('burst');
  requestAnimationFrame(()=>{
   if(node.isConnected&&attacker.attackUntil>(scene?scene.clock:stageClock))node.classList.add('burst');
@@ -1551,7 +1550,7 @@ function enemyAttack(enemy,target){tftAttack(enemy,target)}
 function heroAttack(hero,target){tftAttack(hero,target)}
 function tick(dt){
  if(trial||!$('rewardModal').hidden||!$('skillModal').hidden||formationMode||boardGesture?.active||!state.autoBattle)return;
- const elapsed=Math.max(0,Math.min(.08,dt)),t=elapsed*state.speed;
+ const elapsed=Math.max(0,Math.min(.08,dt)),t=elapsed;
   if(!dungeon&&!combat?.boss)farmElapsed+=elapsed;
   stageClock+=t;
  if(!combat){
@@ -1989,10 +1988,6 @@ $('challengeBtn').addEventListener('click',()=>{
  const p=run();if(farming()||!CORE.canChallengeStage(p,HEROES)||p.kills<CORE.killsNeeded(p.stage)||combat?.boss)return;
  p.bossRetryWaves=0;
  beginTravel(.2);spawnBossEncounter();updateResources();save();
-});
-$('speedBtn').addEventListener('click',()=>{
- state.speed=state.speed===1?2:1;updateResources();save();
- toast('⏩ ความเร็วต่อสู้ ×'+state.speed);
 });
 // Direct mouse/touch drag from collection, team card or arena; pause only during drag.
 $('boardGrid').addEventListener('click',e=>{

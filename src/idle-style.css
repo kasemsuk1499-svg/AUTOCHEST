@@ -415,7 +415,7 @@ body{background:#0b1220}
 .board-cell{border-color:#607e9428}.board-cell.enemy-cell{background:#ae67720d;border-color:#ae677235}.board-cell.ally-cell{background:#4eada811;border-color:#5cbbb83b}
 .board-region{font-size:9px;letter-spacing:1px;opacity:.7}
 .stage-viewport .arena-caption{background:#0b1522bb;font-size:10px;padding:5px 10px}
-.battle-actions{grid-template-columns:1.3fr 1fr .55fr .9fr;gap:6px;padding:9px 10px 5px}
+.battle-actions{grid-template-columns:1.3fr 1fr .9fr;gap:6px;padding:9px 10px 5px}
 .battle-actions button{padding:8px 5px;min-height:35px;border-radius:7px;box-shadow:none;font-size:11px;white-space:nowrap}
 .stage-foot{padding:4px 11px 7px;font-size:10px;flex-direction:row}
 .log-disclosure{border-top:1px solid var(--stroke);font-size:11px;color:#8ea9bd;padding:4px 11px}.log-disclosure summary{cursor:pointer;line-height:1.8}
@@ -810,7 +810,7 @@ body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
 .ui-rework .stage-card>.stage-viewport{border-radius:8px;max-height:none}
 .ui-rework .stage-card .board-region{opacity:.35}
 .ui-rework .stage-card .arena-caption{opacity:.85}
-.ui-rework .battle-actions{gap:5px;padding:7px 8px 3px;grid-template-columns:1.35fr 1fr .55fr .8fr}
+.ui-rework .battle-actions{gap:5px;padding:7px 8px 3px;grid-template-columns:1.35fr 1fr .8fr}
 .ui-rework .battle-actions button{white-space:normal;line-height:1.2;min-width:0}
 .ui-rework .stage-foot{padding:4px 10px 6px}
 .ui-rework .team-card .card-heading{margin-bottom:6px}
