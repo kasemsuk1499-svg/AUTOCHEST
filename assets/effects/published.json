@@ -542,6 +542,29 @@
         "airtimeMs": 0,
         "loopFrames": false
       }
+    },
+    "kazuma": {
+      "hit": {
+        "src": "./assets/effects/kazuma/hit-0c8e004983c6.png",
+        "cols": 8,
+        "rows": 2,
+        "row": 0,
+        "col": 0,
+        "frames": 16,
+        "size": 105,
+        "ms": 440,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "thickness": 48,
+        "orientation": "horizontal",
+        "delayMs": 0,
+        "airtimeMs": 0,
+        "loopFrames": false
+      }
     }
   }
 }
