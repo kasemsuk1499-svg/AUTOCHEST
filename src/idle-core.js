@@ -203,6 +203,7 @@
  const synergyDefs=[
   {id:'sao',name:'Sword Art Online',icon:'⚔️',match:h=>factionOf(h)==='sao',tiers:[{count:3,hp:.05,atk:.05},{count:5,hp:.10,atk:.10},{count:7,hp:.16,atk:.16}]},
   {id:'konosuba',name:'KonoSuba',icon:'💥',match:h=>factionOf(h)==='konosuba',tiers:[{count:2,hp:.10,atk:.10}]},
+  {id:'konosuba_trio',name:'ปาร์ตี้มหาวิบัติ',icon:'🍀',match:h=>['kazuma','aqua','megumin'].includes(h.id),tiers:[{count:3,special:'อควา + คาซึมะ + เมกุมินมีชีวิตครบ: EXPLOSION ซ้ำได้'}]},
   {id:'fate',name:'Fate',icon:'👑',match:h=>factionOf(h)==='fate',tiers:[{count:2,hp:.10,atk:.10}]},
   {id:'duo',name:'คู่ดาบแห่ง Aincrad',icon:'💞',match:h=>h.id==='asuna'||h.id==='kirito',tiers:[{count:2,speed:.08}]},
   {id:'warrior',name:'นักรบ',icon:'🗡️',match:h=>h.team==='นักรบ',tiers:[{count:2,speed:.10},{count:3,speed:.18}]},
