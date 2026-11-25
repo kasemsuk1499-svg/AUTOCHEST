@@ -170,17 +170,19 @@
   const atk=Math.round((boss?55:15)*Math.pow(1.098,n));
   return {hp,atk,delay:boss?1.45:2.15};
  }
+ // Economy balance: speed up levelling without devaluing duplicate hero shards.
+ const ECONOMY=Object.freeze({farm:3,boss:3,offline:5});
  function farmReward(stage){
-  return {gold:Math.round(28+stage*8),exp:Math.round(18+stage*5)};
+  return {gold:Math.round((28+stage*8)*ECONOMY.farm),exp:Math.round((18+stage*5)*ECONOMY.farm)};
  }
  function bossReward(stage){
-  return {gold:Math.round(420+stage*110),exp:Math.round(280+stage*70),
+  return {gold:Math.round((420+stage*110)*ECONOMY.boss),exp:Math.round((280+stage*70)*ECONOMY.boss),
    rubies:Math.round(75+stage*8),tickets:stage%3===0?2:1};
  }
  function offlineLoot(lastSaved,now,stage){
   const ms=clamp(now-lastSaved,0,OFFLINE_CAP_MS);
   const mins=Math.floor(ms/60000);
-  return {minutes:mins,gold:mins*(24+stage*6),exp:mins*(14+stage*4)};
+  return {minutes:mins,gold:mins*(24+stage*6)*ECONOMY.offline,exp:mins*(14+stage*4)*ECONOMY.offline};
  }
  function spendLevel(state,id){
   const h=state.owned[id];if(!h||h.level>=MAX_LEVEL)return false;
@@ -225,7 +227,7 @@
  function draw(state,roster,count,rng=Math.random){
   return drawDetailed(state,roster,count,rng)?.rewards.map(u=>u.id)||null;
  }
- window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,
+ window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,
   initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,floorCount,maxStage,floorBossId,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,ascendCost,
   normalized,heroAtStars,stats,power,monster,farmReward,bossReward,offlineLoot,spendLevel,ascend,draw,summonCost,summonOdds,drawDetailed});
 })();
