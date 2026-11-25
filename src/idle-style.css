@@ -767,3 +767,8 @@ body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
 /* Freeze is presentation only; combat state is controlled by freezeUntil. */
 .fighter.frozen img{filter:brightness(1.18) saturate(.65) drop-shadow(0 0 5px #80ddff)}
 .fighter.frozen .mini-stars::after{content:' ❄';color:#a0e4ff}
+
+/* Hero Trial dummies have no sprite, so give their icon an unmistakable frozen state. */
+.trial-dummy.frozen .dummy-icon{color:#d3f7ff!important;background:#21628e!important;border-color:#95e7ff!important;box-shadow:0 0 0 2px #84dcff,0 0 18px #53c7f4;filter:none}
+.trial-dummy.frozen .trial-values{color:#b0edff!important}
+.trial-dummy.frozen .mini-stars::after{content:' ❄';color:#b0edff}
