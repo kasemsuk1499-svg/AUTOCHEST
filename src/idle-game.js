@@ -20,8 +20,11 @@ const studioTrialId=new URLSearchParams(location.search).get('studioTrial');
 const studioMode=!!studioTrialId&&!!HEROES[studioTrialId];
 let loaded=studioMode?null:safe(()=>JSON.parse(localStorage.getItem(CORE.KEY)),null);
 let state=CORE.normalized(loaded,HEROES);
+const floorResetGift=!!loaded&&loaded.version===1&&Number(loaded.floorResetEvent||0)<CORE.FLOOR_RESET_EVENT;
+let suppressSave=false;
 if(loaded){
- const newLoot=CORE.offlineLoot(Number(loaded.lastSaved)||Date.now(),Date.now(),state.stage);
+ const offlineStage=floorResetGift?Math.max(1,Number(loaded.stage)||1):state.stage;
+ const newLoot=CORE.offlineLoot(Number(loaded.lastSaved)||Date.now(),Date.now(),offlineStage);
  state.offlineBank.minutes+=newLoot.minutes;
  state.offlineBank.gold+=newLoot.gold;
  state.offlineBank.exp+=newLoot.exp;
@@ -186,7 +189,12 @@ const el=(tag,attrs={},inner='')=>{
  return node;
 };
 function save(){
- if(studioMode){lastSave=performance.now();return}
+ if(studioMode||suppressSave){lastSave=performance.now();return}
+ // Do not let an already open tab overwrite a newly rerolled account.
+ const stored=safe(()=>JSON.parse(localStorage.getItem(CORE.KEY)),null);
+ if(stored?.version===1&&(stored.accountEpoch||'')!==state.accountEpoch){
+  suppressSave=true;location.reload();return;
+ }
  state.lastSaved=Date.now();
  safe(()=>localStorage.setItem(CORE.KEY,JSON.stringify(state)),null);
  lastSave=performance.now();
@@ -1613,6 +1621,22 @@ document.addEventListener('click',e=>{
   e.preventDefault();e.stopImmediatePropagation();
  }
 },true);
+$('resetAccountBtn')?.addEventListener('click',()=>{
+ if(studioMode)return;
+ if(!window.confirm('รีไอดีและเริ่มใหม่ทั้งหมด? ตัวละคร เลเวล ดาว ทรัพยากร และความคืบหน้าเดิมจะถูกลบถาวร ไอดีใหม่จะได้รับตั๋วสุ่ม 100 ใบ'))return;
+ if(!window.confirm('ยืนยันลบเซฟในเบราว์เซอร์นี้ถาวร และเริ่มไอดีใหม่?'))return;
+ const fresh=CORE.initial();
+ fresh.accountEpoch=String(Date.now())+'-'+Math.random().toString(36).slice(2);
+ try{
+  localStorage.setItem(CORE.KEY,JSON.stringify(fresh));
+ }catch(error){toast('ไม่สามารถบันทึกไอดีใหม่ได้ · เซฟเดิมยังไม่ถูกลบ');return;}
+ suppressSave=true;location.reload();
+});
+window.addEventListener('storage',e=>{
+ if(studioMode||e.key!==CORE.KEY||!e.newValue)return;
+ const other=safe(()=>JSON.parse(e.newValue),null);
+ if(other?.version===1&&(other.accountEpoch||'')!==state.accountEpoch){suppressSave=true;location.reload();}
+});
 $('offlineBtn').addEventListener('click',openOffline);
 $('claimOfflineBtn').addEventListener('click',claimOffline);
 $('closeOfflineBtn').addEventListener('click',closeOffline);
@@ -1621,6 +1645,7 @@ window.addEventListener('beforeunload',save);
 document.addEventListener('visibilitychange',()=>{if(document.hidden){save();lastFrame=0;}});
 renderPanels();log('✨ สนาม AUTOCHEST 6×7 พร้อมสู้แบบ Idle แล้ว');
 beginTravel(1.8);save();
+if(floorResetGift&&!studioMode){log('🎁 อัปเดตชั้นใหม่: กลับด่าน 1 · ตั๋วสุ่ม +100 ใบ');toast('🎁 ตั๋วสุ่ม +100 ใบ! ตัวละครและทรัพยากรเดิมยังอยู่ครบ');}
 window.__AUTOCHEST_IDLE_READY__=true;
 if(pending.minutes>0)openOffline();
 refreshArenaSize();
