@@ -793,7 +793,7 @@
         "scaleY": 1,
         "rotation": 0,
         "offsetX": 0,
-        "offsetY": 0,
+        "offsetY": -40,
         "thickness": 48,
         "orientation": "horizontal",
         "delayMs": 0,
