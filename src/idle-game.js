@@ -212,10 +212,10 @@ const STAGE_BACKGROUNDS=[
 ];
 let stageBackgroundTheme=-1;
 function updateStageBackground(stage){
- const theme=Math.floor((Math.max(1,stage)-1)/5)%STAGE_BACKGROUNDS.length;
+ const theme=CORE.floorNumber(stage)-1;
  if(theme===stageBackgroundTheme)return;
  stageBackgroundTheme=theme;
- const arena=$('stageViewport'),src=STAGE_BACKGROUNDS[theme];
+ const arena=$('stageViewport'),src=STAGE_BACKGROUNDS[theme]||('./assets/backgrounds/floor-'+String(theme+1).padStart(2,'0')+'.png');
  // Restore the existing CSS background while the next image is loading or absent.
  arena.style.removeProperty('background-image');
  arena.style.removeProperty('background-size');
@@ -240,7 +240,8 @@ function updateResources(){
  $('teamPower').textContent=fmt(CORE.power(state,HEROES));
  $('stageName').textContent=CORE.stageName(state.stage);
  updateStageBackground(state.stage);
- $('stageNumber').textContent=fmt(state.stage);
+ $('stageNumber').textContent=fmt(state.stage)+' / '+fmt(CORE.maxStage(HEROES));
+ if($('floorProgress'))$('floorProgress').textContent='FLOOR '+CORE.floorNumber(state.stage)+' / '+CORE.floorCount(HEROES);
  $('bestStage').textContent=String(state.stage).padStart(2,'0');
  const need=CORE.killsNeeded(state.stage);
  $('killCounter').textContent=state.kills+' / '+need;
@@ -251,8 +252,9 @@ function updateResources(){
  $('autoBossBtn').classList.toggle('selected',state.autoBoss);
  $('speedBtn').textContent='⏩ ×'+state.speed;
  refreshFormationControls();
- $('challengeBtn').disabled=!!combat?.boss||state.kills<need;
- $('challengeBtn').textContent=combat?.boss?'👑 กำลังต่อสู้กับบอส':state.kills<need?'👑 ปลดล็อกบอส '+state.kills+'/'+need:'👑 ท้าทายบอส!';
+ const floorComplete=!CORE.canChallengeStage(state,HEROES);
+ $('challengeBtn').disabled=floorComplete||!!combat?.boss||state.kills<need;
+ $('challengeBtn').textContent=floorComplete?'🏆 ถึงขอบเขตชั้นปัจจุบัน · ฟาร์มต่อ':combat?.boss?'👑 กำลังต่อสู้กับบอส':state.kills<need?'👑 ปลดล็อกบอส '+state.kills+'/'+need:'👑 ท้าทายบอส!';
  $('bossTimer').hidden=!combat?.boss;
  $('fightLabel').classList.toggle('boss-mode',!!combat?.boss);
  $('fightLabel').textContent=combat?.boss?'BOSS BATTLE':combat?'WAVE '+waveCount:'WAVE READY';
@@ -533,7 +535,8 @@ function renderQuest(){
  if(state.stage<5)task='ผ่านด่าน <b>5</b> เพื่อปลดล็อกช่องทีมที่ 5';
  else if(state.stage<12)task='ผ่านด่าน <b>12</b> เพื่อปลดล็อกช่องทีมที่ 6';
  else if(state.stage<20)task='ผ่านด่าน <b>20</b> เพื่อปลดล็อกช่องทีมที่ 7';
- else task='พิชิตด่าน <b>'+(state.stage+5)+'</b> และสะสมดาวฮีโร่';
+ else if(!CORE.canChallengeStage(state,HEROES))task='🏆 ถึงขอบเขตชั้นปัจจุบันแล้ว · ฟาร์มและสะสมดาวระหว่างรอชั้นใหม่';
+ else task='พิชิตด่าน <b>'+Math.min(state.stage+5,CORE.maxStage(HEROES))+'</b> และสะสมดาวฮีโร่';
  const extra=state.bossRetryWaves?' · ฟาร์มอีก '+state.bossRetryWaves+' เวฟก่อนลองบอสใหม่':'';
  $('guideQuest').innerHTML='✧ '+task+'<br><small>เวฟเป็นชุด • Auto ฟาร์ม • แพ้บอสไม่ตกด่าน'+extra+'</small>';
 }
@@ -851,6 +854,7 @@ function beginTravel(seconds=1.6){
  renderQuest();updateResources();
 }
 function spawnMonster(boss=false,cell=null,quiet=false){
+ if(boss&&!CORE.canChallengeStage(state,HEROES))return;
  if(boss){enemies=[];$('monsterLayer').replaceChildren();clearTftShots()}
  else if(enemies.length>=enemyLimit())return;
  const id=boss&&bosses.length?bosses[Math.floor((state.stage-1)/3)%bosses.length]:
@@ -894,14 +898,15 @@ function spawnWave(){
 }
 function resetCombat(){beginTravel(.8)}
 function victoryBoss(){
+ if(!CORE.canChallengeStage(state,HEROES)){beginTravel(1.5);return;}
  const reward=CORE.bossReward(state.stage);
  state.gold+=reward.gold;state.heroExp+=reward.exp;
  state.rubies+=reward.rubies;state.tickets+=reward.tickets;state.bossWins++;
  log('🏆 ผ่านด่าน '+state.stage+'! +'+fmt(reward.gold)+' G และ +'+fmt(reward.rubies)+' 💎');
- state.stage++;state.kills=0;state.bossRetryWaves=0;waveCount=0;save();
- $('battleMessage').textContent='🏆 ผ่านบอส! เข้าสู่ด่าน '+state.stage;
+ CORE.clearStage(state,HEROES);waveCount=0;save();
+ const complete=!CORE.canChallengeStage(state,HEROES);
  beginTravel(1.5);
- renderPanels();toast('🏆 ผ่านบอส! ด่าน '+state.stage+' • ได้ Rubies และตั๋ว!');
+ renderPanels();toast(complete?'🏆 พิชิตครบทุกชั้น! ฟาร์มต่อได้จนกว่าจะมีชั้นใหม่':'🏆 ผ่านบอส! ด่าน '+state.stage+' • ได้ Rubies และตั๋ว!');
 }
 function failBoss(){
  const stage=state.stage;
@@ -1201,7 +1206,7 @@ function tick(dt){
  if(!combat){
   respawn-=t;
   if(respawn<=0){
-   if(CORE.nextEncounter(state)==='boss')spawnMonster(true);
+   if(CORE.nextEncounter(state,HEROES)==='boss')spawnMonster(true);
    else spawnWave();
   }
   return;
@@ -1499,7 +1504,7 @@ $('autoBossBtn').addEventListener('click',()=>{
  toast(state.autoBoss?'🔄 เรียกบอสอัตโนมัติ ON':'⏸ เรียกบอสอัตโนมัติ OFF');
 });
 $('challengeBtn').addEventListener('click',()=>{
- if(state.kills<CORE.killsNeeded(state.stage)||combat?.boss)return;
+ if(!CORE.canChallengeStage(state,HEROES)||state.kills<CORE.killsNeeded(state.stage)||combat?.boss)return;
  state.bossRetryWaves=0;
  beginTravel(.2);spawnMonster(true);updateResources();save();
 });
