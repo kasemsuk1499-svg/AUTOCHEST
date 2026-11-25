@@ -33,7 +33,7 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
  <header class="app-header">
   <div class="logo-box">✦</div>
   <div class="brand"><small>SAO • HERO COLLECTION • AUTO BATTLE</small><h1>AUTO<span>CHEST</span> <em>IDLE</em></h1></div>
-  <div class="header-badge"><span class="online-dot"></span><b>v0.20.6</b></div>
+  <div class="header-badge"><span class="online-dot"></span><b>v0.20.11</b></div>
  </header>
  <div id="startupError" class="startup-error" role="alert" hidden><b>⚠️ เกมโหลดไม่สำเร็จ</b><span id="startupErrorText"></span><button type="button" onclick="idleHardReload()">🔄 โหลดเวอร์ชันใหม่</button></div>
  <div class="resource-ribbon">
@@ -126,6 +126,7 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
 <div class="modal management-modal" id="panel-guide" hidden><div class="modal-overlay" data-close-panel></div><div class="management-dialog" role="dialog" aria-modal="true" aria-label="ภารกิจ"><button type="button" class="panel-close" data-close-panel aria-label="ปิด">✕</button><section class="side-card guide-card">
        <div class="card-heading"><div><small>GUIDE QUEST</small><h3>เป้าหมายต่อไป</h3></div></div>
        <div id="guideQuest" class="guide-quest"></div>
+       <div style="margin-top:18px;border-top:1px solid #45627d;padding-top:12px"><div class="card-heading"><div><small>LOCAL ACCOUNT</small><h3>จัดการไอดี</h3></div></div><p style="font-size:12px;color:#b9d0e4">เริ่มเล่นใหม่ทั้งหมด รับตั๋วสุ่ม 100 ใบ เซฟเดิมในเบราว์เซอร์นี้จะถูกลบเมื่อยืนยัน</p><button id="resetAccountBtn" type="button" class="control-btn" style="width:100%;border-color:#c16d79;color:#ffd0d5;background:#542936">↻ รีไอดี / เริ่มใหม่</button></div>
      </section></div></div>
 <div id="rewardModal" class="modal" hidden>
  <div class="modal-overlay"></div>
@@ -170,8 +171,8 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
 <script defer src="./src/characters/heroes/silica.js?v=0.20.6"></script>
 <script defer src="./src/characters/heroes/megumin.js?v=0.20.6"></script>
 <script defer src="./src/characters/heroes/artoria.js?v=0.20.6"></script>
-<script defer src="./src/idle-core.js?v=0.20.10"></script>
+<script defer src="./src/idle-core.js?v=0.20.11"></script>
 <script defer src="./src/idle-tft-combat.js?v=0.20.6"></script>
 <script defer src="./src/idle-vfx.js?v=0.20.6"></script>
-<script defer src="./src/idle-game.js?v=0.20.10"></script>
+<script defer src="./src/idle-game.js?v=0.20.11"></script>
 </body></html>
