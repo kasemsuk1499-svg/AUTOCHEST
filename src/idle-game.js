@@ -684,7 +684,8 @@ function skillDescription(t,enemy=false){
  if(t.passive?.skillImmortalSeconds)lines.push('เมื่อใช้สกิล: เป็นอมตะ '+t.passive.skillImmortalSeconds+' วินาที');
  if(t.passive?.aquaReviveHp)lines.push('เมื่อ HP เหลือ 0 และอควาฝั่งเดียวกันยังมีชีวิต: คืนชีพ HP '+Math.round(t.passive.aquaReviveHp*100)+'% พร้อมอมตะ '+t.passive.aquaImmortalSeconds+' วินาที · ไม่จำกัดครั้ง · ไม่ใช้โควตาชุบชีวิตของอควา');
  if(t.passive?.explosionRestSeconds)lines.push('แท็กพิเศษ: เมื่อคาซึมะ อควา และเมกุมินยังมีชีวิตครบ เมกุมินพัก '+CORE.explosionRestSeconds(t.passive.explosionRestSeconds)+' วินาทีแล้วร่าย EXPLOSION ซ้ำได้ไม่จำกัดครั้ง');
- if(t.passive?.reviveHp)lines.push('พาสซีฟ — '+t.passive.name+': เมื่อ HP เหลือ 0 คืนชีพด้วย HP '+Math.round(t.passive.reviveHp*100)+'% และเป็นอมตะ '+t.passive.immortalSeconds+' วินาที (ไม่รับดาเมจ) · 1 ครั้งต่อเวฟหรือบอส');
+ if(t.passive?.finalFlameSeconds)lines.push('พาสซีฟ — '+t.passive.name+': ตายครั้งแรก คืนชีพ HP '+Math.round(t.passive.reviveHp*100)+'% · ตายครั้งที่สอง คืนชีพ HP 1 และอมตะ '+t.passive.finalFlameSeconds+' วินาที (โจมตี/ใช้สกิลได้ตามปกติ แต่ไม่รับฮีล) จากนั้นตายถาวรในเวฟ/บอสนี้ ไม่สามารถชุบซ้ำได้');
+ else if(t.passive?.reviveHp)lines.push('พาสซีฟ — '+t.passive.name+': เมื่อ HP เหลือ 0 คืนชีพด้วย HP '+Math.round(t.passive.reviveHp*100)+'% และเป็นอมตะ '+t.passive.immortalSeconds+' วินาที (ไม่รับดาเมจ) · '+(t.passive.reviveLimit||1)+' ครั้งต่อเวฟหรือบอส');
  if(t.globalRange)lines.push('🎯 ระยะยิงทั่วสนาม: ยิงได้จากทุกมุมโดยไม่ต้องเดินเข้าหาเป้าหมาย · ถอยเมื่อศัตรูประชิด');
  else if(Number(t.range)>=1.8)lines.push('🎯 ยิงไกล: กระสุนเดินทางตามเป้าหมายและคำนวณดาเมจเมื่อกระสุนถึง; พยายามรักษาระยะเมื่อศัตรูประชิด');
  else lines.push('⚔️ ประชิด: วิ่งเข้าโจมตีตามระยะของสนาม TFT');
@@ -794,7 +795,7 @@ function applyLiveHeroStats(id){
  const actor=fighters.find(f=>f.id===id&&f.alive);
  if(!actor)return;
  const stat=CORE.teamHeroStats(state,HEROES,id),old=actor.maxHp;
- actor.hp=Math.max(1,Math.round(actor.hp/old*stat.hp));
+ actor.hp=actor.finalFlameUntil?1:Math.max(1,Math.round(actor.hp/old*stat.hp));
  actor.maxHp=stat.hp;actor.atk=stat.atk;actor.dotDamage=stat.dotDamage||0;actor.cool=stat.cool;actor.progress=state.owned[id];
  actor.crit=stat.crit;actor.critDamage=stat.critDamage;
  const stars=actor.node?.querySelector('.mini-stars');
@@ -1064,7 +1065,8 @@ function buildFighters(preserve=false){
   const place=state.placements?.[id]||CORE.defaultCells[i],point=boardPoint(place.col,place.row);
   const old=previous.get(id);
   const revive=allyRevives.get(id);
-  const hp=old?Math.max(0,Math.min(stat.hp,Math.round(old.hp/Math.max(1,old.maxHp)*stat.hp))):stat.hp;
+  const finalFlameUntil=old?.finalFlameUntil||revive?.finalFlameUntil||0,finalFlameSpent=!!(old?.finalFlameSpent||revive?.finalFlameSpent);
+   const hp=finalFlameSpent?0:finalFlameUntil?1:old?Math.max(0,Math.min(stat.hp,Math.round(old.hp/Math.max(1,old.maxHp)*stat.hp))):stat.hp;
   return {id,side:'ally',damageType:CORE.damageType(HEROES[id]),x:point.x,y:point.y,startX:point.x,move:HEROES[id].move,
    hp,maxHp:stat.hp,atk:stat.atk,dotDamage:stat.dotDamage||0,cool:stat.cool,remaining:old?.remaining??i*.12,
    castUntil:old?.castUntil||0,exhausted:!!old?.exhausted,explosionCount:old?.explosionCount||0,explosionReadyAt:old?.explosionReadyAt||0,attacks:old?.attacks||0,nextSkillAt:old?.nextSkillAt||0,shield:old?.shield||0,shieldSource:old?.shield>0?old.shieldSource||null:null,tauntUntil:old?.tauntUntil||0,
@@ -1073,8 +1075,8 @@ function buildFighters(preserve=false){
    focusTarget:old?.focusTarget||null,focusHits:old?.focusHits||0,
    crit:stat.crit,critDamage:stat.critDamage,
    cloakUntil:old?.cloakUntil||0,ambush:old?.ambush||false,
-   reviveUsed:!!revive,supportRevives:old?.supportRevives||0,revivedByAlly:!!old?.revivedByAlly,immortalUntil:Math.max(old?.immortalUntil||0,revive?.until||0),
-   attackUntil:0,alive:old?old.alive&&hp>0:true,walking:false,progress:state.owned[id]};
+   reviveUsed:!!revive,reviveCount:Math.max(old?.reviveCount||0,revive?.count||0,revive?1:0),finalFlameUntil,finalFlameSpent,supportRevives:old?.supportRevives||0,revivedByAlly:!!old?.revivedByAlly,immortalUntil:Math.max(old?.immortalUntil||0,revive?.until||0),
+   attackUntil:0,alive:hp>0&&(!old||old.alive),walking:false,progress:state.owned[id]};
  });
  const layer=$('heroLayer');layer.replaceChildren();
  for(const hero of fighters){
@@ -1253,10 +1255,10 @@ function finishDamage(target){
  if(target.hp===0){
   target.dots=[];target.freezeUntil=0;target.healDown=null;
   const linked=TFT.linkedRevive(target,combatHero(target),target.side==='ally'?fighters:enemies,stageClock);
-  if(linked||TFT.tryRevive(target,combatHero(target),stageClock,target.side==='ally'&&allyRevives.has(target.id))){
-   if(target.side==='ally'&&!linked)allyRevives.set(target.id,{until:target.immortalUntil});
+  if(linked||TFT.tryRevive(target,combatHero(target),stageClock,target.side==='ally'?(allyRevives.get(target.id)?.count||0):0)){
+   if(target.side==='ally'&&!linked)allyRevives.set(target.id,{until:target.immortalUntil,count:target.reviveCount,finalFlameUntil:target.finalFlameUntil||0});
    if(bar)bar.style.width=target.hp/target.maxHp*100+'%';
-   position(target);visualEffect('revive',target);unitFx(target,'คืนชีพ +'+fmt(target.hp),'heal');statusFx(target,'revive','อมตะ');
+   position(target);visualEffect('revive',target);unitFx(target,target.finalFlameUntil?'🔥 เพลิงสุดท้าย · อมตะ 10 วิ':'คืนชีพ +'+fmt(target.hp),'heal');if(TFT.isImmortal(target,stageClock))statusFx(target,'revive','อมตะ');
    if(!trialContext)log('✦ '+HEROES[target.id].name+' คืนชีพ!');return true;
   }
   target.alive=false;
@@ -1265,6 +1267,14 @@ function finishDamage(target){
   else if(target.node)target.node.style.opacity='.2';
  }
  return true;
+}
+function advanceFinalFlames(){
+ for(const u of [...fighters,...enemies]){
+  if(!TFT.expireFinalFlame(u,stageClock))continue;
+  if(u.side==='ally')allyRevives.set(u.id,{until:0,count:u.reviveCount,finalFlameUntil:0,finalFlameSpent:true});
+  position(u);unitFx(u,'🔥 เพลิงสุดท้ายดับ','status');finishDamage(u);
+  if(!trialContext&&!combat)return;
+ }
 }
 function advanceDots(){
  const units=[...fighters,...enemies];
@@ -1620,6 +1630,7 @@ function tick(dt){
   if(bossTime<=0){failBoss();return}
  }
  if(state.farmMode==='smart'&&farmWave&&farmElapsed>=60){finishFarmWave();beginTravel(1.2);save();return;}
+  advanceFinalFlames();if(!combat)return;
   advanceDots();if(!combat)return;
   for(const f of fighters){
   if(!f.alive)continue;
@@ -1742,7 +1753,7 @@ function renderTrial(){
   const dotLeft=u.hp>0?Math.max(0,...(u.dots||[]).map(d=>d.left)):0;
   const frozen=u.hp>0&&TFT.isFrozen(u,stageClock);
   const antiHeal=TFT.debuffValue(u,'healDown',stageClock),burn=fireTrails.filter(f=>f.side!==u.side&&TFT.fireContains(f,u,stageClock)).length;
-  const value=fmt(u.hp)+' / '+fmt(u.maxHp)+(burn?' · 🔥 ×'+burn:'')+(antiHeal?' · ฮีล −'+Math.round(antiHeal*100)+'%':'')+(u.shield?' · โล่ '+fmt(u.shield):'')+(frozen?' · ❄ '+(Math.ceil((u.freezeUntil-stageClock)*10)/10).toFixed(1)+'s':dotLeft?' · DOT '+dotLeft+' ครั้ง':'');
+  const value=fmt(u.hp)+' / '+fmt(u.maxHp)+(u.finalFlameUntil?' · 🔥 อมตะ '+Math.max(0,u.finalFlameUntil-stageClock).toFixed(1)+'s':'')+(burn?' · 🔥 ×'+burn:'')+(antiHeal?' · ฮีล −'+Math.round(antiHeal*100)+'%':'')+(u.shield?' · โล่ '+fmt(u.shield):'')+(frozen?' · ❄ '+(Math.ceil((u.freezeUntil-stageClock)*10)/10).toFixed(1)+'s':dotLeft?' · DOT '+dotLeft+' ครั้ง':'');
   if(u.values.textContent!==value)u.values.textContent=value;
  }
  const scene=trialContext;
@@ -1753,7 +1764,8 @@ function renderTrial(){
  $('trialHit').disabled=busy||!scene.hero.alive||!!scene.hero.exhausted;
  const h=combatHero(scene.hero);
  $('trialPassive').disabled=busy||!scene.hero.alive||!!scene.hero.exhausted||!(h.passive||h.guard||h.fireTrail||h.effect==='cloakshot');
- $('trialNote').textContent=fireTrails.length?'🔥 ทางไฟ '+fireTrails.length+' เส้น · ซ้อนทับได้ · จางตามแนวบิน':progress.frozen?'❄ แช่แข็ง '+progress.frozen+' เป้าหมาย · เหลือ '+(Math.ceil(progress.seconds*10)/10).toFixed(1)+' วินาที':progress.pending?'คำสาปกำลังทำงาน · เหลือ '+progress.left+' ครั้งก่อนจบ'+(h.passive?.dotFreezeSeconds?'และแช่แข็ง':''):scene.note;
+ if($('trialRevive')){$('trialRevive').hidden=!h.passive?.finalFlameSeconds;$('trialRevive').disabled=busy||!scene.hero.alive||!!scene.hero.finalFlameUntil;$('trialRevive').textContent='🔥 ทดสอบคืนชีพ '+(scene.hero.reviveCount||0)+'/2';}
+ $('trialNote').textContent=scene.hero.finalFlameSpent?'🔥 เพลิงสุดท้ายดับ · ตายถาวร':scene.hero.finalFlameUntil?'🔥 อมตะ '+Math.max(0,scene.hero.finalFlameUntil-stageClock).toFixed(1)+' วินาที · โจมตีและใช้สกิลได้':fireTrails.length?'🔥 ทางไฟ '+fireTrails.length+' เส้น · ซ้อนทับได้ · จางตามแนวบิน':progress.frozen?'❄ แช่แข็ง '+progress.frozen+' เป้าหมาย · เหลือ '+(Math.ceil(progress.seconds*10)/10).toFixed(1)+' วินาที':progress.pending?'คำสาปกำลังทำงาน · เหลือ '+progress.left+' ครั้งก่อนจบ'+(h.passive?.dotFreezeSeconds?'และแช่แข็ง':''):scene.note;
  const key=JSON.stringify(scene.events);
  if(scene.lastLog!==key){
   scene.lastLog=key;$('trialLog').innerHTML=scene.events.map(e=>'<div class="trial-event '+e.kind+'"><span>'+escapeText(e.name)+'</span><b>'+escapeText(e.label)+'</b></div>').join('');
@@ -1762,7 +1774,8 @@ function renderTrial(){
 function queueTrial(mode){
  if(!trial||trial.hero.exhausted||trial.hero.castUntil||trial.error||trial.active||trial.queue.length||trial.shots.length||trial.clock<trial.nextAt||trialDotProgress(trial,trial.clock).busy)return;
  const h=combatHero(trial.hero);
- if(mode==='passive'){
+ if(mode==='reviveTest'&&h.passive?.finalFlameSeconds){trial.queue=Array(Math.max(1,2-(trial.hero.reviveCount||0))).fill('lethal');}
+ else if(mode==='passive'){
   if(h.effect==='explosion')trial.queue=['skill'];
   else if(h.passive?.reviveHp&&h.support?.reviveHp)trial.queue=['lethal','hit'];
   else if(h.support?.reviveHp){
@@ -1793,7 +1806,7 @@ function tickTrial(dt){
    scene.note='การทดลองใช้เวลานานเกินไป · กดลองใหม่หรือรีเซ็ตสนาม';actor.walking=false;renderTrial();return;
   }
   if(actor.attackUntil<=stageClock){pose(actor,false);actor.node.classList.remove('burst')}
-  advanceTftShots(t);advanceDots();advanceFireTrails();
+  advanceFinalFlames();advanceTftShots(t);advanceDots();advanceFireTrails();
   if(TFT.isFrozen(actor,stageClock)){actor.walking=false;if(actor.castUntil)actor.castUntil+=t;renderTrial();return;}
   if(actor.castUntil){advanceExplosion(actor,false);renderTrial();return}
   if(!scene.active&&scene.queue.length&&stageClock>=scene.nextAt&&!shots.length)scene.active=scene.queue.shift();
@@ -1837,7 +1850,7 @@ function recoverTrial(error){
  $('trialFx').replaceChildren();
  trial.note='เกิดข้อผิดพลาดในการทดลอง · กดรีเซ็ตสนามเพื่อเริ่มใหม่';
  $('trialNote').textContent=trial.note;
- for(const id of ['trialNormal','trialSkill','trialPassive','trialHit'])$(id).disabled=true;
+ for(const id of ['trialNormal','trialSkill','trialPassive','trialHit','trialRevive'])if($(id))$(id).disabled=true;
 }
 function openTrial(id){
  if(!HEROES[id]||trial)return;
@@ -1854,7 +1867,7 @@ function closeTrial(){
 document.addEventListener('click',e=>{const b=e.target.closest('[data-trial-hero]');if(b){e.preventDefault();openTrial(b.dataset.trialHero)}});
 $('trialHero').addEventListener('change',resetTrial);$('trialCount').addEventListener('change',resetTrial);$('trialStars').addEventListener('change',resetTrial);
 $('trialReset').addEventListener('click',resetTrial);$('trialClose').addEventListener('click',closeTrial);$('trialOverlay').addEventListener('click',closeTrial);
-for(const [id,mode] of [['trialNormal','normal'],['trialSkill','skill'],['trialPassive','passive'],['trialHit','hit']])$(id).addEventListener('click',()=>queueTrial(mode));
+for(const [id,mode] of [['trialNormal','normal'],['trialSkill','skill'],['trialPassive','passive'],['trialHit','hit'],['trialRevive','reviveTest']])$(id)?.addEventListener('click',()=>queueTrial(mode));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('trialModal').hidden){e.preventDefault();e.stopImmediatePropagation();closeTrial()}});
 if(typeof ResizeObserver==='function')new ResizeObserver(()=>{if(trial){trial.size={width:$('trialArena').clientWidth,height:$('trialArena').clientHeight};withTrial(()=>{renderTrial();for(const shot of shots)positionShot(shot);for(const f of fireTrails)positionFireTrail(f)})}}).observe($('trialArena'));
 function refreshUpgradePicker(){

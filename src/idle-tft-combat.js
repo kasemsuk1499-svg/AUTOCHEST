@@ -45,16 +45,29 @@
  // Generic resurrection passive: resolve lethal damage before death or loot.
  function tryRevive(actor,hero,clock,alreadyUsed=false){
   const p=hero?.passive;
-  if(!actor||actor.hp>0||alreadyUsed||actor.reviveUsed||!(p?.reviveHp>0))return false;
-  actor.reviveUsed=true;
-  actor.hp=Math.max(1,Math.round(actor.maxHp*Math.min(1,p.reviveHp)));
-  actor.alive=true;actor.immortalUntil=clock+Math.max(0,p.immortalSeconds||0);
+  if(!actor||actor.hp>0||actor.finalFlameSpent||!(p?.reviveHp>0))return false;
+  const used=Math.max(actor.reviveCount||0,actor.reviveUsed?1:0,Number(alreadyUsed)||0);
+  const limit=Math.max(1,Math.floor(p.reviveLimit||1));
+  if(used>=limit)return false;
+  actor.reviveCount=used+1;actor.reviveUsed=true;
+  if(p.finalFlameSeconds>0&&actor.reviveCount===limit){
+   actor.hp=1;actor.finalFlameUntil=clock+p.finalFlameSeconds;actor.immortalUntil=actor.finalFlameUntil;
+  }else{
+   actor.hp=Math.max(1,Math.round(actor.maxHp*Math.min(1,p.reviveHp)));
+   actor.immortalUntil=clock+Math.max(0,p.immortalSeconds||0);
+  }
+  actor.alive=true;
   return true;
+ }
+ // Terminal phoenix form cannot be prolonged by healing, shields or another resurrection.
+ function expireFinalFlame(actor,clock){
+  if(!actor?.finalFlameUntil||actor.finalFlameUntil>clock)return false;
+  actor.finalFlameUntil=0;actor.finalFlameSpent=true;actor.immortalUntil=0;actor.hp=0;actor.shield=0;actor.shieldSource=null;return true;
  }
  // A caster can resurrect a fallen ally only a limited number of times per encounter.
  function reviveAlly(caster,allies,config,clock){
   if(!caster||caster.hp<=0||caster.alive===false||!(config?.reviveHp>0)||!(config?.reviveLimit>0)||(caster.supportRevives||0)>=config.reviveLimit)return null;
-  const target=allies.filter(u=>u&&u!==caster&&u.side===caster.side&&u.hp<=0&&u.alive===false&&!u.revivedByAlly&&u.maxHp>0)
+  const target=allies.filter(u=>u&&u!==caster&&u.side===caster.side&&u.hp<=0&&u.alive===false&&!u.finalFlameSpent&&!u.revivedByAlly&&u.maxHp>0)
    .sort((a,b)=>b.maxHp-a.maxHp)[0];
   if(!target)return null;
   caster.supportRevives=(caster.supportRevives||0)+1;
@@ -173,7 +186,7 @@
  const boostedDebuff=(config,bonus=0)=>config?.healDown?{...config,healDown:Math.min(.95,config.healDown*(1+Math.max(0,bonus)))}:config;
  // Healing only affects living units; priority is lowest percentage HP.
  function healWeakest(allies,count,amount,clock=0,healPower=0){
-  const units=[...new Set(allies)].filter(u=>u&&u.alive!==false&&u.hp>0&&u.maxHp>u.hp)
+  const units=[...new Set(allies)].filter(u=>u&&u.alive!==false&&u.hp>0&&!u.finalFlameUntil&&u.maxHp>u.hp)
    .sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp).slice(0,count);
   return units.map(u=>{
    const healed=Math.min(u.maxHp-u.hp,Math.max(0,Math.round(amount(u)*(1+Math.max(0,healPower))*(1-debuffValue(u,'healDown',clock)))));
@@ -230,5 +243,5 @@
   if(!target.shield)target.shieldSource=null;
   return {damage,absorbed,total};
  }
- window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,reviveAlly,livingHero,linkedRevive,explosionParty,blocksExplosion,isImmortal,focusCritBonus,makePierce,advancePierce,makeFireTrail,fireBounds,fireContains,fireTicks,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,attackBuff,outgoingMultiplier,vulnerabilityMultiplier,healDownDamageMultiplier,boostedDebuff,attackInterval,healWeakest,applySupport,applyDot,dueDots,isFrozen,applyFreeze,splitMagicDamage,resolveDamage});
+ window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,expireFinalFlame,reviveAlly,livingHero,linkedRevive,explosionParty,blocksExplosion,isImmortal,focusCritBonus,makePierce,advancePierce,makeFireTrail,fireBounds,fireContains,fireTicks,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,attackBuff,outgoingMultiplier,vulnerabilityMultiplier,healDownDamageMultiplier,boostedDebuff,attackInterval,healWeakest,applySupport,applyDot,dueDots,isFrozen,applyFreeze,splitMagicDamage,resolveDamage});
 })();
