@@ -2,7 +2,7 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id),H=window.AUTOCHEST_CHARACTERS.HEROES,V=window.AUTOCHEST_VFX;
 const repo='kasemsuk1499-svg/AUTOCHEST',base='https://api.github.com/repos/'+repo,manifestPath='assets/effects/published.json',draftKey='AUTOCHEST_VFX_DRAFT';
-const labels={hit:'โจมตีปกติ · ตอนโดน',skillHit:'สกิล · ตอนโดน',projectile:'กระสุนปกติ',skillProjectile:'กระสุนสกิล',area:'กระแทกวงกว้าง',heal:'ฟื้นฟู HP',buff:'บัฟทีม',debuff:'ดีบัฟศัตรู',shield:'โล่',revive:'คืนชีพ',cloak:'พรางตัว',cast:'วงเวทขณะร่าย',aftermath:'ควันหลังระเบิด',cleave:'ฟันหมู่ปกติ'};
+const labels={dot:'คำสาป · ดาเมจต่อเนื่อง',hit:'โจมตีปกติ · ตอนโดน',skillHit:'สกิล · ตอนโดน',projectile:'กระสุนปกติ',skillProjectile:'กระสุนสกิล',area:'กระแทกวงกว้าง',heal:'ฟื้นฟู HP',buff:'บัฟทีม',debuff:'ดีบัฟศัตรู',shield:'โล่',revive:'คืนชีพ',cloak:'พรางตัว',cast:'วงเวทขณะร่าย',aftermath:'ควันหลังระเบิด',cleave:'ฟันหมู่ปกติ'};
 let file=null,dataURL='',ext='',busy=false,sequence=0,sheet=null,pick='start',loop=false,loopTimer=0;
 const status=(id,msg,error=false)=>{$(id).textContent=msg;$(id).classList.toggle('error',error)};
 function eventsFor(h){
@@ -15,6 +15,9 @@ function eventsFor(h){
  if(h.cleave)events.push('cleave');
  for(const event of Object.keys(h.visual?.layout||{}))if(labels[event]&&!events.includes(event))events.push(event);
  if(h.effect==='slam')events.push('area','debuff');
+ if(h.effect==='dot')events.push('dot','debuff');
+ if(h.passive?.lifesteal&&!events.includes('heal'))events.push('heal');
+ if(h.passive?.magicGuard&&!events.includes('shield'))events.push('shield');
  if(h.effect==='heal'||h.support||h.passive?.healOnAttack)events.push('heal');
  if(h.support?.attackUp||h.support?.speedUp)events.push('buff');
  if(h.effect==='shield'||h.guard)events.push('shield');
