@@ -42,6 +42,14 @@
  const floorNumber=stage=>Math.ceil(Math.max(1,stage)/STAGES_PER_FLOOR);
  const floorCount=(roster=window.AUTOCHEST_CHARACTERS?.HEROES)=>Math.max(1,Object.keys(roster||{}).length);
  const maxStage=roster=>floorCount(roster)*STAGES_PER_FLOOR;
+ // Preserve the original nine floors even if the hero script order is changed.
+ // Register new heroes at the end of the loaded roster to append their floors.
+ const ORIGINAL_FLOOR_BOSSES=['asuna','kirito','sinon','lisbeth','deathgun','heathcliff','silica','megumin','artoria'];
+ function floorBossId(stage,roster=window.AUTOCHEST_CHARACTERS?.HEROES){
+  const ids=Object.keys(roster||{});
+  const order=[...ORIGINAL_FLOOR_BOSSES.filter(id=>ids.includes(id)),...ids.filter(id=>!ORIGINAL_FLOOR_BOSSES.includes(id))];
+  return order[floorNumber(stage)-1]||null;
+ }
  const canChallengeStage=(state,roster)=>state.stage<=maxStage(roster)&&(state.clearedStage||0)<state.stage;
  const nextEncounter=(state,roster)=>state.autoBoss&&canChallengeStage(state,roster)&&state.kills>=killsNeeded(state.stage)&&state.bossRetryWaves===0?'boss':'wave';
  function clearStage(state,roster){
@@ -196,6 +204,6 @@
   return drawDetailed(state,roster,count,rng)?.rewards.map(u=>u.id)||null;
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,
-  initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,floorCount,maxStage,canChallengeStage,clearStage,levelCost,shardsNeeded,ascendCost,
+  initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,floorCount,maxStage,floorBossId,canChallengeStage,clearStage,levelCost,shardsNeeded,ascendCost,
   normalized,heroAtStars,stats,power,monster,farmReward,bossReward,offlineLoot,spendLevel,ascend,draw,summonCost,summonOdds,drawDetailed});
 })();
