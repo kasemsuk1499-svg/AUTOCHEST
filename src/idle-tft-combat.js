@@ -164,6 +164,28 @@
   }
   return {healed,units};
  }
+ // DOT is a per-source curse, refreshed rather than stacked by the same caster.
+ function applyDot(target,source,p,clock){
+  if(!target||target.hp<=0||target.alive===false||!(p?.dotPower>0)||!(p?.dotTicks>0))return false;
+  const same=d=>d.source===source||(source.side==='ally'&&d.source.side==='ally'&&d.source.id===source.id);
+  target.dots=(target.dots||[]).filter(d=>!same(d));
+  target.dots.push({source,power:source.atk*p.dotPower,left:Math.min(30,Math.floor(p.dotTicks)),next:clock+1});return true;
+ }
+ function dueDots(target,clock){
+  const due=[];
+  for(const dot of target.dots||[])while(dot.left>0&&dot.next<=clock+1e-9){due.push({source:dot.source,power:dot.power});dot.left--;dot.next++;}
+  if(target.dots)target.dots=target.dots.filter(d=>d.left>0);
+  return due;
+ }
+ // Split after original target mitigation; transferred damage never redirects again.
+ function splitMagicDamage(target,allies,heroFor,clock,raw){
+  const total=Math.max(0,Math.round(raw));
+  if(target.damageType!=='magic'||!total)return {target:total,guard:null,redirected:0};
+  const eligible=allies.filter(u=>u!==target&&u.side===target.side&&u.alive!==false&&u.hp>0&&!isImmortal(u,clock)&&heroFor(u)?.passive?.magicGuard>0)
+   .sort((a,b)=>heroFor(b).passive.magicGuard-heroFor(a).passive.magicGuard||b.hp-a.hp);
+  const guard=eligible[0]||null,redirected=guard?Math.round(total*clamp(heroFor(guard).passive.magicGuard,0,.95)):0;
+  return {target:total-redirected,guard,redirected};
+ }
  // One integer damage transaction supplies both HP/shield state and combat text.
  function resolveDamage(target,raw,pierceShield=false){
   const total=Math.max(0,Math.round(raw)),hpBefore=Math.max(0,Math.round(target.hp||0));
@@ -173,5 +195,5 @@
   target.shield=shieldBefore-absorbed;target.hp=hpBefore-damage;
   return {damage,absorbed,total};
  }
- window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,reviveAlly,livingHero,linkedRevive,explosionParty,blocksExplosion,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,attackBuff,outgoingMultiplier,vulnerabilityMultiplier,attackInterval,healWeakest,applySupport,resolveDamage});
+ window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,reviveAlly,livingHero,linkedRevive,explosionParty,blocksExplosion,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,attackBuff,outgoingMultiplier,vulnerabilityMultiplier,attackInterval,healWeakest,applySupport,applyDot,dueDots,splitMagicDamage,resolveDamage});
 })();
