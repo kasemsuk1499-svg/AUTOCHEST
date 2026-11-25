@@ -64,6 +64,23 @@
   target.attackDown=null;target.vulnerability=null;target.remaining=.5;
   return target;
  }
+ const livingHero=(allies,id,side)=>allies.find(u=>u.id===id&&u.side===side&&u.alive!==false&&u.hp>0);
+ function linkedRevive(actor,hero,allies,clock){
+  const p=hero?.passive;
+  if(!actor||actor.hp>0||!(p?.aquaReviveHp>0)||!livingHero(allies,'aqua',actor.side))return false;
+  actor.hp=Math.max(1,Math.round(actor.maxHp*Math.min(1,p.aquaReviveHp)));
+  actor.alive=true;actor.immortalUntil=clock+Math.max(0,p.aquaImmortalSeconds||0);
+  actor.shield=0;actor.attackDown=null;actor.vulnerability=null;actor.remaining=.5;
+  return true;
+ }
+ function explosionParty(actor,allies,heroFor){
+  if(actor?.id!=='megumin'||actor.hp<=0||actor.alive===false)return null;
+  const kazuma=livingHero(allies,'kazuma',actor.side),aqua=livingHero(allies,'aqua',actor.side);
+  if(!kazuma||!aqua)return null;
+  const rest=heroFor(kazuma)?.passive?.explosionRestSeconds;
+  return rest>0?{rest}:null;
+ }
+ const blocksExplosion=(attackerHero,targetHero)=>attackerHero?.effect==='explosion'&&targetHero?.passive?.explosionImmune===true;
  const isImmortal=(actor,clock)=>(actor?.immortalUntil||0)>clock;
  // Focus stacks are tied to the actual target object, not its character ID.
  function focusCritBonus(actor,target,hero){
@@ -154,5 +171,5 @@
   target.shield=shieldBefore-absorbed;target.hp=hpBefore-damage;
   return {damage,absorbed,total};
  }
- window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,reviveAlly,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,outgoingMultiplier,vulnerabilityMultiplier,attackInterval,healWeakest,applySupport,resolveDamage});
+ window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,reviveAlly,livingHero,linkedRevive,explosionParty,blocksExplosion,isImmortal,focusCritBonus,makePierce,advancePierce,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,outgoingMultiplier,vulnerabilityMultiplier,attackInterval,healWeakest,applySupport,resolveDamage});
 })();
