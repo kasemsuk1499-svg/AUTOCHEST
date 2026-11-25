@@ -2,10 +2,11 @@
 (function(){'use strict';
  const KEY='AUTOCHEST_SAO_IDLE_V1';
  const MAX_LEVEL=100,MAX_STARS=5,OFFLINE_CAP_MS=8*60*60*1000;
+ const FLOOR_RESET_EVENT=1,START_TICKETS=100;
  const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
  const number=(n,fallback=0)=>Number.isFinite(Number(n))?Number(n):fallback;
  const initial=()=>({
-  version:1,stage:1,clearedStage:0,kills:0,bossRetryWaves:0,gold:3000,heroExp:1800,rubies:1200,tickets:10,
+  version:1,floorResetEvent:FLOOR_RESET_EVENT,stage:1,clearedStage:0,kills:0,bossRetryWaves:0,gold:3000,heroExp:1800,rubies:1200,tickets:START_TICKETS,
   squad:['asuna','kirito','silica'],owned:{
    asuna:{level:1,stars:1,shards:0},
    kirito:{level:1,stars:1,shards:0},
@@ -90,15 +91,17 @@
   if(!raw||typeof raw!=='object'||raw.version!==1)return initial();
   const state=initial(),ids=Object.keys(roster);
   for(const key of ['stage','kills','gold','heroExp','rubies','tickets','bossWins','totalSummons'])
-   state[key]=Math.floor(clamp(number(raw[key],state[key]),0,1e12));
+   state[key]=Math.floor(clamp(number(raw[key],key==='tickets'?10:state[key]),0,1e12));
+  const resetFloor=number(raw.floorResetEvent,0)<FLOOR_RESET_EVENT;
+  if(resetFloor){state.tickets+=100;state.stage=1;state.kills=0;state.bossWins=0;}
   state.stage=Math.max(1,state.stage);
   // Old saves keep their stage. Only a previously cleared final stage advances
   // automatically when a newly registered hero extends the published floors.
-  state.clearedStage=Math.max(state.stage-1,Math.floor(clamp(number(raw.clearedStage,0),0,state.stage)));
+  state.clearedStage=resetFloor?0:Math.max(state.stage-1,Math.floor(clamp(number(raw.clearedStage,0),0,state.stage)));
   const resumeNext=state.clearedStage===state.stage&&state.stage<maxStage(roster);
   if(resumeNext){state.stage++;state.kills=0;}
   state.kills=clamp(state.kills,0,killsNeeded(state.stage));
-  state.bossRetryWaves=resumeNext?0:Math.floor(clamp(number(raw.bossRetryWaves,0),0,3));
+  state.bossRetryWaves=resetFloor||resumeNext?0:Math.floor(clamp(number(raw.bossRetryWaves,0),0,3));
   state.autoBoss=raw.autoBoss!==false;
   state.autoWalk=raw.autoWalk!==false;
   state.autoBattle=raw.autoBattle!==false;
@@ -221,7 +224,7 @@
  function draw(state,roster,count,rng=Math.random){
   return drawDetailed(state,roster,count,rng)?.rewards.map(u=>u.id)||null;
  }
- window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,
+ window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,
   initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,floorCount,maxStage,floorBossId,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,ascendCost,
   normalized,heroAtStars,stats,power,monster,farmReward,bossReward,offlineLoot,spendLevel,ascend,draw,summonCost,summonOdds,drawDetailed});
 })();
