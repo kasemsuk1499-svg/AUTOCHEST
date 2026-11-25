@@ -33,7 +33,7 @@ function selectEvent(){
  const hero=H[$('hero').value],mode=V.slotLayout(hero,event),spec=V.getSpec(hero,event);
  $('eventHint').textContent=mode==='beam'?'ลำแสงยืดตามแนวโจมตีจริงอัตโนมัติ · ไม่ต้องสร้างภาพยาวเท่าสนาม':mode==='field'?'ภาพยืดตามพื้นที่สนามโดยอัตโนมัติ':notes[event]||'แสดงเมื่อกลไกนี้ทำงานจริงในสนาม';
  $('beamSettings').hidden=mode!=='beam';$('pointSettings').hidden=mode==='beam';$('slotMode').textContent=mode==='beam'?'BEAM · ยืดตามแนวยิง':mode==='field'?'FIELD · พื้นที่สนาม':'POINT · จุดแสดงผล';
- if(spec){for(const key of ['scaleX','scaleY','rotation','thickness','orientation','delayMs','airtimeMs'])$(key).value=spec[key];$('loopFrames').checked=spec.loopFrames;if(!dataURL)for(const key of ['size','ms','cols','rows','frames','row','col'])$(key).value=spec[key]}
+ if(spec){for(const key of ['scaleX','scaleY','rotation','thickness','orientation','delayMs','airtimeMs','offsetX','offsetY'])$(key).value=spec[key];$('loopFrames').checked=spec.loopFrames;if(!dataURL)for(const key of ['size','ms','cols','rows','frames','row','col'])$(key).value=spec[key]}
  invalidate();play();
 }
 function num(id,min,max){const n=Number($(id).value);if(!Number.isInteger(n)||n<min||n>max)throw Error(id+' ต้องอยู่ระหว่าง '+min+'–'+max);return n}
@@ -41,10 +41,11 @@ function settings(src){
  const cols=num('cols',1,32),rows=num('rows',1,32),row=num('row',0,rows-1),col=num('col',0,cols-1),frames=num('frames',1,cols*(rows-row)-col);
  if(dataURL&&(ext==='gif'||ext==='webp')&&(cols!==1||rows!==1||frames!==1))throw Error('GIF / WebP ให้ใช้ 1 คอลัมน์ 1 แถว 1 เฟรม');
  const mode=V.slotLayout(H[$('hero').value],$('event').value);
- const raw={scaleX:Number($('scaleX').value),scaleY:Number($('scaleY').value),rotation:Number($('rotation').value),thickness:Number($('thickness').value),orientation:$('orientation').value};
+ const raw={scaleX:Number($('scaleX').value),scaleY:Number($('scaleY').value),rotation:Number($('rotation').value),thickness:Number($('thickness').value),orientation:$('orientation').value,offsetX:Number($('offsetX').value),offsetY:Number($('offsetY').value)};
  return {src,cols,rows,row,col,frames,size:num('size',16,400),ms:num('ms',80,3000),...V.appearance(raw,mode),...V.timing({delayMs:num('delayMs',0,5000),airtimeMs:num('airtimeMs',0,10000),loopFrames:$('loopFrames').checked})};
 }
-function validDraft(){return !!(file&&dataURL&&!busy)}
+function currentSource(){return dataURL||V.getSpec(H[$('hero').value],$('event').value)?.src||''}
+function validDraft(){return !!(currentSource()&&!busy)}
 function sync(){let v=validDraft();for(const id of ['trialBtn','exportBtn'])$(id).disabled=!v;$('publishBtn').disabled=!v||!$('token').value.trim();}
 function invalidate(){if(!$('trialPanel').hidden)closeTrial();sync()}
 function play(){
@@ -57,7 +58,9 @@ function play(){
   const stage=node.parentElement,area={width:stage.clientWidth,height:stage.clientHeight},beam=spec.mode==='beam',from=beam?{x:20,y:76}:{x:50,y:50},target={x:72,y:30};
   const h=H[$('hero').value],to=beam?(h.effect==='pierce'&&$('event').value==='skillProjectile'?V.rayEnd(from,target):target):null;
   $('previewTarget').hidden=!beam;$('previewUnit').classList.toggle('beam-preview',beam);
-  const region=V.geometry(spec,area,from,to);node.style.opacity='1';V.placeRegion(node,spec,region);
+  const region=V.geometry(spec,area,from,to),anchor=V.geometry({...spec,offsetX:0,offsetY:0},area,from,to);node.style.opacity='1';V.placeRegion(node,spec,region);
+  const marker=$('previewAnchor');marker.style.left=anchor.left+'px';marker.style.top=anchor.top+'px';
+  $('offsetSummary').textContent='X '+spec.offsetX+' · Y '+spec.offsetY+' px (อิงสนามกว้าง 540 px)';
   const time=V.animateLifetime(node,spec);
   $('timingSummary').textContent='เริ่ม '+(time.delayMs/1000).toFixed(2)+'s · อยู่ '+(time.visible/1000).toFixed(2)+'s · จบ '+(time.total/1000).toFixed(2)+'s';
   status('previewStatus',(dataURL?'ภาพร่าง':'เอฟเฟกต์ที่ใช้งานอยู่')+' • '+spec.frames+' เฟรม · เล่นหนึ่งรอบ '+spec.ms+' ms');
@@ -115,8 +118,8 @@ async function loadFile(){
   prepareSheet(img);sync();play();
  }catch(e){if(seq!==sequence)return;status('fileInfo',e.message,true);sync()}
 }
-function draft(){if(!validDraft())throw Error('เลือกภาพก่อน');return {hero:$('hero').value,event:$('event').value,spec:settings(dataURL)}}
-function openTrial(){try{const d=draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&v=0.20.14';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
+function draft(){if(!validDraft())throw Error('เลือกภาพก่อน');return {hero:$('hero').value,event:$('event').value,spec:settings(currentSource())}}
+function openTrial(){try{const d=draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&v=0.20.27';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
 function closeTrial(){$('trialFrame').src='about:blank';$('trialPanel').hidden=true;try{sessionStorage.removeItem(draftKey)}catch(_){}}
 function exportDraft(){try{const d=draft(),url=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='vfx-'+d.hero+'-'+d.event+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){status('publishStatus',e.message,true)}}
 async function api(token,path,method='GET',body){
@@ -135,11 +138,21 @@ async function publish(){
   const manifest=await api(token,'/contents/'+manifestPath+'?ref='+parent);
   const decoded=new TextDecoder().decode(Uint8Array.from(atob(manifest.content.replace(/\s/g,'')),c=>c.charCodeAt(0)));
   const config=JSON.parse(decoded);if(config.version!==1||!config.heroes||Array.isArray(config.heroes))throw Error('รูปแบบ manifest ไม่ถูกต้อง');
-  status('publishStatus','กำลังอัปโหลดภาพ...');
-  const blob=await api(token,'/git/blobs','POST',{content:d.spec.src.split(',')[1],encoding:'base64'});
-  const path='assets/effects/'+d.hero+'/'+d.event+'-'+blob.sha.slice(0,12)+'.'+ext;
-  config.heroes[d.hero]={...(config.heroes[d.hero]||{}),[d.event]:{...d.spec,src:'./'+path}};
-  const tree=await api(token,'/git/trees','POST',{base_tree:old.tree.sha,tree:[{path,mode:'100644',type:'blob',sha:blob.sha},{path:manifestPath,mode:'100644',type:'blob',content:JSON.stringify(config,null,2)+'\n'}]});
+  const entries=[];
+  let src=d.spec.src;
+  if(src.startsWith('data:')){
+   status('publishStatus','กำลังอัปโหลดภาพ...');
+   const blob=await api(token,'/git/blobs','POST',{content:src.split(',')[1],encoding:'base64'});
+   const path='assets/effects/'+d.hero+'/'+d.event+'-'+blob.sha.slice(0,12)+'.'+ext;
+   entries.push({path,mode:'100644',type:'blob',sha:blob.sha});src='./'+path;
+  }else{
+   status('publishStatus','กำลังบันทึกค่าของภาพเดิม...');
+   if(!src.startsWith('./assets/effects/'))throw Error('ไฟล์ VFX ไม่ถูกต้อง');
+   await api(token,'/contents/'+src.slice(2)+'?ref='+parent);
+  }
+  config.heroes[d.hero]={...(config.heroes[d.hero]||{}),[d.event]:{...d.spec,src}};
+  entries.push({path:manifestPath,mode:'100644',type:'blob',content:JSON.stringify(config,null,2)+'\n'});
+  const tree=await api(token,'/git/trees','POST',{base_tree:old.tree.sha,tree:entries});
   const commit=await api(token,'/git/commits','POST',{message:'VFX Studio: '+d.hero+' / '+d.event,tree:tree.sha,parents:[parent]});
   await api(token,'/git/refs/heads/main','PATCH',{sha:commit.sha,force:false});
   $('commitLink').href='https://github.com/'+repo+'/commit/'+commit.sha;$('commitLink').hidden=false;
@@ -148,10 +161,11 @@ async function publish(){
 }
 $('hero').replaceChildren(...Object.values(H).map(h=>new Option(h.rarity+' · '+h.name,h.id)));
 $('hero').addEventListener('change',selectHero);$('event').addEventListener('change',selectEvent);$('asset').addEventListener('change',loadFile);
-for(const id of ['size','ms','cols','rows','frames','row','col','scaleX','scaleY','rotation','thickness','orientation','delayMs','airtimeMs','loopFrames'])$(id).addEventListener('change',()=>{drawGrid();invalidate();play()});
+for(const id of ['size','ms','cols','rows','frames','row','col','scaleX','scaleY','rotation','thickness','orientation','delayMs','airtimeMs','loopFrames','offsetX','offsetY'])$(id).addEventListener('change',()=>{drawGrid();invalidate();play()});
 for(const [id,dc,dr] of [['lessCols',-1,0],['moreCols',1,0],['lessRows',0,-1],['moreRows',0,1]])$(id).onclick=()=>applyGrid(Math.max(1,Math.min(32,Number($('cols').value)+dc)),Math.max(1,Math.min(32,Number($('rows').value)+dr)));
 $('pickStart').onclick=()=>{pick='start';drawGrid()};$('pickEnd').onclick=()=>{pick='end';drawGrid()};$('allFrames').onclick=()=>applyGrid(Number($('cols').value),Number($('rows').value));
 $('loopBtn').onclick=()=>{loop=!loop;$('loopBtn').setAttribute('aria-pressed',String(loop));$('loopBtn').textContent=loop?'⏸ หยุดวน':'↻ เล่นวน';play()};
+$('resetOffset').onclick=()=>{$('offsetX').value=0;$('offsetY').value=0;invalidate();play()};
 $('playBtn').onclick=play;$('trialBtn').onclick=openTrial;$('closeTrial').onclick=closeTrial;$('exportBtn').onclick=exportDraft;$('token').oninput=sync;$('forgetToken').onclick=()=>{$('token').value='';sync()};$('publishBtn').onclick=publish;
 window.addEventListener('pagehide',()=>{try{sessionStorage.removeItem(draftKey)}catch(_){}});
 V.loadPublished().then(()=>{if(!file)selectEvent()});selectHero();sync();
