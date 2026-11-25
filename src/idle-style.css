@@ -729,3 +729,10 @@ body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
 .hero-page-nav{display:flex;justify-content:center;align-items:center;gap:12px;margin:8px 0;font-size:11px}
 .hero-page-nav[hidden]{display:none}
 .hero-page-nav button:disabled{opacity:.35;cursor:default}
+
+/* Keep the summon controls reachable regardless of roster size. */
+.summon-page .summon-actions{position:sticky;bottom:0;z-index:5;padding:8px 0;background:#101b2c}
+.summon-pool{grid-template-columns:repeat(6,minmax(0,1fr))}
+.summon-page .summon-rate-details #summonRates{max-height:240px;overflow:auto}
+@media(max-width:640px){.summon-pool{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:360px){.summon-pool{grid-template-columns:repeat(3,minmax(0,1fr))}}
