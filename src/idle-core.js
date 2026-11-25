@@ -168,8 +168,8 @@
   return state;
  }
  // Skill cadence is separate from normal attack speed and VFX timing.
- const SKILL_MIN_INTERVAL=4;
- const skillAttackCount=hero=>Math.max(1,Math.floor(number(hero?.triggerEvery,4)))+2;
+ const SKILL_MIN_INTERVAL=5;
+ const skillAttackCount=hero=>Math.max(1,Math.floor(number(hero?.triggerEvery,4)))+3;
  const explosionCastSeconds=hero=>Math.max(1,number(hero?.castSeconds,5))+1;
  const explosionRestSeconds=rest=>Math.max(0,number(rest,2))+2;
  function consumeSkillAttack(actor,hero,clock,force=false){
