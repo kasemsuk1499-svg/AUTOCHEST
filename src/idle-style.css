@@ -789,3 +789,70 @@ body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
 
 /* Anti-healing status (does not replace the shield or taunt outline). */
 .fighter.heal-down .mini-hp{outline:1px solid #eb779e;box-shadow:0 0 7px #ec4d7970}.fighter.heal-down .fighter-name{color:#ff9cbd}
+
+/* v0.20.45: battle-first hub. Scoped to the main page; studio/trial retain their layout. */
+.ui-rework .app-shell{max-width:1240px;padding-top:8px}
+.ui-rework .app-header{margin-bottom:8px}
+.ui-rework .resource-ribbon{margin-bottom:8px}
+.ui-rework .hub-nav{grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin-bottom:10px}
+.ui-rework .hub-nav button{display:flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:5px 4px}
+.ui-rework .hub-nav button>span{font-size:16px}
+.ui-rework .hub-nav button[aria-expanded=true]{border-color:#74cdb8;color:#b6f9df}
+.ui-rework .main-layout{gap:12px}
+.ui-rework .stage-card{overflow:hidden}
+.ui-rework .stage-header{padding:9px 12px 5px}
+.ui-rework .stage-header h2{font-size:17px}
+.ui-rework .difficulty-switch{margin:4px 10px;gap:5px}
+.ui-rework .difficulty-switch button{padding:5px 4px;min-height:28px;font-size:10px}
+.ui-rework .farm-mode-chip{display:flex;justify-content:space-between;align-items:center;width:calc(100% - 20px);margin:3px 10px 0;padding:4px 8px;color:#aadbcf;background:#162c38;border:1px solid #34545c;border-radius:6px;font-size:11px;text-align:left}
+.ui-rework .farm-mode-chip:hover{background:#254353}
+.ui-rework .monster-track{padding:5px 10px}
+.ui-rework .stage-card>.stage-viewport{border-radius:8px;max-height:none}
+.ui-rework .stage-card .board-region{opacity:.35}
+.ui-rework .stage-card .arena-caption{opacity:.85}
+.ui-rework .battle-actions{gap:5px;padding:7px 8px 3px;grid-template-columns:1.35fr 1fr .55fr .8fr}
+.ui-rework .battle-actions button{white-space:normal;line-height:1.2;min-width:0}
+.ui-rework .stage-foot{padding:4px 10px 6px}
+.ui-rework .team-card .card-heading{margin-bottom:6px}
+.ui-rework .team-card .formation-status:not(.editing){background:none;border:0;padding:3px 0;color:#9eb9cc;font-size:10px}
+.ui-rework .team-help{margin:5px 0 0;color:#9eb9cc;font-size:11px}
+.ui-rework .team-help summary{cursor:pointer}
+.ui-rework .team-help .swap-help{margin:4px 0 0}
+.ui-rework .team-card .team-slots{gap:5px}
+.ui-rework .heroes-card{padding:10px}
+.ui-rework .collection-summary{margin:0;cursor:pointer;list-style:none}
+.ui-rework .collection-summary::-webkit-details-marker{display:none}
+.ui-rework .collection-summary h3{flex:1;margin:0;font-size:15px}
+.ui-rework .collection-summary::before{content:'▸';color:#8fdcca}
+.ui-rework #collectionDisclosure[open]>.collection-summary::before{content:'▾'}
+.ui-rework .collection-content{margin-top:9px}
+.ui-rework .hub-dialog .resource-dungeons{margin:0 0 12px;padding:10px}
+.ui-rework .hub-dialog .resource-dungeons summary{display:none}
+.ui-rework .hub-return{width:100%;margin:8px 0}
+.ui-rework .hub-dialog .dungeon-help{line-height:1.6}
+.ui-rework .hub-dialog .farm-controls{gap:9px}
+@media(min-width:900px){
+ .ui-rework .main-layout{grid-template-columns:minmax(0,min(800px,max(400px,calc((100dvh - 265px)*.98)))) minmax(300px,350px);justify-content:center}
+ .ui-rework .hub-nav{max-width:1150px;margin-inline:auto}
+}
+@media(max-width:899px){
+ .ui-rework .app-shell{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+ .ui-rework .hub-nav{position:fixed;z-index:12;bottom:0;left:0;right:0;margin:0;padding:6px 7px calc(6px + env(safe-area-inset-bottom,0px));background:#111e2f;border-top:1px solid #354b60;box-shadow:0 -5px 22px #0005;gap:3px}
+ .ui-rework .hub-nav button{display:flex;flex-direction:column;gap:2px;min-height:47px;font-size:10px;padding:4px 1px}
+ .ui-rework .hub-nav button>span{font-size:19px}
+ .ui-rework .main-layout{gap:8px}
+ .ui-rework .sidebar{gap:8px}
+ .ui-rework #collectionDisclosure{scroll-margin-bottom:80px}
+}
+@media(max-width:540px){
+ .ui-rework .stage-header h2{font-size:14px}
+ .ui-rework .stage-header{padding:6px 8px 4px}
+ .ui-rework .resource-ribbon{margin-bottom:5px}
+ .ui-rework .difficulty-switch{margin:3px 6px}
+ .ui-rework .farm-mode-chip{margin:3px 6px 0;width:calc(100% - 12px);font-size:10px}
+ .ui-rework .monster-track{padding:4px 7px}
+ .ui-rework .battle-actions{padding:6px 5px 3px;gap:3px}
+ .ui-rework .battle-actions button{min-height:35px;font-size:10px}
+ .ui-rework .team-card .formation-status:not(.editing){font-size:9px}
+ .ui-rework .collection-summary h3{font-size:13px}
+}

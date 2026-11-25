@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#101729">
 <meta name="description" content="AUTOCHEST IDLE — เกม SAO Idle RPG ต่อสู้และฟาร์มอัตโนมัติ">
 <title>AUTOCHEST IDLE — SAO Adventure</title>
-<link rel="stylesheet" href="./src/idle-style.css?v=0.20.44">
+<link rel="stylesheet" href="./src/idle-style.css?v=0.20.45">
 <script>
 window.__AUTOCHEST_IDLE_READY__=false;
 window.__idleBootMessage='';
@@ -28,12 +28,12 @@ window.addEventListener('load',function(){
 function idleHardReload(){const u=new URL(location.href);u.searchParams.set('reload',Date.now().toString());location.replace(u.href);}
 </script>
 </head>
-<body>
+<body class="ui-rework">
 <div class="app-shell">
  <header class="app-header">
   <div class="logo-box">✦</div>
   <div class="brand"><small>SAO • HERO COLLECTION • AUTO BATTLE</small><h1>AUTO<span>CHEST</span> <em>IDLE</em></h1></div>
-  <div class="header-badge"><span class="online-dot"></span><b>v0.20.40</b></div>
+  <div class="header-badge"><span class="online-dot"></span><b>v0.20.45</b></div>
  </header>
  <div id="startupError" class="startup-error" role="alert" hidden><b>⚠️ เกมโหลดไม่สำเร็จ</b><span id="startupErrorText"></span><button type="button" onclick="idleHardReload()">🔄 โหลดเวอร์ชันใหม่</button></div>
  <div class="resource-ribbon">
@@ -43,18 +43,25 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
    <div class="resource-box"><span>🎟️ TICKETS</span><strong id="ticketValue">0</strong></div>
    <div class="resource-box power"><span>⚡ TEAM POWER</span><strong id="teamPower">0</strong></div>
  </div>
-  <main class="main-layout">
+  <nav class="game-nav hub-nav" aria-label="เมนูหลัก">
+<button type="button" id="collectionShortcut" aria-controls="collectionDisclosure" aria-expanded="false"><span>♟</span> ฮีโร่</button>
+<button type="button" data-open-panel="upgrade"><span>⬆</span> อัปเกรด <b id="upgradeShortcutReady"></b></button>
+<button type="button" data-open-panel="summon"><span>✦</span> อัญเชิญ</button>
+<button type="button" data-open-panel="farm"><span>◈</span> ฟาร์ม</button>
+<button type="button" data-open-panel="dungeon"><span>⚔</span> ดันเจี้ยน</button>
+<button type="button" data-open-panel="guide"><span>☰</span> อื่น ๆ</button>
+</nav>
+<main class="main-layout">
    <section class="stage-card">
      <div class="stage-header">
        <div><h2 id="stageName">ทุ่งหญ้าแห่งการเริ่มต้น</h2><div class="stage-sub"><span id="floorProgress">FLOOR 1 / 10</span> · STAGE <b id="stageNumber">1 / 50</b> <span id="fightLabel" class="battle-label">AUTO FARM</span></div><div id="floorBossName" style="font-size:12px;color:#ffdea5;margin-top:5px">👑 บอสประจำชั้น: อาสึนะ · ★</div></div>
        <div class="stage-badge"><small>BEST</small><b id="bestStage">01</b></div>
      </div>
      <div class="difficulty-switch" aria-label="เลือกโหมดต่อสู้"><button type="button" id="normalModeBtn" class="control-btn selected">NORMAL · 1</button><button type="button" id="nightmareModeBtn" class="control-btn" disabled>🔒 NIGHTMARE · ผ่าน Normal 5</button></div>
-     <details class="resource-dungeons farm-settings" id="farmSettings" open><summary><span>♟ AUTO FARM</span><small>เลือกด่าน / วัดผล</small></summary>
-<div class="farm-controls"><label>โหมด<select id="farmMode"><option value="push">ดันด่าน</option><option value="manual">ล็อกด่านฟาร์ม</option><option value="smart">Smart Farm</option></select></label><label>ด่านฟาร์ม<select id="farmStage"></select></label><label>เป้าหมาย<select id="farmGoal"><option value="gold">Gold</option><option value="exp">EXP</option><option value="rubies">Ruby</option><option value="tickets">ตั๋วสุ่ม</option></select></label></div>
-<div id="farmStatus" class="dungeon-reward"></div><div id="farmRates" class="dungeon-help"></div><p class="dungeon-help">เลือกด่านที่ผ่านแล้ว · Smart ทดลองหลายด่านจากการต่อสู้จริง · สถิติเริ่มใหม่เมื่อเปลี่ยนทีม/เลเวล/ดาว/ตำแหน่ง/ความเร็ว</p></details>
-<details class="resource-dungeons" id="resourceDungeons"><summary><span>✦ ดันเจี้ยนทรัพยากร</span><small id="dungeonRemaining">💎 1,000 / รอบ</small></summary><div class="dungeon-controls"><label>ประเภท<select id="dungeonType"><option value="gold">🪙 ทอง</option><option value="exp">📘 EXP</option></select></label><label>ระดับความยาก<select id="dungeonTier"></select></label><button id="enterDungeonBtn" type="button" class="control-btn">⚔ เข้าดันเจี้ยน</button></div><div id="dungeonReward" class="dungeon-reward"></div><label class="dungeon-repeat"><input id="dungeonRepeat" type="checkbox" checked> ฟาร์มซ้ำอัตโนมัติ</label><p class="dungeon-help">ค่าเข้า 1,000 รูบี้ทุกครั้ง · ไม่คืนเมื่อแพ้หรือออก · ฟาร์มซ้ำจนรูบี้ไม่พอหรือแพ้ · ไม่จำกัดรอบ</p></details>
-     <div class="monster-track"><span>กำจัดฮีโร่ศัตรู <strong id="killCounter">0 / 6</strong></span><div class="track"><i id="killFill"></i></div></div>
+     
+
+     <button type="button" class="farm-mode-chip" data-open-panel="farm" aria-label="ตั้งค่าโหมดฟาร์ม"><span id="farmQuickSummary">ดันด่าน</span><span>⚙</span></button>
+<div class="monster-track"><span>กำจัดฮีโร่ศัตรู <strong id="killCounter">0 / 6</strong></span><div class="track"><i id="killFill"></i></div></div>
      <div id="stageViewport" class="stage-viewport" aria-label="สนาม AUTOCHEST แบบตาราง 6 คอลัมน์ 7 แถว">
        <div class="board-grid" id="boardGrid" role="group" aria-label="กระดานจัดทัพ 6 คอลัมน์ 7 แถว"></div>
        <div id="heroLayer" class="battle-layer"></div><div id="monsterLayer" class="battle-layer"></div><div id="fxLayer" class="fx-layer" aria-hidden="true"></div>
@@ -74,7 +81,7 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
      <details class="log-disclosure"><summary>ประวัติการต่อสู้</summary><div class="combat-log" id="battleLog" aria-live="off"></div></details>
    </section>
    <aside class="sidebar">
-     <nav class="game-nav" aria-label="เมนูเกม"><button type="button" data-open-panel="upgrade"><span>⬆</span> อัปเกรด <b id="upgradeShortcutReady"></b></button><button type="button" data-open-panel="summon"><span>✦</span> อัญเชิญ</button><button type="button" id="offlineBtn"><span>▣</span> ออฟไลน์</button><button type="button" data-open-panel="guide"><span>◎</span> ภารกิจ</button></nav>
+     
      <section class="side-card team-card">
        <div class="card-heading"><div><h3>จัดทีมผจญภัย</h3></div><div class="count-pill" id="teamCount">3 / 4</div></div>
        <div class="formation-toolbar">
@@ -83,15 +90,14 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
        </div>
        <div id="formationStatus" class="formation-status" role="status">⚔️ ระบบ Auto กำลังต่อสู้ · ลากจัดทีมได้เลย</div>
        <div id="teamDamageMix" aria-label="ประเภทพลังโจมตีในทีม"></div><div id="teamSlots" class="team-slots"></div><details class="team-synergy-panel"><summary>✦ TEAM SYNERGY <span id="synergyCount">0 แท็กทำงาน</span></summary><div id="teamSynergies"></div></details><div id="benchDrop" aria-label="พื้นที่ถอนฮีโร่ออกจากทีม">↩ ลากฮีโร่มาที่นี่เพื่อเก็บเป็นตัวสำรอง</div>
-       <div class="swap-help" id="swapHelp">ลากฮีโร่จากคลังหรือทีมลงสนาม · ลากทับตัวเดิมเพื่อสลับ</div>
+       <details class="team-help"><summary>วิธีจัดทีม</summary><div class="swap-help" id="swapHelp">ลากฮีโร่จากคลังหรือทีมลงสนาม · ลากทับตัวเดิมเพื่อสลับ</div></details>
        
        <button id="autoTeamBtn" class="soft-btn auto-lineup">จัดทีมอัตโนมัติ</button>
      </section>
      
-     <section class="side-card heroes-card">
-       <div class="card-heading"><div><h3>คลังฮีโร่</h3></div><span id="ownedCount" class="count-pill">3 / 7</span></div>
+     <section class="side-card heroes-card"><details id="collectionDisclosure"><summary class="card-heading collection-summary"><h3>คลังฮีโร่</h3><span id="ownedCount" class="count-pill">3 / 7</span></summary><div class="collection-content">
        <div class="collection-hint">แตะเพื่อลงทีม · ลากเพื่อสลับ · ⓘ ดูสกิล</div>
-       <button type="button" id="heroFavoritesToggle" class="hero-favorites-toggle" aria-pressed="false">★ ตัวโปรด (0)</button><div id="heroList" class="hero-list"></div><nav id="heroPageNav" class="hero-page-nav" aria-label="หน้าคลังฮีโร่" hidden><button type="button" id="heroPrevPage">‹ ก่อนหน้า</button><span id="heroPageLabel">1 / 1</span><button type="button" id="heroNextPage">ถัดไป ›</button></nav>
+       <button type="button" id="heroFavoritesToggle" class="hero-favorites-toggle" aria-pressed="false">★ ตัวโปรด (0)</button><div id="heroList" class="hero-list"></div><nav id="heroPageNav" class="hero-page-nav" aria-label="หน้าคลังฮีโร่" hidden><button type="button" id="heroPrevPage">‹ ก่อนหน้า</button><span id="heroPageLabel">1 / 1</span><button type="button" id="heroNextPage">ถัดไป ›</button></nav></div></details>
      </section>
      
      
@@ -99,6 +105,9 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
  </main>
  <footer>AUTOCHEST · SAO FAN PROTOTYPE</footer>
 </div>
+<div class="modal management-modal" id="panel-farm" hidden><div class="modal-overlay" data-close-panel></div><div class="management-dialog hub-dialog" role="dialog" aria-modal="true" aria-label="◈ ตั้งค่าการฟาร์ม"><button type="button" class="panel-close" data-close-panel aria-label="ปิด">✕</button><section class="side-card"><div class="card-heading"><h3>◈ ตั้งค่าการฟาร์ม</h3></div><details class="resource-dungeons farm-settings" id="farmSettings" open><summary><span>♟ AUTO FARM</span><small>เลือกด่าน / วัดผล</small></summary>
+<div class="farm-controls"><label>โหมด<select id="farmMode"><option value="push">ดันด่าน</option><option value="manual">ล็อกด่านฟาร์ม</option><option value="smart">Smart Farm</option></select></label><label>ด่านฟาร์ม<select id="farmStage"></select></label><label>เป้าหมาย<select id="farmGoal"><option value="gold">Gold</option><option value="exp">EXP</option><option value="rubies">Ruby</option><option value="tickets">ตั๋วสุ่ม</option></select></label></div>
+<div id="farmStatus" class="dungeon-reward"></div><div id="farmRates" class="dungeon-help"></div><p class="dungeon-help">เลือกด่านที่ผ่านแล้ว · Smart ทดลองหลายด่านจากการต่อสู้จริง · สถิติเริ่มใหม่เมื่อเปลี่ยนทีม/เลเวล/ดาว/ตำแหน่ง/ความเร็ว</p></details><button type="button" class="control-btn hub-return" data-close-panel>กลับสนาม</button></section></div></div><div class="modal management-modal" id="panel-dungeon" hidden><div class="modal-overlay" data-close-panel></div><div class="management-dialog hub-dialog" role="dialog" aria-modal="true" aria-label="⚔ ดันเจี้ยนทรัพยากร"><button type="button" class="panel-close" data-close-panel aria-label="ปิด">✕</button><section class="side-card"><div class="card-heading"><h3>⚔ ดันเจี้ยนทรัพยากร</h3></div><details class="resource-dungeons" id="resourceDungeons" open><summary><span>✦ ดันเจี้ยนทรัพยากร</span><small id="dungeonRemaining">💎 1,000 / รอบ</small></summary><div class="dungeon-controls"><label>ประเภท<select id="dungeonType"><option value="gold">🪙 ทอง</option><option value="exp">📘 EXP</option></select></label><label>ระดับความยาก<select id="dungeonTier"></select></label><button id="enterDungeonBtn" type="button" class="control-btn">⚔ เข้าดันเจี้ยน</button></div><div id="dungeonReward" class="dungeon-reward"></div><label class="dungeon-repeat"><input id="dungeonRepeat" type="checkbox" checked> ฟาร์มซ้ำอัตโนมัติ</label><p class="dungeon-help">ค่าเข้า 1,000 รูบี้ทุกครั้ง · ไม่คืนเมื่อแพ้หรือออก · ฟาร์มซ้ำจนรูบี้ไม่พอหรือแพ้ · ไม่จำกัดรอบ</p></details><button type="button" class="control-btn hub-return" data-close-panel>กลับสนาม</button></section></div></div>
 <div class="modal management-modal" id="panel-upgrade" hidden><div class="modal-overlay" data-close-panel></div><div class="management-dialog" role="dialog" aria-modal="true" aria-label="เสริมแกร่งฮีโร่"><button type="button" class="panel-close" data-close-panel aria-label="ปิด">✕</button><section id="heroEnhance" class="side-card upgrade-card" aria-label="เสริมแกร่งฮีโร่">
        <div class="card-heading"><div><small>HERO DEVELOPMENT</small><h3>⬆ เสริมแกร่งฮีโร่</h3></div><span id="upgradeReadyCount" class="count-pill">พร้อมอัป 0 ตัว</span></div>
        <div class="upgrade-guide">① เลือกฮีโร่จากทีม/คลัง → ② กดเพิ่มเลเวลหรือดาว → ③ ค่าสถานะเพิ่มทันที</div>
@@ -131,7 +140,7 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
 </section></div></div>
 <div class="modal management-modal" id="panel-guide" hidden><div class="modal-overlay" data-close-panel></div><div class="management-dialog" role="dialog" aria-modal="true" aria-label="ภารกิจ"><button type="button" class="panel-close" data-close-panel aria-label="ปิด">✕</button><section class="side-card guide-card">
        <div class="card-heading"><div><small>GUIDE QUEST</small><h3>เป้าหมายต่อไป</h3></div></div>
-       <div id="guideQuest" class="guide-quest"></div>
+       <button type="button" id="offlineBtn" class="control-btn hub-return">▣ รับรางวัลออฟไลน์</button><div id="guideQuest" class="guide-quest"></div>
        <div style="margin-top:18px;border-top:1px solid #45627d;padding-top:12px"><div class="card-heading"><div><small>LOCAL ACCOUNT</small><h3>จัดการไอดี</h3></div></div><p style="font-size:12px;color:#b9d0e4">เริ่มเล่นใหม่ทั้งหมด รับตั๋วสุ่ม 100 ใบ เซฟเดิมในเบราว์เซอร์นี้จะถูกลบเมื่อยืนยัน</p><button id="resetAccountBtn" type="button" class="control-btn" style="width:100%;border-color:#c16d79;color:#ffd0d5;background:#542936">↻ รีไอดี / เริ่มใหม่</button></div>
      </section></div></div>
 <div id="rewardModal" class="modal" hidden>
@@ -184,5 +193,5 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
 <script defer src="./src/idle-core.js?v=0.20.44"></script>
 <script defer src="./src/idle-tft-combat.js?v=0.20.44"></script>
 <script defer src="./src/idle-vfx.js?v=0.20.35"></script>
-<script defer src="./src/idle-game.js?v=0.20.44"></script>
+<script defer src="./src/idle-game.js?v=0.20.45"></script>
 </body></html>

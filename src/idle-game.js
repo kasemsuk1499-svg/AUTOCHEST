@@ -91,6 +91,7 @@ function renderFarmControls(){
  mode.value=state.farmMode;stage.value=String(CORE.clampFarmStage(state,state.farmStages[state.mode]));goal.value=state.farmGoal;
  mode.disabled=!!dungeon;stage.disabled=!!dungeon||state.farmMode!=='manual';goal.disabled=!!dungeon||state.farmMode!=='smart';
  const s=battleStage(),r=farmRecords[s],rates=CORE.farmRates(r);
+ if($('farmQuickSummary'))$('farmQuickSummary').textContent=dungeon?'ดันเจี้ยน · '+(dungeon.kind==='gold'?'Gold':'EXP'):state.farmMode==='smart'?'Smart Farm · ด่าน '+s:state.farmMode==='manual'?'ล็อกฟาร์ม · ด่าน '+s:'ดันด่าน · AUTO FARM';
  $('farmStatus').textContent=(farming()?'ฟาร์มด่าน '+s+' · ด่านหลัก '+run().stage+' · ไม่ท้าบอส':'ดันด่าน '+run().stage)+' · '+(state.farmMode==='smart'?'ประเมินจากเวฟจริง':'ไม่เสียค่าเข้า');
  $('farmRates').textContent=rates?'ต่อชั่วโมง (ประมาณจาก '+r.waves+' เวฟ): '+fmt(rates.gold)+' G · '+fmt(rates.exp)+' EXP · '+fmt(rates.rubies)+' 💎 · '+rates.tickets.toFixed(1)+' 🎟':'ยังไม่มีตัวอย่าง · รอจบเวฟแรก';
 }
@@ -1844,6 +1845,14 @@ $('heroPrevPage').addEventListener('click',()=>{heroPage=Math.max(0,heroPage-1);
 $('heroNextPage').addEventListener('click',()=>{heroPage++;renderHeroes()});
 picker.addEventListener('change',()=>{choose(picker.value);refreshUpgradePicker()});
 document.querySelectorAll('[data-open-panel]').forEach(button=>button.addEventListener('click',()=>openManagement(button.dataset.openPanel,button)));
+const collectionDisclosure=$('collectionDisclosure'),collectionShortcut=$('collectionShortcut');
+if(collectionDisclosure&&collectionShortcut){
+ collectionDisclosure.addEventListener('toggle',()=>collectionShortcut.setAttribute('aria-expanded',String(collectionDisclosure.open)));
+ collectionShortcut.addEventListener('click',()=>{
+  collectionDisclosure.open=true;collectionShortcut.setAttribute('aria-expanded','true');
+  collectionDisclosure.scrollIntoView({block:'nearest',behavior:'auto'});
+ });
+}
 document.querySelectorAll('[data-close-panel]').forEach(button=>button.addEventListener('click',closeManagement));
 document.addEventListener('keydown',e=>{
  if(e.key==='Escape'&&!trial&&managementPanel&&$('skillModal').hidden&&$('rewardModal').hidden){e.preventDefault();closeManagement()}
@@ -1943,7 +1952,7 @@ function enterDungeon(){
  if(!CORE.canEnterDungeon(state,kind,stage,HEROES))return;
  const tier=CORE.dungeonTiers(state,HEROES).find(t=>t.stage===stage).tier;
  dungeon={kind,stage,tier,wins:0,earned:0,spent:0,paid:false};formationMode=false;state.autoBattle=true;
- beginTravel(.2);spawnDungeonBoss();save();
+ beginTravel(.2);spawnDungeonBoss();save();if(managementPanel?.id==='panel-dungeon')closeManagement();
 }
 function spawnDungeonBoss(){
  if(!dungeon||combat||enemies.length)return;
@@ -2096,7 +2105,7 @@ window.addEventListener('storage',e=>{
  const other=safe(()=>JSON.parse(e.newValue),null);
  if(other?.version===1&&(other.accountEpoch||'')!==state.accountEpoch){suppressSave=true;location.reload();}
 });
-$('offlineBtn').addEventListener('click',openOffline);
+$('offlineBtn').addEventListener('click',()=>{if(managementPanel?.id==='panel-guide')closeManagement();openOffline()});
 $('claimOfflineBtn').addEventListener('click',claimOffline);
 $('closeOfflineBtn').addEventListener('click',closeOffline);
 $('rewardModal').querySelector('.modal-overlay').addEventListener('click',closeOffline);
