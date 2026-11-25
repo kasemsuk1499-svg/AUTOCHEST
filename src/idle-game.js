@@ -387,6 +387,8 @@ function renderSynergies(){
 }
 function renderTeam(){
  renderSynergies();
+ const magic=state.squad.filter(id=>CORE.damageType(HEROES[id])==='magic').length;
+ $('teamDamageMix').innerHTML='<span class="physical">⚔ กายภาพ '+(state.squad.length-magic)+'</span><span class="magic">✦ เวท '+magic+'</span>';
  $('teamSlots').innerHTML=Array.from({length:CORE.maxSquad(state.stage)},(_,i)=>{
   const id=state.squad[i];
   if(!id)return '<button type="button" class="team-slot empty" data-slot="empty" aria-label="ช่องทีมว่าง">＋<small>ว่าง</small></button>';
@@ -397,7 +399,7 @@ function renderTeam(){
    '" data-slot="'+id+'" aria-label="เลือก '+escapeText(t.name)+' เลเวล '+p.level+' '+p.stars+' ดาว">'+
    '<span class="team-level">'+(CORE.isMaxHero(p)?'MAX':'Lv.'+p.level)+'</span>'+rarityBadge(t)+
    '<img loading="lazy" src="'+t.images.idle+'" alt="">'+
-   '<strong>'+escapeText(t.name)+'</strong>'+
+   '<strong>'+attackTypeMark(t)+escapeText(t.name)+'</strong>'+
    '<span class="team-stars">'+'★'.repeat(p.stars)+(p.stars>=CORE.MAX_STARS?' MAX':'')+'</span>'+
    '<span class="team-ready" title="เสริมแกร่งได้แล้ว">⬆</span></button>';
  }).join('');
@@ -453,9 +455,9 @@ function renderHeroes(){
  $('heroList').innerHTML=ids.slice(heroPage*heroPageSize,(heroPage+1)*heroPageSize).map(id=>{
   const t=HEROES[id],p=state.owned[id],ready=readyUpgrade(id);
   return '<div class="hero-entry"><button type="button" class="hero-card '+(!p?'locked ':'')+
-   (selected===id?'active ':'')+(ready?'is-upgrade-ready ':'')+rarityClass(t)+'" data-hero="'+id+'">'+rarityBadge(t)+attackTypeMark(t)+
+   (selected===id?'active ':'')+(ready?'is-upgrade-ready ':'')+rarityClass(t)+'" data-hero="'+id+'">'+rarityBadge(t)+
    '<img loading="lazy" src="'+t.portrait+'" alt="">'+
-   '<strong>'+escapeText(t.name)+'</strong>'+
+   '<strong>'+attackTypeMark(t)+escapeText(t.name)+'</strong>'+
    '<span class="collection-level">'+(p?(CORE.isMaxHero(p)?'✓ MAX':'LEVEL '+p.level+(p.level>=CORE.MAX_LEVEL?' MAX':'')):'🔒 ไม่ได้ปลดล็อก')+'</span>'+
    '<span class="collection-stars">'+(p?'★'.repeat(p.stars)+'☆'.repeat(CORE.MAX_STARS-p.stars)+(p.stars>=CORE.MAX_STARS?' MAX':''):'☆☆☆☆☆')+'</span>'+
    '<span class="collection-ready" title="เสริมแกร่งได้">⬆ อัปได้</span></button>'+
