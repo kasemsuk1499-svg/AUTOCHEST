@@ -5,7 +5,7 @@
  const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
  const number=(n,fallback=0)=>Number.isFinite(Number(n))?Number(n):fallback;
  const initial=()=>({
-  version:1,stage:1,kills:0,bossRetryWaves:0,gold:3000,heroExp:1800,rubies:1200,tickets:10,
+  version:1,stage:1,clearedStage:0,kills:0,bossRetryWaves:0,gold:3000,heroExp:1800,rubies:1200,tickets:10,
   squad:['asuna','kirito','silica'],owned:{
    asuna:{level:1,stars:1,shards:0},
    kirito:{level:1,stars:1,shards:0},
@@ -38,13 +38,25 @@
  const killsNeeded=stage=>6+Math.floor((stage-1)/5);
  // Waves are finite TFT encounters. The battle loop may not stream extra enemies mid-wave.
  const waveSize=stage=>Math.min(5,3+Math.floor((Math.max(1,stage)-1)/5));
- const nextEncounter=state=>state.autoBoss&&state.kills>=killsNeeded(state.stage)&&state.bossRetryWaves===0?'boss':'wave';
+ const STAGES_PER_FLOOR=5;
+ const floorNumber=stage=>Math.ceil(Math.max(1,stage)/STAGES_PER_FLOOR);
+ const floorCount=(roster=window.AUTOCHEST_CHARACTERS?.HEROES)=>Math.max(1,Object.keys(roster||{}).length);
+ const maxStage=roster=>floorCount(roster)*STAGES_PER_FLOOR;
+ const canChallengeStage=(state,roster)=>state.stage<=maxStage(roster)&&(state.clearedStage||0)<state.stage;
+ const nextEncounter=(state,roster)=>state.autoBoss&&canChallengeStage(state,roster)&&state.kills>=killsNeeded(state.stage)&&state.bossRetryWaves===0?'boss':'wave';
+ function clearStage(state,roster){
+  if(!canChallengeStage(state,roster))return false;
+  state.clearedStage=state.stage;
+  if(state.stage<maxStage(roster))state.stage++;
+  state.kills=0;state.bossRetryWaves=0;
+  return true;
+ }
  const bossDefeated=state=>{state.bossRetryWaves=3;};
  const waveCleared=state=>{
   if(state.bossRetryWaves>0)state.bossRetryWaves--;
   return state.bossRetryWaves;
  };
- const stageName=stage=>['ทุ่งหญ้าแห่งการเริ่มต้น','ป่าแห่งความทรงจำ','หุบเขาเหล็ก','วิหารรัตติกาล','ปราสาทลอยฟ้า'][Math.floor((stage-1)/5)%5];
+ const stageName=stage=>['ทุ่งหญ้าแห่งการเริ่มต้น','ป่าแห่งความทรงจำ','หุบเขาเหล็ก','วิหารรัตติกาล','ปราสาทลอยฟ้า'][floorNumber(stage)-1]||('ชั้นที่ '+floorNumber(stage));
  const levelCost=level=>({gold:Math.round(75*Math.pow(level,1.35)),exp:Math.round(32*Math.pow(level,1.25))});
  const shardsNeeded=stars=>stars>=MAX_STARS?0:stars===1?3:stars===2?6:stars===3?10:15;
  const ascendCost=stars=>250*stars*stars;
@@ -54,8 +66,13 @@
   for(const key of ['stage','kills','gold','heroExp','rubies','tickets','bossWins','totalSummons'])
    state[key]=Math.floor(clamp(number(raw[key],state[key]),0,1e12));
   state.stage=Math.max(1,state.stage);
+  // Old saves keep their stage. Only a previously cleared final stage advances
+  // automatically when a newly registered hero extends the published floors.
+  state.clearedStage=Math.max(state.stage-1,Math.floor(clamp(number(raw.clearedStage,0),0,state.stage)));
+  const resumeNext=state.clearedStage===state.stage&&state.stage<maxStage(roster);
+  if(resumeNext){state.stage++;state.kills=0;}
   state.kills=clamp(state.kills,0,killsNeeded(state.stage));
-  state.bossRetryWaves=Math.floor(clamp(number(raw.bossRetryWaves,0),0,3));
+  state.bossRetryWaves=resumeNext?0:Math.floor(clamp(number(raw.bossRetryWaves,0),0,3));
   state.autoBoss=raw.autoBoss!==false;
   state.autoWalk=raw.autoWalk!==false;
   state.autoBattle=raw.autoBattle!==false;
@@ -179,6 +196,6 @@
   return drawDetailed(state,roster,count,rng)?.rewards.map(u=>u.id)||null;
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,
-  initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,levelCost,shardsNeeded,ascendCost,
+  initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,floorCount,maxStage,canChallengeStage,clearStage,levelCost,shardsNeeded,ascendCost,
   normalized,heroAtStars,stats,power,monster,farmReward,bossReward,offlineLoot,spendLevel,ascend,draw,summonCost,summonOdds,drawDetailed});
 })();
