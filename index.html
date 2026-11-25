@@ -33,7 +33,7 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
  <header class="app-header">
   <div class="logo-box">✦</div>
   <div class="brand"><small>SAO • HERO COLLECTION • AUTO BATTLE</small><h1>AUTO<span>CHEST</span> <em>IDLE</em></h1></div>
-  <div class="header-badge"><span class="online-dot"></span><b>v0.20.19</b></div>
+  <div class="header-badge"><span class="online-dot"></span><b>v0.20.20</b></div>
  </header>
  <div id="startupError" class="startup-error" role="alert" hidden><b>⚠️ เกมโหลดไม่สำเร็จ</b><span id="startupErrorText"></span><button type="button" onclick="idleHardReload()">🔄 โหลดเวอร์ชันใหม่</button></div>
  <div class="resource-ribbon">
@@ -111,7 +111,7 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
    <div class="summon-banner-copy"><small>PERMANENT BANNER</small><h3>CHRONICLE<br>HEROES</h3><p>อัญเชิญเหล่านักผจญภัย</p></div>
   </div>
   <div class="summon-meta"><span>ฮีโร่ทั้งหมด <b id="summonPoolCount">10</b> คน</span><span>🧩 เศษรวม <b id="universalShardValue">0</b></span></div>
-  <details id="exchangeDetails" class="summon-rate-details exchange-details"><summary>🧩 ร้านแลกเศษรวม · เลือกตัวละครได้</summary><p>เศษรวม <b id="exchangeShardValue">0</b> ชิ้น · เศษตัวซ้ำที่เกินจำนวนสำหรับ 5 ดาวเปลี่ยนเป็นเศษรวมอัตโนมัติ แม้ยังไม่อัปดาว</p><div id="exchangeList"></div></details>
+  <details id="exchangeDetails" class="summon-rate-details exchange-details"><summary>🧩 ร้านแลกเศษรวม · เลือกตัวละครได้</summary><p>เศษรวม <b id="exchangeShardValue">0</b> ชิ้น · เศษตัวซ้ำที่เกินจำนวนสำหรับ 5 ดาวเปลี่ยนเป็นเศษรวมอัตโนมัติ แม้ยังไม่อัปดาว · R +1 / SR +2 / SSR +5 / UR +20</p><div id="exchangeList"></div></details>
   <div id="summonPool" class="summon-pool"></div>
   <details class="summon-rate-details"><summary>รายละเอียดอัตราอัญเชิญ</summary><div id="summonTierRates"></div><div id="summonRates"></div><p>ใช้อัตราเดิมทุกครั้ง ไม่มีการันตีหรือเพิ่มเรตตามจำนวนครั้ง</p></details>
   <div class="summon-actions">
@@ -174,8 +174,8 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
 <script defer src="./src/characters/heroes/megumin.js?v=0.20.6"></script>
 <script defer src="./src/characters/heroes/artoria.js?v=0.20.6"></script>
 <script defer src="./src/characters/heroes/aqua.js?v=0.20.14"></script>
-<script defer src="./src/idle-core.js?v=0.20.19"></script>
+<script defer src="./src/idle-core.js?v=0.20.20"></script>
 <script defer src="./src/idle-tft-combat.js?v=0.20.14"></script>
 <script defer src="./src/idle-vfx.js?v=0.20.6"></script>
-<script defer src="./src/idle-game.js?v=0.20.19"></script>
+<script defer src="./src/idle-game.js?v=0.20.20"></script>
 </body></html>
