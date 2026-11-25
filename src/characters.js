@@ -29,7 +29,9 @@
   // Rarity tier is independent of upgrade stars and summon probability.
   if(![1,2,3,4].includes(unit.cost))throw Error('Invalid rarity tier for '+unit.id);
   const rarity=['','R','SR','SSR','UR'][unit.cost];
-  list[unit.id]=Object.freeze({...unit,rarity,images:Object.freeze(images)});
+  const damageType=unit.damageType??(unit.team==='เวท'?'magic':'physical');
+  if(!['physical','magic'].includes(damageType))throw Error('Invalid damage type: '+unit.id);
+  list[unit.id]=Object.freeze({...unit,damageType,rarity,images:Object.freeze(images)});
  }
  window.AUTOCHEST_CHARACTERS={HEROES,registerHero};
 })();
