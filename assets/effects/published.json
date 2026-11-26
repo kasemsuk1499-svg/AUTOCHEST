@@ -1258,6 +1258,31 @@
           "delayMs": 0,
           "airtimeMs": 0,
           "loopFrames": false
+        },
+        "projectile": {
+          "src": "./assets/heroes/maruko/costumes/costume_01/vfx/projectile-270b2b47e4fb.png",
+          "cols": 8,
+          "rows": 1,
+          "row": 0,
+          "col": 0,
+          "frames": 8,
+          "size": 80,
+          "ms": 500,
+          "mode": "point",
+          "scaleX": 1,
+          "scaleY": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "thickness": 48,
+          "orientation": "horizontal",
+          "hue": 94,
+          "saturation": 260,
+          "brightness": 215,
+          "colorize": false,
+          "delayMs": 0,
+          "airtimeMs": 0,
+          "loopFrames": true
         }
       }
     }
