@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#101729">
 <meta name="description" content="AUTOCHEST IDLE — เกม SAO Idle RPG ต่อสู้และฟาร์มอัตโนมัติ">
 <title>AUTOCHEST IDLE — SAO Adventure</title>
-<link rel="stylesheet" href="./src/idle-style.css?v=0.20.57">
+<link rel="stylesheet" href="./src/idle-style.css?v=0.20.58">
 <script>
 window.__AUTOCHEST_IDLE_READY__=false;
 window.__idleBootMessage='';
@@ -166,7 +166,7 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
  <div class="modal-overlay" id="trialOverlay"></div>
  <section class="trial-dialog" role="dialog" aria-modal="true" aria-labelledby="trialTitle">
   <header class="trial-header"><div><small>HERO TRIAL · TRAINING ROOM</small><h2 id="trialTitle">สนามทดลองฮีโร่</h2></div><button type="button" id="trialClose" aria-label="ปิดสนามทดลอง">✕</button></header>
-  <div class="trial-controls"><label>ฮีโร่<select id="trialHero"></select></label><label>ดาวทดสอบ<select id="trialStars"><option value="1">1★</option><option value="2">2★</option><option value="3">3★</option><option value="4">4★</option><option value="5">5★</option></select></label><label>หุ่นฝึก<select id="trialCount"><option value="1">1 ตัว</option><option value="3" selected>3 ตัว</option><option value="5">5 ตัว</option><option value="boss">บอส 1 ตัว</option></select></label><button type="button" id="trialReset">↻ รีเซ็ต</button></div>
+  <div class="trial-controls"><label>ฮีโร่<select id="trialHero"></select></label><label>คอสตูม<select id="trialCostume"><option value="">ชุดดั้งเดิม</option></select></label><label>ดาวทดสอบ<select id="trialStars"><option value="1">1★</option><option value="2">2★</option><option value="3">3★</option><option value="4">4★</option><option value="5">5★</option></select></label><label>หุ่นฝึก<select id="trialCount"><option value="1">1 ตัว</option><option value="3" selected>3 ตัว</option><option value="5">5 ตัว</option><option value="boss">บอส 1 ตัว</option></select></label><button type="button" id="trialReset">↻ รีเซ็ต</button></div>
   <div class="trial-meta"><b id="trialSkillName"></b><span id="trialStats"></span></div>
   <div id="trialArena" class="stage-viewport trial-arena"><div class="trial-grid"></div><div id="trialUnits" class="battle-layer"></div><div id="trialFx" class="fx-layer" aria-hidden="true"></div><span class="trial-field-label">TRAINING FIELD</span></div>
   <div class="trial-actions"><button type="button" id="trialNormal">⚔ โจมตีปกติ</button><button type="button" id="trialSkill">✦ ใช้สกิล</button><button type="button" id="trialPassive">ทดลองพาสซีฟ</button><button type="button" id="trialHit">รับการโจมตี</button><button type="button" id="trialRevive" hidden>🔥 ทดสอบคืนชีพ</button></div>
@@ -194,5 +194,5 @@ function idleHardReload(){const u=new URL(location.href);u.searchParams.set('rel
 <script defer src="./src/idle-core.js?v=0.20.57"></script>
 <script defer src="./src/idle-tft-combat.js?v=0.20.55"></script>
 <script defer src="./src/idle-vfx.js?v=0.20.57"></script>
-<script defer src="./src/idle-game.js?v=0.20.57"></script>
+<script defer src="./src/idle-game.js?v=0.20.58"></script>
 </body></html>
