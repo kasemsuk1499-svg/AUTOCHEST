@@ -7,7 +7,7 @@
  const number=(n,fallback=0)=>Number.isFinite(Number(n))?Number(n):fallback;
  const initial=()=>({
   version:1,floorResetEvent:FLOOR_RESET_EVENT,accountEpoch:'',mode:'normal',nightmare:{stage:1,clearedStage:0,kills:0,bossRetryWaves:0,bossWins:0},stage:1,clearedStage:0,kills:0,bossRetryWaves:0,gold:3000,heroExp:1800,rubies:1200,tickets:START_TICKETS,universalShards:0,
-  farmMode:'push',farmGoal:'gold',farmStages:{normal:1,nightmare:1},dungeonRepeat:true,favorites:[],squad:['asuna','kirito','silica'],owned:{
+  costumes:{},farmMode:'push',farmGoal:'gold',farmStages:{normal:1,nightmare:1},dungeonRepeat:true,favorites:[],squad:['asuna','kirito','silica'],owned:{
    asuna:{level:1,stars:1,shards:0},
    kirito:{level:1,stars:1,shards:0},
    silica:{level:1,stars:1,shards:0}
@@ -138,6 +138,23 @@
  const shardsNeeded=stars=>stars>=MAX_STARS?0:stars===1?3:stars===2?6:stars===3?10:15;
  const shardsToMax=stars=>{let total=0;for(let n=stars;n<MAX_STARS;n++)total+=shardsNeeded(n);return total;};
  const ascendCost=stars=>250*stars*stars;
+ // Costume ownership and equipment are independent of combat progression.
+ const costumeDefs=(roster,id)=>Array.isArray(roster[id]?.costumes)?roster[id].costumes.filter(c=>c&&typeof c.id==='string'&&/^[a-z0-9_-]+$/.test(c.id)):[];
+ function ownsCostume(state,roster,id,costumeId){
+  const def=costumeDefs(roster,id).find(c=>c.id===costumeId);
+  return !!(state.owned[id]&&def&&(def.unlock==='hero'||state.costumes?.[id]?.owned?.includes(costumeId)));
+ }
+ function grantCostume(state,roster,id,costumeId){
+  if(!costumeDefs(roster,id).some(c=>c.id===costumeId))return false;
+  const p=(state.costumes||(state.costumes={}))[id]||((state.costumes[id])={owned:[],equipped:''});
+  if(!p.owned.includes(costumeId))p.owned.push(costumeId);
+  return true;
+ }
+ function equipCostume(state,roster,id,costumeId=''){
+  if(!state.owned[id]||costumeId&&!ownsCostume(state,roster,id,costumeId))return false;
+  const p=(state.costumes||(state.costumes={}))[id]||(state.costumes[id]={owned:[],equipped:''});
+  p.equipped=costumeId;return true;
+ }
  function normalized(raw,roster){
   if(!raw||typeof raw!=='object'||raw.version!==1)return initial();
   const state=initial(),ids=Object.keys(roster);
@@ -192,6 +209,13 @@
   if(!Object.keys(state.owned).length){
    for(const id of ['asuna','kirito','silica'].filter(id=>roster[id]))
     state.owned[id]={level:1,stars:1,shards:0};
+  }
+  for(const id of ids){
+   const saved=raw.costumes?.[id];if(!saved||typeof saved!=='object')continue;
+   const valid=new Set(costumeDefs(roster,id).map(c=>c.id));
+   const owned=Array.isArray(saved.owned)?[...new Set(saved.owned)].filter(c=>valid.has(c)):[];
+   state.costumes[id]={owned,equipped:''};
+   if(typeof saved.equipped==='string'&&ownsCostume(state,roster,id,saved.equipped))state.costumes[id].equipped=saved.equipped;
   }
   state.favorites=Array.isArray(raw.favorites)?[...new Set(raw.favorites)].filter(id=>typeof id==='string'&&Object.hasOwn(roster,id)):[];
   state.squad=Array.isArray(raw.squad)?[...new Set(raw.squad)].filter(id=>state.owned[id]&&roster[id]).slice(0,maxSquad(state.stage)):[];
@@ -454,5 +478,5 @@
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,DUNGEON_REWARD_MULT,DUNGEON_ENTRY_COST,dungeonTiers,dungeonReward,canEnterDungeon,payDungeonEntry,claimDungeon,
   initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,bossStars,floorCount,maxStage,floorBossId,nightmareUnlocked,activeRun,nightmareBossCount,nightmareStars,nightmareBossIds,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,shardsToMax,ascendCost,
-  normalized,farmMaxStage,clampFarmStage,farming,battleStage,FARM_GOALS,farmRates,recordFarmWave,smartFarmStage,heroAtStars,damageType,SKILL_MIN_INTERVAL,skillAttackCount,consumeSkillAttack,explosionCastSeconds,explosionRestSeconds,stats,teamSynergies,synergyBonus,vtuberBonus,teamHeroStats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,universalShardYield,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
+  normalized,costumeDefs,ownsCostume,grantCostume,equipCostume,farmMaxStage,clampFarmStage,farming,battleStage,FARM_GOALS,farmRates,recordFarmWave,smartFarmStage,heroAtStars,damageType,SKILL_MIN_INTERVAL,skillAttackCount,consumeSkillAttack,explosionCastSeconds,explosionRestSeconds,stats,teamSynergies,synergyBonus,vtuberBonus,teamHeroStats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,universalShardYield,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
 })();
