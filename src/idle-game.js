@@ -128,6 +128,7 @@ let formationMode=false,shots=[],fireTrails=[];
 let allyRevives=new Map(),fallenEnemies=[];
 let bossTime=0,combat=null,enemies=[],fighters=[],stageClock=0,respawn=1.8,waveCount=0,travel=0,travelDistance=0,encounters=0,lastFrame=0,lastSave=0,lastHUD=0,toastTimer=0;
 let logLines=['✦ เริ่มการผจญภัย SAO IDLE แล้ว!'];
+let backgroundSession=null,backgroundTimer=0,frameRequest=0;
 const GRID_COLS=6,GRID_ROWS=7,ALLY_START_ROW=4;
 const boardPoint=(col,row)=>({x:(col+.5)*100/GRID_COLS,y:(row+.5)*100/GRID_ROWS});
 const friendlyCell=(col,row)=>Number.isInteger(col)&&Number.isInteger(row)&&
@@ -317,6 +318,7 @@ const el=(tag,attrs={},inner='')=>{
  return node;
 };
 function save(){
+ settleBackground();
  if(studioMode||suppressSave){lastSave=performance.now();return}
  // Do not let an already open tab overwrite a newly rerolled account.
  const stored=safe(()=>JSON.parse(localStorage.getItem(CORE.KEY)),null);
@@ -1762,13 +1764,49 @@ function tick(dt){
  $('bossTimer').hidden=!combat?.boss;
  if(combat?.boss)$('bossCountdown').textContent=Math.ceil(bossTime);
 }
+function settleBackground(now=Date.now()){
+ const bg=backgroundSession;if(!bg)return;
+ const elapsed=Math.min(bg.remaining,Math.max(0,now-bg.last));
+ bg.last=Math.max(bg.last,now);bg.remaining-=elapsed;
+ if(!bg.rates||!elapsed)return;
+ const earned=CORE.awardBackground(state,bg.rates,elapsed);
+ for(const k of Object.keys(earned))bg.earned[k]+=earned[k];
+}
+function scheduleFrame(){if(!document.hidden&&!frameRequest)frameRequest=requestAnimationFrame(frame)}
+function startBackground(){
+ if(backgroundSession)return;
+ if(frameRequest)cancelAnimationFrame(frameRequest);frameRequest=0;lastFrame=0;
+ const eligible=!studioMode&&!dungeon&&!trial&&state.autoBattle&&state.squad.some(id=>state.owned[id])&&$('rewardModal').hidden&&$('skillModal').hidden&&!formationMode&&!boardGesture?.active;
+ syncFarmRecords();
+ const stage=battleStage(),record=farmRecords[stage];
+ const safeStage=record?.waves>=2?stage:Math.min(stage,CORE.farmMaxStage(state));
+ backgroundSession={last:Date.now(),remaining:CORE.OFFLINE_CAP_MS,rates:eligible?CORE.backgroundRates(safeStage,state.mode,record):null,earned:{gold:0,exp:0,rubies:0,tickets:0}};
+ document.body.classList.add('background-idle');
+ $('fxLayer').replaceChildren();$('trialFx').replaceChildren();
+ save();
+ if(!studioMode)backgroundTimer=setInterval(save,30000);
+}
+function stopBackground(){
+ const bg=backgroundSession;
+ if(bg){settleBackground();backgroundSession=null;clearInterval(backgroundTimer);backgroundTimer=0;
+  document.body.classList.remove('background-idle');
+  lastFrame=0;lastHUD=0;save();updateResources();
+  if(bg.rates&&Object.values(bg.earned).some(n=>n>0)){
+   const e=bg.earned;
+   toast('🌙 ฟาร์มเบื้องหลัง +'+fmt(e.gold)+' G / +'+fmt(e.exp)+' EXP / +'+fmt(e.rubies)+' 💎 / +'+fmt(e.tickets)+' 🎟');
+  }
+ }
+ scheduleFrame();
+}
 function frame(now){
+ frameRequest=0;
+ if(document.hidden){startBackground();return;}
  if(!lastFrame)lastFrame=now;
  const dt=(now-lastFrame)/1000;
  if(trial){try{if(!trial.error)tickTrial(dt)}catch(error){console.error('Hero Trial:',error);recoverTrial(error)}}else if(!studioMode)tick(dt);lastFrame=now;
  if(now-lastHUD>340){updateResources();lastHUD=now}
  if(now-lastSave>6000){save()}
- requestAnimationFrame(frame);
+ scheduleFrame();
 }
 // Trial shares the real attack/skill/shot code, but every mutable battle variable
 // used by it is scoped to a disposable scene and restored synchronously.
@@ -2266,7 +2304,9 @@ $('claimOfflineBtn').addEventListener('click',claimOffline);
 $('closeOfflineBtn').addEventListener('click',closeOffline);
 $('rewardModal').querySelector('.modal-overlay').addEventListener('click',closeOffline);
 window.addEventListener('beforeunload',save);
-document.addEventListener('visibilitychange',()=>{if(document.hidden){save();lastFrame=0;}});
+window.addEventListener('pagehide',save);
+window.addEventListener('pageshow',()=>{if(!document.hidden)stopBackground()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)startBackground();else stopBackground()});
 renderPanels();log('✨ สนาม AUTOCHEST 6×7 พร้อมสู้แบบ Idle แล้ว');
 beginTravel(1.8);save();
 if(floorResetGift&&!studioMode){log('🎁 อัปเดตชั้นใหม่: กลับด่าน 1 · ตั๋วสุ่ม +100 ใบ');toast('🎁 ตั๋วสุ่ม +100 ใบ! ตัวละครและทรัพยากรเดิมยังอยู่ครบ');}
@@ -2280,5 +2320,5 @@ if(studioMode)document.body.classList.add('studio-trial-mode');
 // Decode sprites before their first attack so changing pose is not a network stall.
 for(const hero of Object.values(HEROES))for(const url of new Set([hero.images.idle,hero.images.attack])){const img=new Image();img.src=url;img.decode?.().catch(()=>{});}
 loadCostumeAssets().catch(error=>console.warn('Costume asset check:',error)).then(()=>{if(studioMode)openTrial(studioTrialId,new URLSearchParams(location.search).get('studioCostume')||'')});
-requestAnimationFrame(frame);
+if(document.hidden)startBackground();else scheduleFrame();
 })();
