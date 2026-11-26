@@ -625,7 +625,7 @@ function skillDescription(t,enemy=false){
    lines.push('แท็กพิเศษ KonoSuba: เมื่อคาซึมะและอควาฝั่งเดียวกันยังมีชีวิต จะพัก 4 วินาที (3.5 วินาทีเมื่อคาซึมะ 5★) แล้วร่าย Explosion ซ้ำได้ไม่จำกัดครั้ง · หากสมาชิกตายระหว่างร่ายซ้ำจะหยุดร่าย');
    break;
   case 'dot':
-   lines.push('ทุก '+n+' การโจมตี: โจมตีศัตรูสูงสุด '+t.passive.dotTargets+' ตัว ตัวละ '+Math.round(t.skillPower*100)+'% ATK และติดคำสาป '+Math.round(t.passive.dotPower*100)+'% ATK ทุก 1 วินาที นาน '+t.passive.dotTicks+' วินาที · DOT ไม่คริติคอล · คำสาปจากผู้ร่ายเดิมอัปเดตพลังโดยไม่ซ้อนหรือรีเซ็ตจำนวนครั้ง · หยุดทำงานเมื่อผู้ร่ายตาย');
+   lines.push('ทุก '+n+' การโจมตี: โจมตีศัตรูสูงสุด '+t.passive.dotTargets+' ตัว ตัวละ '+Math.round(t.skillPower*100)+'% ATK และติดคำสาป '+Math.round(t.passive.dotPower*100)+'% ATK ทุก 1 วินาที นาน '+t.passive.dotTicks+' วินาที · DOT ไม่คริติคอล · คำสาปจากผู้ร่ายเดิมอัปเดตพลังโดยไม่ซ้อนหรือรีเซ็ตจำนวนครั้ง · ทำงานจนครบแม้ผู้ร่ายตาย (ภายในเวฟเดิม)');
    if(t.passive.dotPierceShield)lines.push('DOT ทะลุโล่โดยตรง แต่ไม่ทะลุอมตะ');
    if(t.passive.dotFreezeSeconds)lines.push('เมื่อ DOT ครั้งสุดท้ายโดนเป้าหมายที่ยังมีชีวิต: แช่แข็ง '+t.passive.dotFreezeSeconds+' วินาที หยุดเดิน โจมตี และพักเวลาร่ายสกิล · ไม่ทะลุอมตะ');
    break;
@@ -638,7 +638,7 @@ function skillDescription(t,enemy=false){
   case 'firetrail':
     lines.push('ทุก '+n+' การโจมตี: ปล่อยนกเพลิงบินตรงจนสุดขอบสนาม ทำดาเมจ '+Math.round(t.skillPower*100)+'% MATK ครั้งเดียวต่อศัตรูที่บินผ่าน · โล่ป้องกันได้');
     lines.push('ทิ้งทางไฟกว้าง '+t.fireTrail.widthCells+' ช่อง: เผาศัตรูที่ยืนบนไฟทุก 1 วินาที '+(t.fireTrail.hpRate*100).toFixed(1)+'% ของ HP สูงสุดต่อทางไฟ · ไม่คริติคอล · โล่และอมตะป้องกันได้ · มีผลกับบอส');
-    lines.push('ไฟแต่ละช่วงอยู่ '+t.fireTrail.duration+' วินาทีหลังนกบินผ่าน แล้วค่อยจางจากต้นทางไปปลายทาง · ทางไฟต่างครั้งซ้อนดาเมจได้ · ไฟอยู่ต่อแม้ผู้ร่ายตายจนจบอายุหรือจบเวฟ');
+    lines.push('ไฟแต่ละช่วงอยู่ '+t.fireTrail.duration+' วินาทีหลังนกบินผ่าน แล้วค่อยจางจากต้นทางไปปลายทาง · ทางไฟต่างครั้งซ้อนดาเมจได้ · นกและทางไฟอยู่ต่อแม้ผู้ร่ายตายจนจบอายุหรือจบเวฟ');
     break;
    case 'pierce':
     lines.push('ทุก '+n+' การโจมตี: '+(t.range<1.8?'ฟันปล่อยลำแสงศักดิ์สิทธิ์':'ยิงทะลวง')+'เป็นเส้นตรงจนถึงขอบสนาม ทำดาเมจ '+Math.round((t.skillPower||2.4)*100)+'% ATK ต่อศัตรูทุกตัวในแนว (โดนครั้งเดียวต่อตัว) · '+(t.pierceShield===false?'โล่ป้องกันได้':'ไม่สนโล่ป้องกัน')+' · ไม่ทะลุอมตะ');
@@ -1282,8 +1282,9 @@ function advanceDots(){
   if(target.hp<=0||target.alive===false)continue;
   for(const hit of TFT.dueDots(target,stageClock)){
    if(target.hp<=0||target.alive===false)break;
-   const source=hit.source.side==='ally'?fighters.find(u=>u.id===hit.source.id):enemies.find(u=>u===hit.source);
-   if(!source||source.hp<=0||source.alive===false)continue;
+   // A curse retains its original caster even after death or removal from the enemy list.
+   const source=hit.source;
+   if(!source)continue;
    const landed=tftDamage(source,target,hit.power,0,false,hit.pierceShield===true,'dot',true);
    if(landed&&TFT.applyFreeze(target,hit.freezeSeconds,stageClock)){position(target);visualEffect('freeze',source,target.x,target.y);statusFx(target,'freeze','❄ แช่แข็ง');if(trialContext)trialContext.note='ทดสอบสำเร็จ · คำสาปครบและแช่แข็งแล้ว';}
    if(!trialContext&&!combat)return;
@@ -1672,7 +1673,7 @@ function tick(dt){
  advanceTftShots(t);
  if(!combat)return;
  advanceFireTrails();if(!combat)return;
- if(!fighters.some(f=>f.alive&&!f.exhausted)&&!shots.some(q=>q.side==='ally')&&!(fighters.some(f=>f.alive)&&fireTrails.some(f=>f.side==='ally'))){
+ if(!fighters.some(f=>f.alive&&!f.exhausted)&&!shots.some(q=>q.side==='ally')&&!fireTrails.some(f=>f.side==='ally')&&!enemies.some(u=>u.hp>0&&u.alive!==false&&(u.dots||[]).some(d=>d.left>0&&d.source?.side==='ally'))){
   if(combat?.boss){failBoss();return}
   log('💔 ทีมฟื้นตัวก่อนต้านมอนระลอกใหม่');finishFarmWave();beginTravel(1.2);save();return;
  }
@@ -1741,7 +1742,7 @@ function resetTrial(){
 // Keep the whole delayed skill sequence visible in Hero Trial.
 function trialDotProgress(scene,clock){
  const living=scene.enemies.filter(u=>u.hp>0&&u.alive!==false);
- const pending=living.flatMap(u=>(u.dots||[]).filter(d=>d.source.side==='ally'&&d.source.id===scene.hero.id&&scene.hero.hp>0&&scene.hero.alive!==false));
+ const pending=living.flatMap(u=>(u.dots||[]).filter(d=>d.source.side==='ally'&&d.source.id===scene.hero.id));
  const frozen=living.filter(u=>TFT.isFrozen(u,clock));
  const left=Math.max(0,...pending.map(d=>d.left));
  const seconds=Math.max(0,...frozen.map(u=>u.freezeUntil-clock));
