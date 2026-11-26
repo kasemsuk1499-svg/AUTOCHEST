@@ -420,8 +420,8 @@
   h.shards-=need;state.gold-=cost;h.stars++;convertMaxShards(state,id);return true;
  }
  function summonCost(state,count){
-  const tickets=Math.min(count,Math.max(0,Math.floor(state.tickets||0)));
-  return {tickets,rubies:(count-tickets)*120};
+  const ticketRolls=Math.min(count,Math.max(0,Math.floor((state.tickets||0)/2)));
+  return {tickets:ticketRolls*2,rubies:(count-ticketRolls)*240};
  }
  function summonOdds(roster){
   // Fixed rarity buckets. Split each bucket evenly among its current heroes.
@@ -433,7 +433,7 @@
   return entries.map(([id,h])=>({id,rate:tierRates[h.cost]/total/counts[h.cost]}));
  }
  function drawDetailed(state,roster,count,rng=Math.random){
-  if(!Number.isInteger(count)||count<=0||count>10)return null;
+  if(!Number.isInteger(count)||count<=0||count>100)return null;
   const cost=summonCost(state,count),odds=summonOdds(roster);
   if(state.rubies<cost.rubies||!odds.length)return null;
   const rewards=[];
