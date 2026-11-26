@@ -1337,7 +1337,7 @@ function vtuberTeamBonus(actor){
  if(TFT.blocksExplosion(hero,combatHero(target))){statusFx(target,'immune','กัน EXPLOSION · 0');return false}
  const dodge=Number(combatHero(target)?.passive?.dodgeChance)||0;
  if(!dot&&dodge>0&&Math.random()<Math.min(.75,dodge)){
-  unitFx(target,'DODGE · หลบหลีก','status');ring(target.x,target.y);return false;
+  unitFx(target,'DODGE · หลบหลีก','status');visualEffect('dodge',target);ring(target.x,target.y);return false;
  }
  const chance=Math.min(1,Math.max(0,(attacker.crit||0)+bonusCrit));
  const critical=!dot&&(forcedCrit||(chance>0&&Math.random()<chance));
@@ -1663,7 +1663,8 @@ function tftSkill(attacker,target){
    attacker.x=Math.max(5.5,Math.min(94.5,victim.x));
    attacker.y=Math.max(8,Math.min(92,victim.y+back*7));
    attacker.walking=false;
-   projectile(from.x,from.y,attacker.x,attacker.y,'#ffe05d');
+   const dashFx=VFX?.getSpec(HEROES[attacker.id],'dash',costumeFxFor(attacker),actorCostume(attacker)?.id||'');
+   if(dashFx)renderVfxRegion(dashFx,from,attacker);else projectile(from.x,from.y,attacker.x,attacker.y,'#ffe05d');
    ring(from.x,from.y);position(attacker);ring(attacker.x,attacker.y);
    unitFx(attacker,'⚡ เทพอัสนีเหิน','buff');
    tftDamage(attacker,victim,attacker.atk*hero.skillPower,0,false,false,'skillHit');

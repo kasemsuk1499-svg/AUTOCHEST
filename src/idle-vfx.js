@@ -5,6 +5,7 @@
  const specs=Object.fromEntries(rows.map((name,row)=>[name,{src:atlas,cols:4,rows:12,row,frames:4,size: name==='hammer'?180:name==='shield'||name==='heal'||name==='revive'?122:105,ms:440}]));
  const defaults={
   asuna:{hit:'slashGold',skillHit:'slashGold'},
+  minato:{hit:'slashGold',skillHit:'impact',dash:'slashGold',dodge:'cloak'},
   kirito:{hit:'slashBlue',skillHit:'slashBlue',revive:'revive'},
   sinon:{projectile:'bullet',skillProjectile:'bullet',hit:'impact',skillHit:'impact'},
   heathcliff:{hit:'impact',shield:'shield'},
@@ -12,7 +13,7 @@
   silica:{projectile:'bullet',heal:'heal',buff:'buff',hit:'impact'},
   deathgun:{projectile:'darkBullet',skillProjectile:'darkBullet',hit:'impact',cloak:'cloak',skillHit:'impact'}
  };
- const generic={freeze:'shield',dot:'debuff',hit:'impact',skillHit:'impact',projectile:'bullet',skillProjectile:'bullet',area:'hammer',heal:'heal',shield:'shield',revive:'revive',buff:'buff',debuff:'debuff',cloak:'cloak',cast:'buff',aftermath:'impact',cleave:'slashGold',groundFire:false};
+ const generic={dash:'slashGold',dodge:'cloak',freeze:'shield',dot:'debuff',hit:'impact',skillHit:'impact',projectile:'bullet',skillProjectile:'bullet',area:'hammer',heal:'heal',shield:'shield',revive:'revive',buff:'buff',debuff:'debuff',cloak:'cloak',cast:'buff',aftermath:'impact',cleave:'slashGold',groundFire:false};
  let published={},publishedCostumes={},draft=null;
  const studioMode=new URLSearchParams(window.location?.search||'').has('studioTrial');
  if(studioMode){try{draft=JSON.parse(sessionStorage.getItem('AUTOCHEST_VFX_DRAFT')||'null')}catch(_){}}
@@ -21,7 +22,7 @@
  function slotLayout(hero,event){
   const mode=hero?.visual?.layout?.[event];
   if(['point','beam','field'].includes(mode))return mode;
-  return hero?.effect==='pierce'&&event==='skillProjectile'?'beam':'point';
+  return (hero?.effect==='pierce'&&event==='skillProjectile')||(hero?.effect==='dash'&&event==='dash')?'beam':'point';
  }
  const bounded=(value,fallback,min,max)=>Number.isFinite(Number(value))&&value!==null&&value!==''?Math.max(min,Math.min(max,Number(value))):fallback;
  function appearance(raw,mode='point'){
