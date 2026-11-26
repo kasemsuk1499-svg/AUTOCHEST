@@ -1208,6 +1208,31 @@
           "delayMs": 0,
           "airtimeMs": 0,
           "loopFrames": false
+        },
+        "debuff": {
+          "src": "./assets/heroes/maruko/costumes/costume_01/vfx/debuff-006b1c0c7c5d.png",
+          "cols": 8,
+          "rows": 3,
+          "row": 0,
+          "col": 0,
+          "frames": 24,
+          "size": 120,
+          "ms": 1200,
+          "mode": "point",
+          "scaleX": 1,
+          "scaleY": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "thickness": 48,
+          "orientation": "horizontal",
+          "hue": 99,
+          "saturation": 150,
+          "brightness": 100,
+          "colorize": false,
+          "delayMs": 0,
+          "airtimeMs": 0,
+          "loopFrames": false
         }
       }
     }
