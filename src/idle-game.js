@@ -507,6 +507,25 @@ function canStar(id){
   p.shards>=CORE.shardsNeeded(p.stars)&&state.gold>=CORE.ascendCost(p.stars);
 }
 function readyUpgrade(id){return canLevel(id)||canStar(id)}
+function starReadyLabel(id){
+ const p=state.owned[id];return canStar(id)?'★ อัป '+(p.stars+1)+' ดาว':'';
+}
+function upgradeOptionLabel(id){
+ const p=state.owned[id];
+ return HEROES[id].rarity+' · '+(state.favorites.includes(id)?'★ ':'')+HEROES[id].name+
+  (CORE.isMaxHero(p)?' · MAX':p?' · Lv.'+p.level:' · ล็อก')+(canStar(id)?' · '+starReadyLabel(id):canLevel(id)?' · ↑ Lv.':'');
+}
+function syncReadyMark(node,id,team=false){
+ const star=canStar(id),level=canLevel(id);
+ node.classList.toggle('is-upgrade-ready',star||level);
+ node.classList.toggle('is-star-ready',star);
+ const mark=node.querySelector(team?'.team-ready':'.collection-ready');
+ if(mark){
+  const label=star?starReadyLabel(id):level?'⬆ อัปเลเวล':'';
+  mark.textContent=star&&team?'★↑':team&&level?'⬆':label;
+  mark.title=label;mark.setAttribute('aria-label',label);
+ }
+}
 function levelBatch(id,maximum=5){
  const p=state.owned[id];if(!p)return {count:0,gold:0,exp:0};
  let gold=state.gold,exp=state.heroExp,paidGold=0,paidExp=0,lvl=p.level,count=0;
@@ -544,14 +563,14 @@ function renderTeam(){
   if(!id)return '<button type="button" class="team-slot empty" data-slot="empty" aria-label="ช่องทีมว่าง">＋<small>ว่าง</small></button>';
   const t=HEROES[id],p=state.owned[id],ready=readyUpgrade(id);
   return '<button type="button" class="team-slot '+(selected===id?'active ':'')+
-   (ready?'is-upgrade-ready ':'')+
+   (ready?'is-upgrade-ready ':'')+(canStar(id)?'is-star-ready ':'')+
    rarityClass(t)+
    '" data-slot="'+id+'" aria-label="เลือก '+escapeText(t.name)+' เลเวล '+p.level+' '+p.stars+' ดาว">'+
    '<span class="team-level">'+(CORE.isMaxHero(p)?'MAX':'Lv.'+p.level)+'</span>'+rarityBadge(t)+
    '<img loading="lazy" src="'+heroImages(id).idle+'" alt="">'+
    '<strong title="'+escapeText(t.name)+'">'+heroNameMarks(t)+'</strong>'+
    '<span class="team-stars" title="'+p.stars+' ดาว'+(p.stars>=CORE.MAX_STARS?' · MAX':'')+'">'+'★'.repeat(p.stars)+'</span>'+
-   '<span class="team-ready" title="เสริมแกร่งได้แล้ว">⬆</span></button>';
+   '<span class="team-ready" title="'+(canStar(id)?starReadyLabel(id):'อัปเลเวลได้')+'">'+(canStar(id)?'★↑':'⬆')+'</span></button>';
  }).join('');
 }
 const heroPageSize=24;
@@ -566,13 +585,14 @@ function filterHeroes(ids,prefix){
   if(prefix==='Collection'&&favoritesOnly&&!state.favorites.includes(id))return false;
   const h=HEROES[id],p=state.owned[id],mt=memberTags(id);
   const hay=[id,h.name,h.subtitle,h.role,h.team,h.rarity,attackTypeLabel(h),attackTypeName(h),faction(id),h.faction==='celestial_beast'?'สัตว์สวรรค์':'',...(h.traits||[]),...mt.map(t=>t.name)].join(' ').toLocaleLowerCase();
-  return (!q||q.split(/\s+/).every(x=>hay.includes(x)))&&(!damageType||CORE.damageType(h)===damageType)&&(!tier||h.rarity===tier)&&(!role||h.team===role)&&(!tag||faction(id)===tag||mt.some(t=>t.id===tag))&&(!status||(status==='owned'&&p)||(status==='locked'&&!p)||(status==='ready'&&readyUpgrade(id))||(status==='max'&&CORE.isMaxHero(p))||(status==='unfinished'&&p&&!CORE.isMaxHero(p))||(status==='team'&&state.squad.includes(id)));
+  return (!q||q.split(/\s+/).every(x=>hay.includes(x)))&&(!damageType||CORE.damageType(h)===damageType)&&(!tier||h.rarity===tier)&&(!role||h.team===role)&&(!tag||faction(id)===tag||mt.some(t=>t.id===tag))&&(!status||(status==='owned'&&p)||(status==='locked'&&!p)||(status==='ready'&&readyUpgrade(id))||(status==='starready'&&canStar(id))||(status==='max'&&CORE.isMaxHero(p))||(status==='unfinished'&&p&&!CORE.isMaxHero(p))||(status==='team'&&state.squad.includes(id)));
  }).sort((a,b)=>{
   const pa=state.owned[a],pb=state.owned[b];
   if(prefix==='Collection'||prefix==='Upgrade'){const fav=Number(state.favorites.includes(b))-Number(state.favorites.includes(a));if(fav)return fav;}
   if(sort==='name')return HEROES[a].name.localeCompare(HEROES[b].name,'th');
   if(sort==='level')return (pb?.level||0)-(pa?.level||0)||HEROES[b].cost-HEROES[a].cost;
   if(sort==='stars')return (pb?.stars||0)-(pa?.stars||0)||HEROES[b].cost-HEROES[a].cost;
+  if(sort==='starready')return Number(canStar(b))-Number(canStar(a))||HEROES[b].cost-HEROES[a].cost;
   if(sort==='ready')return Number(readyUpgrade(b))-Number(readyUpgrade(a))||HEROES[b].cost-HEROES[a].cost;
   return HEROES[b].cost-HEROES[a].cost;
  });
@@ -589,8 +609,8 @@ function createHeroFilters(prefix,host,mode,refresh){
   select('filterDamage','ประเภทพลังโจมตี',[['','ทุกประเภท ATK'],['physical','⚔ กายภาพ'],['magic','✦ เวทมนตร์']])+
   select('filterRole','อาชีพ',[['','ทุกอาชีพ'],...['นักรบ','เวท','ยิงไกล','ป้องกัน'].map(x=>[x,x])])+
   select('filterTag','แท็ก',[['','ทุกแท็ก'],...tagOptions])+
-  (mode==='collection'?select('filterStatus','สถานะ',[['','ทุกสถานะ'],['owned','มีแล้ว'],['locked','ยังไม่มี'],['ready','พร้อมอัป'],['unfinished','ยังไม่ MAX'],['max','MAX'],['team','ในทีม']]):'')+
-  select('filterSort','เรียงลำดับ',[['rarity','เทียร์สูงก่อน'],['name','ชื่อ A–Z / ก–ฮ'],['level','เลเวลสูงก่อน'],['stars','ดาวสูงก่อน'],['ready','พร้อมอัปก่อน']])+
+  (mode==='collection'?select('filterStatus','สถานะ',[['','ทุกสถานะ'],['owned','มีแล้ว'],['locked','ยังไม่มี'],['ready','พร้อมอัป'],['starready','⭐ พร้อมอัปดาว'],['unfinished','ยังไม่ MAX'],['max','MAX'],['team','ในทีม']]):'')+
+  select('filterSort','เรียงลำดับ',[['rarity','เทียร์สูงก่อน'],['name','ชื่อ A–Z / ก–ฮ'],['level','เลเวลสูงก่อน'],['stars','ดาวสูงก่อน'],['ready','พร้อมอัปก่อน'],['starready','พร้อมอัปดาวก่อน']])+
   '</div><small id="filterCount'+prefix+'" class="hero-filter-count"></small>';
  host.before(root);
  root.addEventListener('input',e=>{if(e.target.matches('input,select'))refresh()});
@@ -605,12 +625,12 @@ function renderHeroes(){
  $('heroList').innerHTML=ids.slice(heroPage*heroPageSize,(heroPage+1)*heroPageSize).map(id=>{
   const t=HEROES[id],p=state.owned[id],ready=readyUpgrade(id);
   return '<div class="hero-entry"><button type="button" class="hero-card '+(!p?'locked ':'')+
-   (selected===id?'active ':'')+(ready?'is-upgrade-ready ':'')+rarityClass(t)+'" data-hero="'+id+'">'+rarityBadge(t)+
+   (selected===id?'active ':'')+(ready?'is-upgrade-ready ':'')+(canStar(id)?'is-star-ready ':'')+rarityClass(t)+'" data-hero="'+id+'">'+rarityBadge(t)+
    '<img loading="lazy" src="'+heroImages(id).art+'" alt="">'+
    '<strong>'+heroNameMarks(t)+'</strong>'+
    '<span class="collection-level">'+(p?(CORE.isMaxHero(p)?'✓ MAX':'LEVEL '+p.level+(p.level>=CORE.MAX_LEVEL?' MAX':'')):'🔒 ไม่ได้ปลดล็อก')+'</span>'+
    '<span class="collection-stars">'+(p?'★'.repeat(p.stars)+'☆'.repeat(CORE.MAX_STARS-p.stars)+(p.stars>=CORE.MAX_STARS?' MAX':''):'☆☆☆☆☆')+'</span>'+
-   '<span class="collection-ready" title="เสริมแกร่งได้">⬆ อัปได้</span></button>'+
+   '<span class="collection-ready" title="'+(canStar(id)?starReadyLabel(id):'อัปเลเวลได้')+'">'+(canStar(id)?starReadyLabel(id):'⬆ อัปเลเวล')+'</span></button>'+
    '<button type="button" class="hero-info-btn" data-skill-hero="'+id+'" aria-label="ดูสกิล '+escapeText(t.name)+'">ⓘ</button>'+
    '<button type="button" class="hero-favorite-btn '+(state.favorites.includes(id)?'is-favorite':'')+'" data-favorite-hero="'+id+'" aria-pressed="'+state.favorites.includes(id)+'" title="'+(state.favorites.includes(id)?'นำออกจากตัวโปรด':'ตั้งเป็นตัวโปรด')+'" aria-label="ตัวโปรด '+escapeText(t.name)+'">'+(state.favorites.includes(id)?'★':'☆')+'</button></div>';
  }).join('')||'<p class="hero-filter-empty">ไม่พบฮีโร่ที่ตรงกับตัวกรอง</p>';
@@ -836,17 +856,17 @@ function choose(id){
 }
 function refreshUpgradeAvailability(){
  const ready=Object.keys(state.owned).filter(id=>readyUpgrade(id));
+ const starReady=ready.filter(id=>canStar(id)),starCount=starReady.length;
  const summary=$('upgradeReadyCount');
- if(summary)summary.textContent=ready.length?'พร้อมอัป '+ready.length+' ตัว':'ยังอัปไม่ได้';
+ if(summary){summary.textContent=starCount?'★ ดาว '+starCount+' · อัปได้ '+ready.length:ready.length?'พร้อมอัป '+ready.length+' ตัว':'ยังอัปไม่ได้';summary.classList.toggle('has-star-ready',!!starCount);}
  const mobileShortcut=$('upgradeShortcutReady');
- if(mobileShortcut){mobileShortcut.textContent=ready.length?String(ready.length):'';mobileShortcut.hidden=!ready.length;}
+ if(mobileShortcut){mobileShortcut.textContent=starCount?'★'+starCount:ready.length?String(ready.length):'';mobileShortcut.hidden=!ready.length;mobileShortcut.classList.toggle('has-star-ready',!!starCount);mobileShortcut.title=starCount?'พร้อมอัปดาว '+starCount+' ตัว':'พร้อมอัปเลเวล '+ready.length+' ตัว';}
  for(const n of $('teamSlots').querySelectorAll('[data-slot]')){
   const id=n.dataset.slot;
-  if(id!=='empty')n.classList.toggle('is-upgrade-ready',readyUpgrade(id));
+  if(id!=='empty')syncReadyMark(n,id,true);
  }
- for(const n of $('heroList').querySelectorAll('[data-hero]')){
-  n.classList.toggle('is-upgrade-ready',readyUpgrade(n.dataset.hero));
- }
+ for(const n of $('heroList').querySelectorAll('[data-hero]'))syncReadyMark(n,n.dataset.hero);
+ for(const option of $('upgradePicker')?.options||[]){if(HEROES[option.value]){const label=upgradeOptionLabel(option.value);if(option.textContent!==label)option.textContent=label;}}
  const p=state.owned[selected];
  if(!p)return;
  const c=CORE.levelCost(p.level),need=CORE.shardsNeeded(p.stars),starCost=CORE.ascendCost(p.stars);
@@ -2022,7 +2042,7 @@ function refreshUpgradePicker(){
  const all=IDS.filter(id=>state.owned[id]&&!CORE.isMaxHero(state.owned[id])),eligible=filterHeroes(all,'Upgrade');
  if($('filterCountUpgrade'))$('filterCountUpgrade').textContent='พบ '+eligible.length+' / '+all.length+' ตัวที่ยังไม่ MAX';
  const ids=eligible.includes(selected)?eligible:[selected,...eligible].filter(id=>HEROES[id]);
- picker.innerHTML=ids.map(id=>'<option value="'+id+'"'+(id===selected?' selected':'')+'>'+HEROES[id].rarity+' · '+(state.favorites.includes(id)?'★ ':'')+escapeText(HEROES[id].name)+(CORE.isMaxHero(state.owned[id])?' · MAX':state.owned[id]?' · Lv.'+state.owned[id].level:' · ล็อก')+'</option>').join('');
+ picker.innerHTML=ids.map(id=>'<option value="'+id+'"'+(id===selected?' selected':'')+'>'+escapeText(upgradeOptionLabel(id))+'</option>').join('');
  picker.disabled=!eligible.length;
 }
 function searchUpgrade(){
