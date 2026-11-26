@@ -1180,6 +1180,31 @@
         "delayMs": 0,
         "airtimeMs": 0,
         "loopFrames": false
+      },
+      "dodge": {
+        "src": "./assets/effects/minato/dodge-23d65e2320d1.png",
+        "cols": 8,
+        "rows": 2,
+        "row": 0,
+        "col": 0,
+        "frames": 14,
+        "size": 120,
+        "ms": 400,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "thickness": 48,
+        "orientation": "horizontal",
+        "hue": -180,
+        "saturation": 90,
+        "brightness": 195,
+        "colorize": false,
+        "delayMs": 0,
+        "airtimeMs": 0,
+        "loopFrames": false
       }
     }
   },
