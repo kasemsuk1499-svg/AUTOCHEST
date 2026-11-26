@@ -1283,6 +1283,31 @@
           "delayMs": 0,
           "airtimeMs": 0,
           "loopFrames": true
+        },
+        "shield": {
+          "src": "./assets/effects/maruko/shield-a704f7474106.png",
+          "cols": 8,
+          "rows": 2,
+          "row": 0,
+          "col": 0,
+          "frames": 16,
+          "size": 100,
+          "ms": 800,
+          "mode": "point",
+          "scaleX": 1,
+          "scaleY": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": -20,
+          "thickness": 48,
+          "orientation": "horizontal",
+          "hue": 103,
+          "saturation": 195,
+          "brightness": 130,
+          "colorize": false,
+          "delayMs": 0,
+          "airtimeMs": 0,
+          "loopFrames": false
         }
       }
     }
