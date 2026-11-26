@@ -35,6 +35,13 @@ const run=()=>CORE.activeRun(state),night=()=>state.mode==='nightmare';
   const c=state.costumes?.[id]?.equipped;
   return side==='ally'&&c&&CORE.ownsCostume(state,HEROES,id,c)&&costumeImages(id,c)||HEROES[id].images;
  }
+ function costumeFxFor(actor){
+  const id=actor.id,c=state.costumes?.[id]?.equipped;
+  return actor.side==='ally'&&c&&CORE.ownsCostume(state,HEROES,id,c)?costumeImages(id,c)?.fx:null;
+ }
+ function probeCostumeFx(url){
+  return new Promise(resolve=>{const img=new Image();img.onload=()=>resolve(true);img.onerror=()=>resolve(false);img.src=url;});
+ }
  function probeCostumeImage(base){
   return new Promise(resolve=>{
    const tryImage=ext=>{const img=new Image();img.onload=()=>resolve(base+'.'+ext);img.onerror=()=>ext==='png'?tryImage('gif'):resolve(null);img.src=base+'.'+ext;};
@@ -48,7 +55,13 @@ const run=()=>CORE.activeRun(state),night=()=>state.mode==='nightmare';
   await Promise.all(IDS.flatMap(id=>CORE.costumeDefs(HEROES,id).map(async def=>{
    const folder='./assets/heroes/'+id+'/costumes/'+def.id+'/';
    const [art,idle,attack]=await Promise.all(['art','idle','attack'].map(slot=>probeCostumeImage(folder+slot)));
-   costumeAssets.set(costumeKey(id,def.id),art&&idle&&attack?{art,idle,attack}:null);
+   const fx={};
+   if(art&&idle&&attack)await Promise.all(Object.entries(def.fx||{}).map(async ([event,config])=>{
+    if(!config||typeof config.file!=='string'||!/^[a-z0-9_-]+\.(png|gif|svg|webp)$/i.test(config.file))return;
+    const src=folder+'vfx/'+config.file;
+    if(await probeCostumeFx(src))fx[event]={...config,src};
+   }));
+   costumeAssets.set(costumeKey(id,def.id),art&&idle&&attack?{art,idle,attack,fx}:null);
    syncCostumeSprites(id);
   })));
   renderPanels();
@@ -61,12 +74,24 @@ const run=()=>CORE.activeRun(state),night=()=>state.mode==='nightmare';
    [{id:'',name:'ชุดดั้งเดิม'},...defs].map(def=>{
     const images=def.id?costumeImages(id,def.id):HEROES[id].images;
     const has=owned&&(!def.id||CORE.ownsCostume(state,HEROES,id,def.id)),active=has&&current===def.id&&!!images;
-    const status=!images?(costumeAssets.has(costumeKey(id,def.id))?'รอไฟล์รูป':'กำลังตรวจรูป'):!has?'🔒 ยังไม่ได้เป็นเจ้าของ':active?'✓ สวมใส่อยู่':def.id?'สวมใส่':'ถอดคอสตูม';
+    const sale=owned&&!has&&Number.isSafeInteger(def.price)&&def.price>0;
+    const status=!images?(costumeAssets.has(costumeKey(id,def.id))?'รอไฟล์รูป':'กำลังตรวจรูป'):sale?'ซื้อชุด':!has?'🔒 ยังไม่ได้เป็นเจ้าของ':active?'✓ สวมใส่อยู่':def.id?'สวมใส่':'ถอดคอสตูม';
     return '<div class="costume-item'+(active?' active':'')+'">'+(images?'<img loading="lazy" src="'+escapeText(images.art)+'" alt="">':'<div class="costume-placeholder">👗</div>')+
-     '<strong>'+escapeText(def.name||def.id)+'</strong><button type="button" class="control-btn" data-costume-hero="'+id+'" data-costume-id="'+escapeText(def.id)+'"'+(!images||!has||active?' disabled':'')+'>'+status+'</button></div>';
-   }).join('')+'</div><small>เปลี่ยนรูปลักษณ์เท่านั้น · ไม่เปลี่ยนค่าสเตตัส</small></section>';
+     '<strong>'+escapeText(def.name||def.id)+'</strong>'+(def.rarity?'<span class="costume-rarity '+(def.rarity==='EPIC'?'epic':'')+'">'+escapeText(def.rarity)+'</span>':'')+(def.price&&!has?'<small class="costume-price">💎 '+fmt(def.price)+'</small>':'')+
+     '<button type="button" class="control-btn" data-costume-hero="'+id+'" data-costume-id="'+escapeText(def.id)+'"'+(sale?' data-costume-buy="1"':'')+(!images||(!has&&!sale)||active?' disabled':'')+'>'+status+'</button></div>';
+   }).join('')+'</div><small>เปลี่ยนรูปลักษณ์และ VFX ตามชุด · ไม่เปลี่ยนค่าสเตตัส</small></section>';
  }
  let skillView=null;
+ function purchaseCostume(id,c){
+  const def=CORE.costumeDefs(HEROES,id).find(x=>x.id===c);
+  if(!def||!costumeImages(id,c)||CORE.ownsCostume(state,HEROES,id,c))return;
+  if(state.rubies<def.price){toast('💎 Rubies ไม่พอ · ต้องใช้ '+fmt(def.price));return;}
+  if(!window.confirm('ซื้อ '+def.name+' ของ '+HEROES[id].name+' ในราคา '+fmt(def.price)+' Rubies?'))return;
+  if(!CORE.buyCostume(state,HEROES,id,c))return;
+  save();renderPanels();
+  if(skillView&&!$('skillModal').hidden)openSkill(skillView.id,skillView.source,skillView.unit);
+  toast('👗 ซื้อคอสตูมสำเร็จ · กดสวมใส่ได้เลย');
+ }
  function selectCostume(id,c){
   if(c&&!costumeImages(id,c)||!CORE.equipCostume(state,HEROES,id,c))return;
   syncCostumeSprites(id);save();renderPanels();
@@ -1081,20 +1106,20 @@ function renderVfxRegion(spec,from,to=null,scale=1){
  VFX.placeRegion(node,spec,region);VFX.animateLifetime(node,spec);addTransientFx(node,time.total);
 }
 function visualEffect(event,actor,x=actor.x,y=actor.y,scale=1){
- const spec=VFX?.getSpec(HEROES[actor.id],event);if(!spec)return;
+ const spec=VFX?.getSpec(HEROES[actor.id],event,costumeFxFor(actor));if(!spec)return;
  renderVfxRegion(spec,spec.mode==='beam'?actor:{x,y},spec.mode==='beam'?{x,y}:null,scale);
 }
 // Use the shield creator's artwork at the protected unit, even if the creator has left combat.
  function shieldEffect(target,source=target.shieldSource){
-  visualEffect('shield',{id:source||target.id,x:target.x,y:target.y});
+  visualEffect('shield',{id:source||target.id,side:target.side,x:target.x,y:target.y});
  }
  function beamEffect(actor,target,special=false){
- const spec=VFX?.getSpec(HEROES[actor.id],special?'skillProjectile':'projectile');
+ const spec=VFX?.getSpec(HEROES[actor.id],special?'skillProjectile':'projectile',costumeFxFor(actor));
  if(spec?.mode!=='beam')return false;
  renderVfxRegion(spec,actor,target);return true;
 }
 function imageProjectile(node,actor,special=false){
- const spec=VFX?.getSpec(HEROES[actor.id],special?'skillProjectile':'projectile');if(!spec)return false;
+ const spec=VFX?.getSpec(HEROES[actor.id],special?'skillProjectile':'projectile',costumeFxFor(actor));if(!spec)return false;
  node.classList.add('image-projectile');
  const size=(spec.src.endsWith('/combat-atlas.svg')?(special?58:36):spec.size)*Math.min(1,arenaSize.width/540);
  node.style.width=size*spec.scaleX+'px';node.style.height=size*spec.scaleY+'px';node.dataset.fxRotation=String(spec.rotation);node.dataset.fxOffsetX=String(spec.offsetX);node.dataset.fxOffsetY=String(spec.offsetY);VFX.paint(node,spec,spec.frames>1&&!spec.src.endsWith('/combat-atlas.svg'));VFX.animateLifetime(node,spec,true);return true;
@@ -1388,7 +1413,7 @@ function fireLayer(){
   const f=TFT.makeFireTrail(ray,hero.fireTrail,speed,stageClock,attacker.dotDamage||0);
   f.owner=attacker;f.side=attacker.side;
   const node=el('div',{class:'fire-ground-strip '+(f.side==='enemy'?'hostile-fire':'ally-fire')});
-  const art=el('span',{class:'fire-ground-art'}),spec=VFX?.getSpec(HEROES[attacker.id],'groundFire');
+  const art=el('span',{class:'fire-ground-art'}),spec=VFX?.getSpec(HEROES[attacker.id],'groundFire',costumeFxFor(attacker));
   if(spec)VFX.paint(art,{...spec,delayMs:0,loopFrames:true},true);
   node.appendChild(art);f.node=node;node.style.display='none';fireLayer().appendChild(node);fireTrails.push(f);return f;
  }
@@ -2012,7 +2037,7 @@ for(const layerId of ['heroLayer','monsterLayer']){
  });
 }
 for(const host of [$('heroDetails'),$('skillModalContent')])host.addEventListener('click',e=>{
- const b=e.target.closest('[data-costume-hero]');if(b&&!b.disabled)selectCostume(b.dataset.costumeHero,b.dataset.costumeId);
+ const b=e.target.closest('[data-costume-hero]');if(b&&!b.disabled)(b.dataset.costumeBuy?purchaseCostume:selectCostume)(b.dataset.costumeHero,b.dataset.costumeId);
 });
 $('closeSkillBtn').addEventListener('click',closeSkill);
 $('skillModal').querySelector('.modal-overlay').addEventListener('click',closeSkill);
