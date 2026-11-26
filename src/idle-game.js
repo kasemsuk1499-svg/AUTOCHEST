@@ -28,6 +28,52 @@ const studioMode=!!studioTrialId&&!!HEROES[studioTrialId];
 let loaded=studioMode?null:safe(()=>JSON.parse(localStorage.getItem(CORE.KEY)),null);
 let state=CORE.normalized(loaded,HEROES);
 const run=()=>CORE.activeRun(state),night=()=>state.mode==='nightmare';
+ const costumeAssets=new Map();
+ const costumeKey=(id,c)=>id+'/'+c;
+ const costumeImages=(id,c)=>costumeAssets.get(costumeKey(id,c));
+ function heroImages(id,side='ally'){
+  const c=state.costumes?.[id]?.equipped;
+  return side==='ally'&&c&&CORE.ownsCostume(state,HEROES,id,c)&&costumeImages(id,c)||HEROES[id].images;
+ }
+ function probeCostumeImage(base){
+  return new Promise(resolve=>{
+   const tryImage=ext=>{const img=new Image();img.onload=()=>resolve(base+'.'+ext);img.onerror=()=>ext==='png'?tryImage('gif'):resolve(null);img.src=base+'.'+ext;};
+   tryImage('png');
+  });
+ }
+ function syncCostumeSprites(id){
+  for(const actor of fighters)if(actor.id===id)pose(actor,actor.attackUntil>stageClock);
+ }
+ async function loadCostumeAssets(){
+  await Promise.all(IDS.flatMap(id=>CORE.costumeDefs(HEROES,id).map(async def=>{
+   const folder='./assets/heroes/'+id+'/costumes/'+def.id+'/';
+   const [art,idle,attack]=await Promise.all(['art','idle','attack'].map(slot=>probeCostumeImage(folder+slot)));
+   costumeAssets.set(costumeKey(id,def.id),art&&idle&&attack?{art,idle,attack}:null);
+   syncCostumeSprites(id);
+  })));
+  renderPanels();
+  if(skillView&&!$('skillModal').hidden&&skillView.source!=='enemy')openSkill(skillView.id,skillView.source,skillView.unit);
+ }
+ function costumeHtml(id){
+  const defs=CORE.costumeDefs(HEROES,id);if(!defs.length)return '';
+  const current=state.costumes?.[id]?.equipped||'',owned=!!state.owned[id];
+  return '<section class="costume-section"><h3>👗 คอสตูม</h3><div class="costume-grid">'+
+   [{id:'',name:'ชุดดั้งเดิม'},...defs].map(def=>{
+    const images=def.id?costumeImages(id,def.id):HEROES[id].images;
+    const has=owned&&(!def.id||CORE.ownsCostume(state,HEROES,id,def.id)),active=has&&current===def.id&&!!images;
+    const status=!images?(costumeAssets.has(costumeKey(id,def.id))?'รอไฟล์รูป':'กำลังตรวจรูป'):!has?'🔒 ยังไม่ได้เป็นเจ้าของ':active?'✓ สวมใส่อยู่':def.id?'สวมใส่':'ถอดคอสตูม';
+    return '<div class="costume-item'+(active?' active':'')+'">'+(images?'<img loading="lazy" src="'+escapeText(images.art)+'" alt="">':'<div class="costume-placeholder">👗</div>')+
+     '<strong>'+escapeText(def.name||def.id)+'</strong><button type="button" class="control-btn" data-costume-hero="'+id+'" data-costume-id="'+escapeText(def.id)+'"'+(!images||!has||active?' disabled':'')+'>'+status+'</button></div>';
+   }).join('')+'</div><small>เปลี่ยนรูปลักษณ์เท่านั้น · ไม่เปลี่ยนค่าสเตตัส</small></section>';
+ }
+ let skillView=null;
+ function selectCostume(id,c){
+  if(c&&!costumeImages(id,c)||!CORE.equipCostume(state,HEROES,id,c))return;
+  syncCostumeSprites(id);save();renderPanels();
+  if(skillView&&!$('skillModal').hidden)openSkill(skillView.id,skillView.source,skillView.unit);
+  toast(c?'👗 สวมคอสตูมแล้ว':'👗 กลับชุดดั้งเดิมแล้ว');
+ }
+
 let dungeon=null,dungeonTierKey='';
 const dungeonName=kind=>kind==='gold'?'ดันเจี้ยนทอง':'ดันเจี้ยน EXP';
 const floorResetGift=!!loaded&&loaded.version===1&&Number(loaded.floorResetEvent||0)<CORE.FLOOR_RESET_EVENT;
@@ -155,7 +201,7 @@ function invaderPatrol(foe,t){
 }
 function pose(actor,attack){
  if(!actor.img)return;
- const image=HEROES[actor.id].images[attack?'attack':'idle'];
+ const image=heroImages(actor.id,actor.side)[attack?'attack':'idle'];
  if(actor.sprite!==image){actor.img.src=image;actor.sprite=image}
 }
 // Translate on the compositor instead of restarting a 280ms CSS transition each frame.
@@ -451,7 +497,7 @@ function renderSynergies(){
   return '<div class="synergy-row '+(t.active?'synergy-active':'')+'"><div class="synergy-line"><strong>'+t.icon+' '+escapeText(t.name)+'</strong><b>'+t.members.length+'/'+target+(t.active?' ✓':'')+'</b></div>'+
    '<div class="synergy-effect">'+(t.active?escapeText(synergyEffect(t.active)):'ยังไม่ทำงาน')+'</div>'+
    '<div class="synergy-tier-line">'+t.tiers.map(x=>'<span class="'+(t.active?.count===x.count?'reached':'')+'">'+x.count+' ตัว · '+escapeText(synergyEffect(x))+'</span>').join('')+'</div>'+
-   '<div class="synergy-members">'+t.available.map(id=>'<span class="'+(t.members.includes(id)?'deployed':'')+'" title="'+escapeText(HEROES[id].name)+'"><img loading="lazy" src="'+HEROES[id].portrait+'" alt="'+escapeText(HEROES[id].name)+'"></span>').join('')+'</div>'+
+   '<div class="synergy-members">'+t.available.map(id=>'<span class="'+(t.members.includes(id)?'deployed':'')+'" title="'+escapeText(HEROES[id].name)+'"><img loading="lazy" src="'+heroImages(id).art+'" alt="'+escapeText(HEROES[id].name)+'"></span>').join('')+'</div>'+
    (t.next?'<small>ขาดอีก '+(t.next.count-t.members.length)+' ตัวสำหรับขั้นถัดไป</small>':'<small>ครบขั้นสูงสุด</small>')+'</div>';
  }).join('');
 }
@@ -468,7 +514,7 @@ function renderTeam(){
    rarityClass(t)+
    '" data-slot="'+id+'" aria-label="เลือก '+escapeText(t.name)+' เลเวล '+p.level+' '+p.stars+' ดาว">'+
    '<span class="team-level">'+(CORE.isMaxHero(p)?'MAX':'Lv.'+p.level)+'</span>'+rarityBadge(t)+
-   '<img loading="lazy" src="'+t.images.idle+'" alt="">'+
+   '<img loading="lazy" src="'+heroImages(id).idle+'" alt="">'+
    '<strong title="'+escapeText(t.name)+'">'+heroNameMarks(t)+'</strong>'+
    '<span class="team-stars" title="'+p.stars+' ดาว'+(p.stars>=CORE.MAX_STARS?' · MAX':'')+'">'+'★'.repeat(p.stars)+'</span>'+
    '<span class="team-ready" title="เสริมแกร่งได้แล้ว">⬆</span></button>';
@@ -526,7 +572,7 @@ function renderHeroes(){
   const t=HEROES[id],p=state.owned[id],ready=readyUpgrade(id);
   return '<div class="hero-entry"><button type="button" class="hero-card '+(!p?'locked ':'')+
    (selected===id?'active ':'')+(ready?'is-upgrade-ready ':'')+rarityClass(t)+'" data-hero="'+id+'">'+rarityBadge(t)+
-   '<img loading="lazy" src="'+t.portrait+'" alt="">'+
+   '<img loading="lazy" src="'+heroImages(id).art+'" alt="">'+
    '<strong>'+heroNameMarks(t)+'</strong>'+
    '<span class="collection-level">'+(p?(CORE.isMaxHero(p)?'✓ MAX':'LEVEL '+p.level+(p.level>=CORE.MAX_LEVEL?' MAX':'')):'🔒 ไม่ได้ปลดล็อก')+'</span>'+
    '<span class="collection-stars">'+(p?'★'.repeat(p.stars)+'☆'.repeat(CORE.MAX_STARS-p.stars)+(p.stars>=CORE.MAX_STARS?' MAX':''):'☆☆☆☆☆')+'</span>'+
@@ -539,7 +585,7 @@ function renderSelected(){
  const id=selected,hero=HEROES[id],p=state.owned[id],box=$('heroDetails');
  if(!hero){box.textContent='แตะฮีโร่ในทีมเพื่อดูข้อมูล';return}
  if(!p){
-  box.innerHTML='<div class="upgrade-hero-header"><img src="'+hero.portrait+'" alt=""><div>'+
+  box.innerHTML='<div class="upgrade-hero-header"><img src="'+heroImages(id).art+'" alt=""><div>'+
    '<h4>'+escapeText(hero.name)+' '+rarityBadge(hero)+'</h4><span class="upgrade-lock">🔒 ยังไม่ได้อัญเชิญ</span>'+
    '<p>'+escapeText(hero.subtitle||'')+'</p></div></div>'+
    '<div class="upgrade-empty">ปลดล็อกโดยอัญเชิญฮีโร่จากกาชาด้านล่าง เพื่อเริ่มอัปเลเวลและดาว</div>'+
@@ -558,7 +604,7 @@ function renderSelected(){
  const lvPct=Math.round((p.level-1)/(CORE.MAX_LEVEL-1)*100);
  const starPct=atStarMax?100:Math.min(100,Math.round(p.shards/starNeed*100));
  const shardMissing=Math.max(0,starNeed-p.shards);
- box.innerHTML='<div class="upgrade-hero-header"><img src="'+hero.portrait+'" alt=""><div class="upgrade-identity">'+
+ box.innerHTML='<div class="upgrade-hero-header"><img src="'+heroImages(id).art+'" alt=""><div class="upgrade-identity">'+
   '<span class="upgrade-kicker">HERO PROGRESSION</span><h4>'+escapeText(hero.name)+' '+rarityBadge(hero)+'</h4>'+
   '<p>'+escapeText(hero.team)+' · '+attackTypeName(hero)+' · '+escapeText(hero.skill)+'</p>'+
   '<div class="upgrade-badges"><span>Lv.'+p.level+' / '+CORE.MAX_LEVEL+'</span>'+
@@ -602,7 +648,7 @@ function renderSelected(){
   '</section>')+
   '<div class="upgrade-footer-actions"><button type="button" id="deployHeroBtn" class="deploy-action"'+'>'+
    (inTeam?'↩ ถอนเข้าตัวสำรอง':full?'↔️ ลากทับฮีโร่ในทีม':'⚔️ เพิ่มเข้าทีม')+'</button>'+
-   '<button type="button" id="openSkillBtn" class="inspect-skill-btn">ⓘ ดูสกิลทั้งหมด</button></div>';
+   '<button type="button" id="openSkillBtn" class="inspect-skill-btn">ⓘ ดูสกิลทั้งหมด</button></div>'+costumeHtml(id);
 }
 function starPerkLabel(step){
  let label=step.label;
@@ -693,6 +739,7 @@ function skillDescription(t,enemy=false){
 }
 function openSkill(id,source='hero',unit=null){
  const base=HEROES[id],modal=$('skillModal');if(!base||!modal)return;
+ skillView={id,source,unit};
  const enemy=source==='enemy',progress=enemy?null:state.owned[id];
  const active=enemy?(unit||enemies.find(x=>x.id===id)):null;
  const stars=enemy?(active?.stars||1):(progress?.stars||1),h=enemy?CORE.enemyHero(base,stars,!!active?.boss):CORE.heroAtStars(base,stars),stat=enemy?CORE.stats(base,{level:1,stars}):CORE.teamHeroStats(state,HEROES,id,progress||{level:1,stars});
@@ -711,7 +758,7 @@ function openSkill(id,source='hero',unit=null){
   '⭐ Lv.'+progress.level+' · '+progress.stars+' ดาว':'🔒 ยังไม่อัญเชิญ · ค่าสถานะพื้นฐาน';
  $('skillModalTitle').textContent=h.name+' — '+h.skill;
  $('skillModalContent').innerHTML=
-  '<div class="skill-modal-layout"><div class="skill-portrait"><img loading="lazy" src="'+escapeText(h.images.art||h.portrait)+'" alt="'+escapeText(h.name)+'"></div>'+
+  '<div class="skill-modal-layout"><div class="skill-portrait"><img loading="lazy" src="'+escapeText(enemy?h.images.art:heroImages(id).art)+'" alt="'+escapeText(h.name)+'"></div>'+
   '<div class="skill-modal-main"><div class="skill-status">'+escapeText(label)+'</div><h3>'+escapeText(h.name)+'</h3>'+
   '<p>'+escapeText(h.subtitle||'')+'</p><div class="skill-tags">'+rarityBadge(h)+'<span>'+escapeText(h.role||h.team)+'</span>'+
   (h.traits||[]).map(x=>'<span>'+escapeText(x)+'</span>').join('')+(h.faction==='celestial_beast'&&!CORE.teamSynergies(state,HEROES).some(t=>t.id==='celestial_beast')?'<span>🦊 สัตว์สวรรค์</span>':'')+CORE.teamSynergies(state,HEROES).filter(t=>t.available.includes(id)).map(t=>'<span>'+escapeText(t.icon+' '+t.name)+(!enemy&&t.active&&t.members.includes(id)?' ✓':'')+'</span>').join('')+'</div>'+
@@ -719,14 +766,14 @@ function openSkill(id,source='hero',unit=null){
   '</div></div></div><section class="skill-ability"><small>⚔ AUTO SKILL · IDLE MODE</small>'+
   '<h3>✨ '+escapeText(h.skill)+'</h3><ul>'+
   skillDescription(h,enemy).map(x=>'<li>'+escapeText(x)+'</li>').join('')+'</ul>'+
-  '<p class="skill-mode-note">ใช้กติกาต่อสู้ TFT เดิม ผสมระบบฟาร์มและกาชาแบบ Idle · เลเวลและดาวอิงค่าปัจจุบัน</p></section>'+starUpgradeHtml(base,stars);
+  '<p class="skill-mode-note">ใช้กติกาต่อสู้ TFT เดิม ผสมระบบฟาร์มและกาชาแบบ Idle · เลเวลและดาวอิงค่าปัจจุบัน</p></section>'+starUpgradeHtml(base,stars)+(enemy?'':costumeHtml(id));
  $('skillModalContent').insertAdjacentHTML('beforeend','<button type="button" class="trial-entry" data-trial-hero="'+id+'">▶ ทดลองฮีโร่ฟรี</button>');
  skillReturnFocus=modal.hidden?document.activeElement:skillReturnFocus;
  modal.hidden=false;$('closeSkillBtn').focus();
 }
 function closeSkill(){
  const modal=$('skillModal');if(modal.hidden)return;
- modal.hidden=true;
+ modal.hidden=true;skillView=null;
  if(skillReturnFocus?.isConnected&&skillReturnFocus.focus)skillReturnFocus.focus();
  skillReturnFocus=null;
 }
@@ -1085,10 +1132,10 @@ function buildFighters(preserve=false){
   node.tabIndex=0;node.setAttribute('role','button');node.setAttribute('aria-label','ดูสกิล '+base.name);
   node.style.left=hero.x+'%';node.style.top=hero.y+'%';
   node.innerHTML='<span class="mini-stars">'+'★'.repeat(hero.progress.stars)+' · Lv.'+hero.progress.level+'</span>'+
-   '<img src="'+base.images.idle+'" alt="">'+
+   '<img src="'+heroImages(hero.id).idle+'" alt="">'+
    '<div class="mini-hp"><i></i></div><span class="fighter-name">'+escapeText(base.name)+'</span>';
   layer.appendChild(node);hero.node=node;hero.img=node.querySelector('img');
-  hero.hpbar=node.querySelector('.mini-hp i');hero.sprite=base.images.idle;
+  hero.hpbar=node.querySelector('.mini-hp i');hero.sprite=heroImages(hero.id).idle;
   hero.hpbar.style.width=Math.max(0,hero.hp/hero.maxHp*100)+'%';
   position(hero);
   if(!hero.alive)node.style.opacity='.2';
@@ -1638,7 +1685,7 @@ function tick(dt){
   if(TFT.isFrozen(f,stageClock)){f.walking=false;if(f.castUntil)f.castUntil+=t;position(f);continue;}
   if(advanceExplosion(f,true)){if(!combat)return;continue}
   f.remaining-=t;
-  if(f.attackUntil<stageClock&&f.sprite!==HEROES[f.id].images.idle){
+  if(f.attackUntil<stageClock&&f.sprite!==heroImages(f.id).idle){
    pose(f,false);f.node.classList.remove('burst');
   }
   const target=pickEnemy(f);
@@ -1709,9 +1756,9 @@ function trialUnit(id,side,x,y,hp,maxHp,label,stars=1){
  const actor={id,side,damageType:CORE.damageType(h),x,y,hp,maxHp,progress,atk:st.atk,cool:st.cool,crit:st.crit,critDamage:st.critDamage,alive:true,shield:0,attacks:0,attackUntil:0,cloakUntil:0,ambush:false,walking:false,label};
  const node=el('div',{class:'fighter '+(side==='enemy'?'enemy-unit trial-dummy':'party-fighter')});
  node.innerHTML='<span class="mini-stars">'+(side==='enemy'?'DUMMY':'Lv.1 '+'★'.repeat(stars))+'</span>'+
- (h?'<img src="'+h.images.idle+'" alt="">':'<div class="dummy-icon">◎</div>')+
+ (h?'<img src="'+heroImages(id,side).idle+'" alt="">':'<div class="dummy-icon">◎</div>')+
  '<div class="mini-hp"><i></i></div><span class="fighter-name">'+escapeText(label||h.name)+'</span><span class="trial-values"></span>';
- $('trialUnits').appendChild(node);actor.node=node;actor.img=node.querySelector('img');actor.sprite=h?.images.idle;
+ $('trialUnits').appendChild(node);actor.node=node;actor.img=node.querySelector('img');actor.sprite=h?heroImages(id,side).idle:undefined;
  actor.hpbar=actor.bar=node.querySelector('.mini-hp i');actor.values=node.querySelector('.trial-values');
  return actor;
 }
@@ -1964,6 +2011,9 @@ for(const layerId of ['heroLayer','monsterLayer']){
   e.preventDefault();openSkill(n.dataset.inspectId,n.dataset.inspectSide==='enemy'?'enemy':'hero',enemies.find(u=>u.node===n));
  });
 }
+for(const host of [$('heroDetails'),$('skillModalContent')])host.addEventListener('click',e=>{
+ const b=e.target.closest('[data-costume-hero]');if(b&&!b.disabled)selectCostume(b.dataset.costumeHero,b.dataset.costumeId);
+});
 $('closeSkillBtn').addEventListener('click',closeSkill);
 $('skillModal').querySelector('.modal-overlay').addEventListener('click',closeSkill);
 document.addEventListener('keydown',e=>{
@@ -2139,7 +2189,7 @@ window.addEventListener('pointermove',e=>{
   if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<8)return;
   drag.active=true;document.body.classList.add('hero-dragging');
   dragGhost=el('div',{class:'hero-drag-ghost','aria-hidden':'true'});
-  dragGhost.innerHTML='<img src="'+HEROES[drag.id].images.idle+'" alt=""><span>'+escapeText(HEROES[drag.id].name)+'</span>';
+  dragGhost.innerHTML='<img src="'+heroImages(drag.id).idle+'" alt=""><span>'+escapeText(HEROES[drag.id].name)+'</span>';
   document.body.appendChild(dragGhost);refreshFormationControls();
  }
  e.preventDefault();dragGhost.style.left=e.clientX+'px';dragGhost.style.top=e.clientY+'px';
@@ -2188,5 +2238,6 @@ if(VFX){VFX.preload(HEROES);VFX.loadPublished().then(()=>VFX.preload(HEROES))}
 if(studioMode){document.body.classList.add('studio-trial-mode');openTrial(studioTrialId)}
 // Decode sprites before their first attack so changing pose is not a network stall.
 for(const hero of Object.values(HEROES))for(const url of new Set([hero.images.idle,hero.images.attack])){const img=new Image();img.src=url;img.decode?.().catch(()=>{});}
+loadCostumeAssets().catch(error=>console.warn('Costume asset check:',error));
 requestAnimationFrame(frame);
 })();
