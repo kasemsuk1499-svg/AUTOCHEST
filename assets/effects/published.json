@@ -1104,6 +1104,33 @@
         "airtimeMs": 0,
         "loopFrames": false
       }
+    },
+    "minato": {
+      "hit": {
+        "src": "./assets/effects/minato/hit-224bafc49ae5.png",
+        "cols": 8,
+        "rows": 1,
+        "row": 0,
+        "col": 0,
+        "frames": 7,
+        "size": 105,
+        "ms": 440,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "thickness": 48,
+        "orientation": "horizontal",
+        "hue": 28,
+        "saturation": 130,
+        "brightness": 100,
+        "colorize": false,
+        "delayMs": 0,
+        "airtimeMs": 0,
+        "loopFrames": false
+      }
     }
   },
   "costumes": {
