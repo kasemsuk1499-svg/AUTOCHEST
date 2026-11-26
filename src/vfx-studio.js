@@ -49,7 +49,7 @@ function selectEvent(){
  const hero=H[$('hero').value],mode=V.slotLayout(hero,event),spec=currentSpec();
  $('eventHint').textContent=mode==='beam'?'ลำแสงยืดตามแนวโจมตีจริงอัตโนมัติ · ไม่ต้องสร้างภาพยาวเท่าสนาม':mode==='field'?'ภาพยืดตามพื้นที่สนามโดยอัตโนมัติ':notes[event]||'แสดงเมื่อกลไกนี้ทำงานจริงในสนาม';
  $('beamSettings').hidden=mode!=='beam';$('pointSettings').hidden=mode==='beam';$('slotMode').textContent=mode==='beam'?'BEAM · ยืดตามแนวยิง':mode==='field'?'FIELD · พื้นที่สนาม':'POINT · จุดแสดงผล';
- if(spec){for(const key of ['scaleX','scaleY','rotation','thickness','orientation','delayMs','airtimeMs','offsetX','offsetY'])$(key).value=spec[key];$('loopFrames').checked=spec.loopFrames;if(!dataURL)for(const key of ['size','ms','cols','rows','frames','row','col'])$(key).value=spec[key]}
+ if(spec){for(const key of ['scaleX','scaleY','rotation','thickness','orientation','delayMs','airtimeMs','offsetX','offsetY'])$(key).value=spec[key];$('loopFrames').checked=spec.loopFrames;for(const key of ['hue','saturation','brightness'])$(key).value=spec[key];$('colorize').checked=spec.colorize;if(!dataURL)for(const key of ['size','ms','cols','rows','frames','row','col'])$(key).value=spec[key]}
  invalidate();play();
 }
 function num(id,min,max){const n=Number($(id).value);if(!Number.isInteger(n)||n<min||n>max)throw Error(id+' ต้องอยู่ระหว่าง '+min+'–'+max);return n}
@@ -57,14 +57,16 @@ function settings(src){
  const cols=num('cols',1,32),rows=num('rows',1,32),row=num('row',0,rows-1),col=num('col',0,cols-1),frames=num('frames',1,cols*(rows-row)-col);
  if(dataURL&&(ext==='gif'||ext==='webp')&&(cols!==1||rows!==1||frames!==1))throw Error('GIF / WebP ให้ใช้ 1 คอลัมน์ 1 แถว 1 เฟรม');
  const mode=V.slotLayout(H[$('hero').value],$('event').value);
- const raw={scaleX:Number($('scaleX').value),scaleY:Number($('scaleY').value),rotation:Number($('rotation').value),thickness:Number($('thickness').value),orientation:$('orientation').value,offsetX:Number($('offsetX').value),offsetY:Number($('offsetY').value)};
+ const raw={scaleX:Number($('scaleX').value),scaleY:Number($('scaleY').value),rotation:Number($('rotation').value),thickness:Number($('thickness').value),orientation:$('orientation').value,offsetX:Number($('offsetX').value),offsetY:Number($('offsetY').value),hue:Number($('hue').value),saturation:Number($('saturation').value),brightness:Number($('brightness').value),colorize:$('colorize').checked};
  return {src,cols,rows,row,col,frames,size:num('size',16,400),ms:num('ms',80,3000),...V.appearance(raw,mode),...V.timing({delayMs:num('delayMs',0,5000),airtimeMs:num('airtimeMs',0,10000),loopFrames:$('loopFrames').checked})};
 }
 function currentSource(){return dataURL||currentSpec()?.src||''}
 function validDraft(){return !!(currentSource()&&!busy)}
 function sync(){let v=validDraft();for(const id of ['trialBtn','exportBtn'])$(id).disabled=!v;$('publishBtn').disabled=!v||!$('token').value.trim();}
 function invalidate(){if(!$('trialPanel').hidden)closeTrial();sync()}
+function updateDyeReadout(){for(const [id,suffix] of [['hue','°'],['saturation','%'],['brightness','%']])$(id+'Value').textContent=$(id).value+suffix;}
 function play(){
+ updateDyeReadout();
  clearTimeout(loopTimer);
  const node=$('previewFx');node.getAnimations?.().forEach(a=>a.cancel());
  try{
@@ -184,6 +186,8 @@ for(const id of ['size','ms','cols','rows','frames','row','col','scaleX','scaleY
 for(const [id,dc,dr] of [['lessCols',-1,0],['moreCols',1,0],['lessRows',0,-1],['moreRows',0,1]])$(id).onclick=()=>applyGrid(Math.max(1,Math.min(32,Number($('cols').value)+dc)),Math.max(1,Math.min(32,Number($('rows').value)+dr)));
 $('pickStart').onclick=()=>{pick='start';drawGrid()};$('pickEnd').onclick=()=>{pick='end';drawGrid()};$('allFrames').onclick=()=>applyGrid(Number($('cols').value),Number($('rows').value));
 $('loopBtn').onclick=()=>{loop=!loop;$('loopBtn').setAttribute('aria-pressed',String(loop));$('loopBtn').textContent=loop?'⏸ หยุดวน':'↻ เล่นวน';play()};
+for(const id of ['hue','saturation','brightness','colorize'])$(id).addEventListener('input',()=>{invalidate();play()});
+$('resetDye').onclick=()=>{$('hue').value=0;$('saturation').value=100;$('brightness').value=100;$('colorize').checked=false;invalidate();play()};
 $('resetOffset').onclick=()=>{$('offsetX').value=0;$('offsetY').value=0;invalidate();play()};
 $('playBtn').onclick=play;$('trialBtn').onclick=openTrial;$('closeTrial').onclick=closeTrial;$('exportBtn').onclick=exportDraft;$('token').oninput=sync;$('forgetToken').onclick=()=>{$('token').value='';sync()};$('publishBtn').onclick=publish;
 window.addEventListener('pagehide',()=>{try{sessionStorage.removeItem(draftKey)}catch(_){}});
