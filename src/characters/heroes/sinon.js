@@ -3,31 +3,32 @@ window.AUTOCHEST_CHARACTERS.registerHero({
  starUpgrades:[
   {
     "star": 2,
-    "label": "กระสุนพิฆาต 240% → 320% ATK",
+    "label": "กระสุนพิฆาต 320% → 400% ATK",
     "patch": {
-      "skillPower": 3.2
+      "skillPower": 4
     }
   },
   {
     "star": 3,
-    "label": "โอกาสคริติคอล 40%",
+    "label": "โอกาสคริติคอล 45%",
     "patch": {
-      "critChance": 0.4
+      "critChance": 0.45
     }
   },
   {
     "star": 4,
-    "label": "ใช้สกิลทุก 3 ครั้ง",
+    "label": "ใช้สกิลทุก 5 ครั้ง · รัศมีทะลวง 60 px",
     "patch": {
-      "triggerEvery": 3
+      "triggerEvery": 2,
+      "pierceRadius": 60
     }
   },
   {
     "star": 5,
-    "label": "กระสุนพิฆาต 450% ATK · CRIT DMG 240%",
+    "label": "กระสุนพิฆาต 550% ATK · CRIT DMG 250%",
     "patch": {
-      "skillPower": 4.5,
-      "critDamage": 2.4
+      "skillPower": 5.5,
+      "critDamage": 2.5
     }
   }
 ],
@@ -45,18 +46,18 @@ window.AUTOCHEST_CHARACTERS.registerHero({
   ],
   "cost": 2,
   "hp": 410,
-  "dmg": 145,
+  "dmg": 165,
   "range": 12,
-  "cool": 1.65,
+  "cool": 1.3,
   "move": 87,
-  "critChance": 0.25,
-  "critDamage": 1.85,
+  "critChance": 0.30,
+  "critDamage": 1.95,
   "skill": "กระสุนพิฆาต",
   "effect": "pierce",
-  "skillPower": 2.4,
-  "pierceRadius": 36,
+  "skillPower": 3.2,
+  "pierceRadius": 48,
   "projectileSpeed": 950,
-  "triggerEvery": 4,
+  "triggerEvery": 3,
   "col": "#82d0c7",
   "e": "✦",
   "portrait": "./assets/heroes/sinon/art.png",
