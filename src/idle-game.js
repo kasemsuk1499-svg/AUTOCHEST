@@ -232,7 +232,7 @@ function invaderPatrol(foe,t){
  else foe.walking=false;
 }
 function pose(actor,attack){
- if(!actor.img)return;
+ if(backgroundSession||!actor.img)return;
  const image=actorImages(actor)[attack?'attack':'idle'];
  if(actor.sprite!==image){actor.img.src=image;actor.sprite=image}
 }
@@ -246,7 +246,7 @@ function refreshArenaSize(){
  for(const f of fireTrails)positionFireTrail(f);
 }
 function setArenaPosition(node,x,y,angle=null){
- if(!node)return;
+ if(backgroundSession||!node)return;
  const px=x*arenaSize.width/100,py=y*arenaSize.height/100;
  const transform='translate3d('+px.toFixed(2)+'px,'+py.toFixed(2)+'px,0) translate(-50%,-50%)'+(angle===null?'':' rotate('+angle+'rad)');
  if(node.style.transform!==transform)node.style.transform=transform;
@@ -258,7 +258,7 @@ function setShotVisualPosition(node,x,y,angle){
 }
 function positionShot(shot){const angle=shot.pierce?Math.atan2(shot.pierce.dy*arenaSize.height/TFT.H,shot.pierce.dx*arenaSize.width/TFT.W):shot.target?Math.atan2((shot.target.y-shot.y)*arenaSize.height,(shot.target.x-shot.x)*arenaSize.width):null;setShotVisualPosition(shot.node,shot.x,shot.y,angle||0)}
 function position(actor){
- if(!actor?.node)return;
+ if(backgroundSession||!actor?.node)return;
  setArenaPosition(actor.node,actor.x,actor.y);
  actor.node.classList.toggle('walking',!!actor.walking&&actor.attackUntil<=stageClock);
  actor.node.classList.toggle('frozen',actor.hp>0&&TFT.isFrozen(actor,stageClock));
@@ -318,7 +318,6 @@ const el=(tag,attrs={},inner='')=>{
  return node;
 };
 function save(){
- settleBackground();
  if(studioMode||suppressSave){lastSave=performance.now();return}
  // Do not let an already open tab overwrite a newly rerolled account.
  const stored=safe(()=>JSON.parse(localStorage.getItem(CORE.KEY)),null);
@@ -331,9 +330,10 @@ function save(){
 }
 function log(msg){
  logLines.unshift(msg);logLines=logLines.slice(0,3);
- $('battleLog').textContent=logLines.join('   ·   ');
+ if(!backgroundSession)$('battleLog').textContent=logLines.join('   ·   ');
 }
 function toast(msg){
+ if(backgroundSession)return;
  const n=$('toast');n.textContent=msg;n.classList.add('show');
  clearTimeout(toastTimer);toastTimer=setTimeout(()=>n.classList.remove('show'),2300);
 }
@@ -389,6 +389,7 @@ function renderDungeonControls(){
  $('dungeonReward').textContent=dungeon?'ชนะ '+dungeon.wins+' รอบ · รับสะสม '+fmt(dungeon.earned)+' '+(dungeon.kind==='gold'?'Gold':'EXP')+' · จ่าย '+fmt(dungeon.spent)+' 💎 · '+(state.dungeonRepeat?'AUTO REPEAT ON':'จบแล้วกลับด่านหลัก'):$('dungeonReward').textContent;
 }
 function updateResources(){
+ if(backgroundSession)return;
  $('goldValue').textContent=fmt(state.gold);
  $('expValue').textContent=fmt(state.heroExp);
  $('rubyValue').textContent=fmt(state.rubies);
@@ -811,6 +812,7 @@ function closeSkill(){
  skillReturnFocus=null;
 }
 function renderQuest(){
+ if(backgroundSession)return;
  let task;
  if(dungeon)task='✦ '+dungeonName(dungeon.kind)+' · ชนะผู้พิทักษ์เพื่อรับทรัพยากร · ไม่กระทบด่านหลัก';
  else if(farming())task='🪙 ฟาร์มด่าน '+battleStage()+' · ความคืบหน้าด่านหลัก '+run().stage+' ไม่เปลี่ยน';
@@ -824,6 +826,7 @@ function renderQuest(){
  $('guideQuest').innerHTML='✧ '+task+'<br><small>เวฟเป็นชุด • Auto ฟาร์ม • แพ้บอสไม่ตกด่าน'+extra+'</small>';
 }
 function renderPanels(){
+ if(backgroundSession)return;
  renderGrid();updateResources();renderTeam();renderHeroes();renderSelected();renderQuest();
  refreshUpgradePicker();
 }
@@ -1069,6 +1072,7 @@ const MAX_VISUAL_EFFECTS=70,MAX_ACTIVE_SHOTS=36;
 const fxLanes=new WeakMap();
 function effectLayer(){return $(trialContext?'trialFx':'fxLayer')}
 function addTransientFx(node,duration){
+ if(backgroundSession)return;
  const layer=effectLayer();
  if(layer.childElementCount>=MAX_VISUAL_EFFECTS){
   // Prioritize actual combat numbers; remove the oldest decorative effect first.
@@ -1088,6 +1092,7 @@ function spawnFx(label,x,y,critical=false,kind='status',lane=0){
  addTransientFx(fx,1050);
 }
 function unitFx(actor,label,kind='status',critical=false){
+ if(backgroundSession)return;
  if(trialContext){const name=HEROES[actor.id]?.name||actor.label||'หุ่นฝึก';trialContext.events.unshift({name,label,kind});trialContext.events.length=Math.min(6,trialContext.events.length)}
  const now=performance.now(),prev=fxLanes.get(actor);
  const lane=prev&&now-prev.at<360?(prev.lane+1)%5:0;
@@ -1095,11 +1100,13 @@ function unitFx(actor,label,kind='status',critical=false){
  spawnFx(label,actor.x,actor.y,critical,kind,lane);
 }
 function statusFx(actor,key,label){
+ if(backgroundSession)return;
  const now=performance.now(),map=actor.fxStatusTimes||(actor.fxStatusTimes={});
  if(map[key]!==undefined&&now-map[key]<420)return;
  map[key]=now;unitFx(actor,label,'status');
 }
 function projectile(x1,y1,x2,y2,color='#c6f7ff'){
+ if(backgroundSession)return;
  const node=el('span',{class:'fx-bolt'});
  node.style.left=x1+'%';node.style.top=y1+'%';node.style.color=color;
  node.style.setProperty('--dx',(x2-x1)*arenaSize.width/100+'px');
@@ -1107,13 +1114,14 @@ function projectile(x1,y1,x2,y2,color='#c6f7ff'){
  addTransientFx(node,360);
 }
 function renderVfxRegion(spec,from,to=null,scale=1){
- if(!spec)return;
+ if(backgroundSession||!spec)return;
  const node=el('span',{class:'image-vfx'+(spec.mode==='beam'?' beam-vfx':'')});
  const region=VFX.geometry(spec,arenaSize,from,to,scale);
  const time=VFX.lifetime(spec);node.style.setProperty('--vfx-duration',time.visible+'ms');node.style.setProperty('--vfx-delay',time.delayMs+'ms');
  VFX.placeRegion(node,spec,region);VFX.animateLifetime(node,spec);addTransientFx(node,time.total);
 }
 function visualEffect(event,actor,x=actor.x,y=actor.y,scale=1){
+ if(backgroundSession)return;
  const spec=VFX?.getSpec(HEROES[actor.id],event,costumeFxFor(actor),actorCostume(actor)?.id||'');if(!spec)return;
  renderVfxRegion(spec,spec.mode==='beam'?actor:{x,y},spec.mode==='beam'?{x,y}:null,scale);
 }
@@ -1127,12 +1135,14 @@ function visualEffect(event,actor,x=actor.x,y=actor.y,scale=1){
  renderVfxRegion(spec,actor,target);return true;
 }
 function imageProjectile(node,actor,special=false){
+ if(backgroundSession)return false;
  const spec=VFX?.getSpec(HEROES[actor.id],special?'skillProjectile':'projectile',costumeFxFor(actor),actorCostume(actor)?.id||'');if(!spec)return false;
  node.classList.add('image-projectile');
  const size=(spec.src.endsWith('/combat-atlas.svg')?(special?58:36):spec.size)*Math.min(1,arenaSize.width/540);
  node.style.width=size*spec.scaleX+'px';node.style.height=size*spec.scaleY+'px';node.dataset.fxRotation=String(spec.rotation);node.dataset.fxOffsetX=String(spec.offsetX);node.dataset.fxOffsetY=String(spec.offsetY);VFX.paint(node,spec,spec.frames>1&&!spec.src.endsWith('/combat-atlas.svg'));VFX.animateLifetime(node,spec,true);return true;
 }
 function ring(x,y,cloak=false){
+ if(backgroundSession)return;
  const node=el('span',{class:cloak?'fx-cloak':'fx-ring'});
  node.style.left=x+'%';node.style.top=y+'%';
  addTransientFx(node,850);
@@ -1165,10 +1175,10 @@ function buildFighters(preserve=false){
   node.tabIndex=0;node.setAttribute('role','button');node.setAttribute('aria-label','ดูสกิล '+base.name);
   node.style.left=hero.x+'%';node.style.top=hero.y+'%';
   node.innerHTML='<span class="mini-stars">'+'★'.repeat(hero.progress.stars)+' · Lv.'+hero.progress.level+'</span>'+
-   '<img src="'+heroImages(hero.id).idle+'" alt="">'+
+   (backgroundSession?'<img alt="">':'<img src="'+heroImages(hero.id).idle+'" alt="">')+
    '<div class="mini-hp"><i></i></div><span class="fighter-name">'+escapeText(base.name)+'</span>';
   layer.appendChild(node);hero.node=node;hero.img=node.querySelector('img');
-  hero.hpbar=node.querySelector('.mini-hp i');hero.sprite=heroImages(hero.id).idle;
+  hero.hpbar=node.querySelector('.mini-hp i');hero.sprite=backgroundSession?'':heroImages(hero.id).idle;
   hero.hpbar.style.width=Math.max(0,hero.hp/hero.maxHp*100)+'%';
   position(hero);
   if(!hero.alive)node.style.opacity='.2';
@@ -1206,12 +1216,12 @@ function spawnMonster(boss=false,cell=null,quiet=false,forcedId=null){
  node.tabIndex=0;node.setAttribute('role','button');
  node.setAttribute('aria-label','ดูสกิลศัตรู '+hero.name);
  node.innerHTML='<span class="mini-stars">'+(boss?'👑 '+'★'.repeat(stat.stars):night()?'⚔ '+'★'.repeat(stat.stars):'⚔')+' · Lv.'+stat.level+'</span>'+
-  '<img src="'+hero.images.idle+'" alt="">'+
+  (backgroundSession?'<img alt="">':'<img src="'+hero.images.idle+'" alt="">')+
   '<div class="mini-hp enemy-hp"><i></i></div>'+
   '<span class="fighter-name">'+(boss?'👑 ':'⚔ เงา')+escapeText(hero.name)+'</span>';
  $('monsterLayer').appendChild(node);
  foe.node=node;foe.img=node.querySelector('img');foe.bar=node.querySelector('.enemy-hp i');
- foe.sprite=hero.images.idle;
+ foe.sprite=backgroundSession?'':hero.images.idle;
  enemies.push(foe);combat=enemies[0];
  position(foe);travelScene();
  if(!quiet){
@@ -1401,6 +1411,7 @@ function fireLayer(){
   return node;
  }
  function positionFireTrail(f){
+  if(backgroundSession)return;
   const b=TFT.fireBounds(f,stageClock),node=f.node;
   if(!node)return;
   if(!b.active){node.style.display='none';return}
@@ -1422,7 +1433,7 @@ function fireLayer(){
   f.owner=attacker;f.side=attacker.side;
   const node=el('div',{class:'fire-ground-strip '+(f.side==='enemy'?'hostile-fire':'ally-fire')});
   const art=el('span',{class:'fire-ground-art'}),spec=VFX?.getSpec(HEROES[attacker.id],'groundFire',costumeFxFor(attacker),actorCostume(attacker)?.id||'');
-  if(spec)VFX.paint(art,{...spec,delayMs:0,loopFrames:true},true);
+  if(spec&&!backgroundSession)VFX.paint(art,{...spec,delayMs:0,loopFrames:true},true);
   node.appendChild(art);f.node=node;node.style.display='none';fireLayer().appendChild(node);fireTrails.push(f);return f;
  }
  function clearFireTrails(){for(const f of fireTrails)f.node?.remove();fireTrails=[]}
@@ -1501,7 +1512,7 @@ function showHealing(results,source){
   const bar=u.side==='enemy'?u.bar:u.hpbar;
   if(bar)bar.style.width=u.hp/u.maxHp*100+'%';
   unitFx(u,'+'+fmt(healed)+' HP','heal');visualEffect('heal',source||u,u.x,u.y);
-  if(u.node){u.node.classList.remove('healing-pulse');const node=u.node;requestAnimationFrame(()=>{if(node.isConnected)node.classList.add('healing-pulse')})}
+  if(!backgroundSession&&u.node){u.node.classList.remove('healing-pulse');const node=u.node;requestAnimationFrame(()=>{if(node.isConnected)node.classList.add('healing-pulse')})}
  }
 }
 function startExplosion(actor){
@@ -1635,6 +1646,7 @@ function tftSkill(attacker,target){
 }
 // Avoid synchronous offsetWidth reads on every hit: that forced a full layout reflow.
 function playAttackAnimation(attacker){
+ if(backgroundSession)return;
  const node=attacker.node;
  if(!node)return;
  const scene=trialContext;
@@ -1718,7 +1730,7 @@ function tick(dt){
   if(TFT.isFrozen(f,stageClock)){f.walking=false;if(f.castUntil)f.castUntil+=t;position(f);continue;}
   if(advanceExplosion(f,true)){if(!combat)return;continue}
   f.remaining-=t;
-  if(f.attackUntil<stageClock&&f.sprite!==heroImages(f.id).idle){
+  if(!backgroundSession&&f.attackUntil<stageClock&&f.sprite!==heroImages(f.id).idle){
    pose(f,false);f.node.classList.remove('burst');
   }
   const target=pickEnemy(f);
@@ -1735,7 +1747,7 @@ function tick(dt){
   if(foe.hp<=0)continue;
   if(TFT.isFrozen(foe,stageClock)){foe.walking=false;if(foe.castUntil)foe.castUntil+=t;position(foe);continue;}
   if(advanceExplosion(foe,true)){if(!combat)return;continue}
-  if(foe.attackUntil<stageClock&&foe.sprite!==HEROES[foe.id].images.idle){
+  if(!backgroundSession&&foe.attackUntil<stageClock&&foe.sprite!==HEROES[foe.id].images.idle){
    pose(foe,false);foe.node.classList.remove('burst');
   }
   const target=targetHero(foe);
@@ -1748,7 +1760,7 @@ function tick(dt){
     foe.remaining=Math.max(.06,foe.remaining+TFT.attackInterval(foe,foe.delay,stageClock));
    }
   }else{foe.walking=false;position(foe)}
-  foe.bar.style.width=foe.hp/foe.maxHp*100+'%';
+  if(!backgroundSession)foe.bar.style.width=foe.hp/foe.maxHp*100+'%';
  }
  advanceTftShots(t);
  if(!combat)return;
@@ -1757,6 +1769,7 @@ function tick(dt){
   if(combat?.boss){failBoss();return}
   log('💔 ทีมฟื้นตัวก่อนต้านมอนระลอกใหม่');finishFarmWave();beginTravel(1.2);save();return;
  }
+ if(backgroundSession)return;
  for(const f of fighters){
   f.hpbar.style.width=Math.max(0,f.hp/f.maxHp*100)+'%';
   f.node.style.opacity=f.alive?'1':'.2';
@@ -1764,37 +1777,44 @@ function tick(dt){
  $('bossTimer').hidden=!combat?.boss;
  if(combat?.boss)$('bossCountdown').textContent=Math.ceil(bossTime);
 }
-function settleBackground(now=Date.now()){
- const bg=backgroundSession;if(!bg)return;
- const elapsed=Math.min(bg.remaining,Math.max(0,now-bg.last));
- bg.last=Math.max(bg.last,now);bg.remaining-=elapsed;
- if(!bg.rates||!elapsed)return;
- const earned=CORE.awardBackground(state,bg.rates,elapsed);
- for(const k of Object.keys(earned))bg.earned[k]+=earned[k];
+// Hidden combat uses exactly the live tick pipeline. No estimated loot or artificial wins.
+// Browser throttling can slow or pause this mode; bound each wake to avoid CPU spikes.
+function backgroundTick(now=performance.now()){
+ const bg=backgroundSession;if(!bg||!document.hidden)return;
+ const elapsed=Math.min(1,Math.max(0,(now-bg.last)/1000));bg.last=now;
+ if(!studioMode&&!trial){
+  const steps=Math.ceil(elapsed*30);
+  for(let i=0;i<steps;i++)tick(elapsed/steps);
+ }
+ if(now-lastSave>6000)save();
 }
 function scheduleFrame(){if(!document.hidden&&!frameRequest)frameRequest=requestAnimationFrame(frame)}
 function startBackground(){
  if(backgroundSession)return;
  if(frameRequest)cancelAnimationFrame(frameRequest);frameRequest=0;lastFrame=0;
- const eligible=!studioMode&&!dungeon&&!trial&&state.autoBattle&&state.squad.some(id=>state.owned[id])&&$('rewardModal').hidden&&$('skillModal').hidden&&!formationMode&&!boardGesture?.active;
- syncFarmRecords();
- const stage=battleStage(),record=farmRecords[stage];
- const safeStage=record?.waves>=2?stage:Math.min(stage,CORE.farmMaxStage(state));
- backgroundSession={last:Date.now(),remaining:CORE.OFFLINE_CAP_MS,rates:eligible?CORE.backgroundRates(safeStage,state.mode,record):null,earned:{gold:0,exp:0,rubies:0,tickets:0}};
+ backgroundSession={last:performance.now()};
  document.body.classList.add('background-idle');
- $('fxLayer').replaceChildren();$('trialFx').replaceChildren();
+ // Keep projectile/trail nodes alive for their real combat state; discard only transient decoration.
+ for(const n of $('fxLayer').querySelectorAll('.image-vfx,.fx-number,.fx-ring,.fx-cloak,.fx-bolt'))n.remove();
+ for(const u of [...fighters,...enemies,...fallenEnemies])if(u.img){u.img.removeAttribute('src');u.sprite='';}
  save();
- if(!studioMode)backgroundTimer=setInterval(save,30000);
+ if(!studioMode)backgroundTimer=setInterval(backgroundTick,250);
 }
 function stopBackground(){
- const bg=backgroundSession;
- if(bg){settleBackground();backgroundSession=null;clearInterval(backgroundTimer);backgroundTimer=0;
+ if(backgroundSession){
+  backgroundSession=null;clearInterval(backgroundTimer);backgroundTimer=0;
   document.body.classList.remove('background-idle');
-  lastFrame=0;lastHUD=0;save();updateResources();
-  if(bg.rates&&Object.values(bg.earned).some(n=>n>0)){
-   const e=bg.earned;
-   toast('🌙 ฟาร์มเบื้องหลัง +'+fmt(e.gold)+' G / +'+fmt(e.exp)+' EXP / +'+fmt(e.rubies)+' 💎 / +'+fmt(e.tickets)+' 🎟');
+  lastFrame=0;lastHUD=0;
+  for(const u of [...fighters,...enemies,...fallenEnemies]){
+   if(u.img){u.sprite='';pose(u,u.attackUntil>stageClock);}
+   const bar=u.hpbar||u.bar;if(bar)bar.style.width=Math.max(0,u.hp/u.maxHp*100)+'%';
+   if(u.node)u.node.style.opacity=u.hp>0&&u.alive!==false?'1':'.2';
+   position(u);
   }
+  for(const shot of shots)if(shot.node){imageProjectile(shot.node,shot.owner,!!shot.pierce||shot.visual==='skillHit');positionShot(shot);}
+  for(const f of fireTrails){const art=f.node?.querySelector('.fire-ground-art'),spec=VFX?.getSpec(HEROES[f.owner.id],'groundFire',costumeFxFor(f.owner),actorCostume(f.owner)?.id||'');if(art&&spec)VFX.paint(art,{...spec,delayMs:0,loopFrames:true},true);positionFireTrail(f);}
+  $('battleLog').textContent=logLines.join('   ·   ');
+  save();renderPanels();refreshArenaSize();
  }
  scheduleFrame();
 }
