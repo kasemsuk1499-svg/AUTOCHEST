@@ -12,9 +12,9 @@
  #previewFx{position:absolute;transform:translate(-50%,-50%) rotate(var(--vfx-angle,0deg))} #previewTarget{position:absolute;left:72%;top:30%;transform:translate(-50%,-50%);color:#ffc4af;font-size:36px;z-index:0} .preview-unit.beam-preview{left:20%;top:76%;bottom:auto;height:65px;transform:translate(-50%,-50%)} #slotMode{margin-top:10px;font-weight:bold;color:#a5e6d5}
 .timing-box{border:1px solid #496378;background:#102032;border-radius:8px;padding:10px;margin:12px 0}.timing-box strong{color:#a5e6d5;font-size:12px}.timing-check{display:flex;align-items:center;gap:7px}.timing-check input{width:auto}.timing-box small{display:block;margin-top:6px;line-height:1.5}
 #previewAnchor{position:absolute;width:14px;height:14px;transform:translate(-50%,-50%);border:1px dashed #ffdc91;border-radius:50%;z-index:2;pointer-events:none}#previewAnchor::before,#previewAnchor::after{content:'';position:absolute;background:#ffdc91;left:50%;top:50%;transform:translate(-50%,-50%)}#previewAnchor::before{width:19px;height:1px}#previewAnchor::after{width:1px;height:19px}</style></head><body>
-<header><div><small>AUTOCHEST / DEVELOPER TOOLS</small><h1>VFX Studio <small>v0.20.37</small></h1><div class="muted">แก้เอฟเฟกต์ภาพ • ทดลอง • เผยแพร่ให้ผู้เล่นทุกคน</div></div><a href="./index.html">← กลับเกม</a></header>
+<header><div><small>AUTOCHEST / DEVELOPER TOOLS</small><h1>VFX Studio <small>v0.20.60</small></h1><div class="muted">แก้เอฟเฟกต์ภาพ • ทดลอง • เผยแพร่ให้ผู้เล่นทุกคน</div></div><a href="./index.html">← กลับเกม</a></header>
 <main>
-<section class="panel"><h2>1. เลือกฮีโร่และภาพ</h2><label>ตัวละคร<select id="hero"></select></label><div class="hero-info"><img id="portrait" alt=""><div><strong id="heroName"></strong><small id="heroSkill"></small></div></div>
+<section class="panel"><h2>1. เลือกฮีโร่และภาพ</h2><label>ตัวละคร<select id="hero"></select></label><label>คอสตูม<select id="costume"><option value="">ชุดดั้งเดิม</option></select></label><div class="hero-info"><img id="portrait" alt=""><div><strong id="heroName"></strong><small id="heroSkill"></small></div></div>
 <label>จังหวะแสดงเอฟเฟกต์<select id="event"></select></label><div id="eventHint" class="muted"></div>
 <label>นำเข้าภาพ PNG, GIF หรือ WebP (สูงสุด 1.5 MB)<input type="file" id="asset" accept="image/png,image/gif,image/webp,.png,.gif,.webp"></label><div id="fileInfo" class="muted"></div>
 <div class="pair"><label>ขนาดภาพ (px)<input id="size" type="number" min="16" max="400" value="140"></label><label>เวลาเล่นเฟรม 1 รอบ (ms)<input id="ms" type="number" min="80" max="3000" value="550"></label></div>
@@ -47,13 +47,13 @@
 <script defer src="./src/characters/heroes/heathcliff.js?v=0.20.6"></script>
 <script defer src="./src/characters/heroes/silica.js?v=0.20.6"></script>
 <script defer src="./src/characters/heroes/megumin.js?v=0.20.42"></script>
-<script defer src="./src/characters/heroes/artoria.js?v=0.20.6"></script>
+<script defer src="./src/characters/heroes/artoria.js?v=0.20.59"></script>
 <script defer src="./src/characters/heroes/aqua.js?v=0.20.26"></script>
 <script defer src="./src/characters/heroes/kazuma.js?v=0.20.30"></script>
-<script defer src="./src/characters/heroes/maruko.js?v=0.20.37"></script>
+<script defer src="./src/characters/heroes/maruko.js?v=0.20.55"></script>
 <script defer src="./src/characters/heroes/mamon.js?v=0.20.44"></script>
 <script defer src="./src/characters/heroes/qingmei.js?v=0.20.48"></script>
-<script defer src="./src/idle-vfx.js?v=0.20.47"></script>
+<script defer src="./src/idle-vfx.js?v=0.20.60"></script>
 <script defer src="./src/vfx-sheet.js?v=0.20.6"></script>
-<script defer src="./src/vfx-studio.js?v=0.20.47"></script>
+<script defer src="./src/vfx-studio.js?v=0.20.60"></script>
 </body></html>
