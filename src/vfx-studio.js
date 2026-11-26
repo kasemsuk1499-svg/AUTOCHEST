@@ -28,14 +28,25 @@ function eventsFor(h){
  if(h.effect==='cloakshot')events.push('cloak');
  return events;
 }
+const selectedCostume=()=>$('costume').value;
+function costumeDef(){return H[$('hero').value].costumes?.find(c=>c.id===selectedCostume())}
+function costumeSpecs(){const c=costumeDef();if(!c)return null;const root='./assets/heroes/'+$('hero').value+'/costumes/'+c.id+'/vfx/';return Object.fromEntries(Object.entries(c.fx||{}).filter(([k,v])=>v&&typeof v.file==='string').map(([k,v])=>[k,{...v,src:root+v.file}]))}
+function currentSpec(){return V.getSpec(H[$('hero').value],$('event').value,costumeSpecs(),selectedCostume())}
+function previewImage(node,slot,h,c){
+ const fallback=h.images[slot];node.onerror=null;node.src=fallback;if(!c)return;
+ const base='./assets/heroes/'+h.id+'/costumes/'+c.id+'/'+slot;
+ const img=new Image();img.onload=()=>{if($('hero').value===h.id&&selectedCostume()===c.id)node.src=img.src};img.onerror=()=>{img.onerror=null;img.src=base+'.gif'};img.src=base+'.png';
+}
+function clearAsset(){sequence++;file=null;dataURL='';ext='';sheet=null;$('asset').value='';$('sheetHelper').hidden=true;status('fileInfo','')}
+function selectCostume(){clearAsset();const h=H[$('hero').value],c=costumeDef();previewImage($('portrait'),'art',h,c);previewImage($('previewUnit'),'idle',h,c);$('heroName').textContent=h.rarity+' · '+h.name+(c?' / '+c.name:'');selectEvent()}
 function selectHero(){
- const h=H[$('hero').value];$('portrait').src=h.images.art;$('previewUnit').src=h.images.idle;$('heroName').textContent=h.rarity+' · '+h.name;$('heroSkill').textContent=h.skill;
+ const h=H[$('hero').value];$('costume').replaceChildren(new Option('ชุดดั้งเดิม',''),...(h.costumes||[]).map(c=>new Option((c.rarity?c.rarity+' · ':'')+c.name,c.id)));$('costume').disabled=!(h.costumes||[]).length;$('heroSkill').textContent=h.skill;
  const prior=$('event').value;$('event').replaceChildren(...eventsFor(h).map(event=>new Option(labels[event],event)));if(eventsFor(h).includes(prior))$('event').value=prior;
- selectEvent();
+ selectCostume();
 }
 function selectEvent(){
  const event=$('event').value;const notes={groundFire:'ภาพพื้นไฟยืดตามทางนกที่บินผ่าน · ความกว้างและอายุยึดระบบต่อสู้ ไม่ใช้ค่าขนาด/airtime ของภาพ',freeze:'พรีวิวภาพแช่แข็งได้ทันทีด้วยเล่นภาพ · ในสนามทดลองให้กดใช้สกิลแล้วรอคำสาปครบ 5–6 ครั้ง',dot:'แสดงทุกครั้งที่คำสาปสร้างดาเมจจริง',skillHit:'แสดงที่ศัตรูแต่ละตัวที่ได้รับดาเมจจากสกิลโดยตรง รวมถึงสกิลเวทโจมตีพร้อมฮีล',skillProjectile:'ใช้กับกระสุนสกิลที่เดินทางไปยังเป้าหมาย',heal:'แสดงที่พันธมิตรที่ได้รับการฮีลจริง',area:'แสดงตรงเป้าหมายของค้อน',revive:'แสดงที่ตัวละครที่คืนชีพหรือได้รับการชุบชีวิตจากเพื่อน',shield:'แสดงเมื่อได้รับหรือถูกตีโล่'};
- const hero=H[$('hero').value],mode=V.slotLayout(hero,event),spec=V.getSpec(hero,event);
+ const hero=H[$('hero').value],mode=V.slotLayout(hero,event),spec=currentSpec();
  $('eventHint').textContent=mode==='beam'?'ลำแสงยืดตามแนวโจมตีจริงอัตโนมัติ · ไม่ต้องสร้างภาพยาวเท่าสนาม':mode==='field'?'ภาพยืดตามพื้นที่สนามโดยอัตโนมัติ':notes[event]||'แสดงเมื่อกลไกนี้ทำงานจริงในสนาม';
  $('beamSettings').hidden=mode!=='beam';$('pointSettings').hidden=mode==='beam';$('slotMode').textContent=mode==='beam'?'BEAM · ยืดตามแนวยิง':mode==='field'?'FIELD · พื้นที่สนาม':'POINT · จุดแสดงผล';
  if(spec){for(const key of ['scaleX','scaleY','rotation','thickness','orientation','delayMs','airtimeMs','offsetX','offsetY'])$(key).value=spec[key];$('loopFrames').checked=spec.loopFrames;if(!dataURL)for(const key of ['size','ms','cols','rows','frames','row','col'])$(key).value=spec[key]}
@@ -49,7 +60,7 @@ function settings(src){
  const raw={scaleX:Number($('scaleX').value),scaleY:Number($('scaleY').value),rotation:Number($('rotation').value),thickness:Number($('thickness').value),orientation:$('orientation').value,offsetX:Number($('offsetX').value),offsetY:Number($('offsetY').value)};
  return {src,cols,rows,row,col,frames,size:num('size',16,400),ms:num('ms',80,3000),...V.appearance(raw,mode),...V.timing({delayMs:num('delayMs',0,5000),airtimeMs:num('airtimeMs',0,10000),loopFrames:$('loopFrames').checked})};
 }
-function currentSource(){return dataURL||V.getSpec(H[$('hero').value],$('event').value)?.src||''}
+function currentSource(){return dataURL||currentSpec()?.src||''}
 function validDraft(){return !!(currentSource()&&!busy)}
 function sync(){let v=validDraft();for(const id of ['trialBtn','exportBtn'])$(id).disabled=!v;$('publishBtn').disabled=!v||!$('token').value.trim();}
 function invalidate(){if(!$('trialPanel').hidden)closeTrial();sync()}
@@ -57,7 +68,7 @@ function play(){
  clearTimeout(loopTimer);
  const node=$('previewFx');node.getAnimations?.().forEach(a=>a.cancel());
  try{
-  const current=V.getSpec(H[$('hero').value],$('event').value);
+  const current=currentSpec();
   const spec=dataURL?settings(dataURL):current?settings(current.src):null;
   if(!spec)return;
   const stage=node.parentElement,area={width:stage.clientWidth,height:stage.clientHeight},beam=spec.mode==='beam',from=beam?{x:20,y:76}:{x:50,y:50},target={x:72,y:30};
@@ -123,10 +134,10 @@ async function loadFile(){
   prepareSheet(img);sync();play();
  }catch(e){if(seq!==sequence)return;status('fileInfo',e.message,true);sync()}
 }
-function draft(){if(!validDraft())throw Error('เลือกภาพก่อน');return {hero:$('hero').value,event:$('event').value,spec:settings(currentSource())}}
-function openTrial(){try{const d=draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&v=0.20.36';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
+function draft(){if(!validDraft())throw Error('เลือกภาพก่อน');return {hero:$('hero').value,costume:selectedCostume(),event:$('event').value,spec:settings(currentSource())}}
+function openTrial(){try{const d=draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&studioCostume='+encodeURIComponent(d.costume)+'&v=0.20.60';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
 function closeTrial(){$('trialFrame').src='about:blank';$('trialPanel').hidden=true;try{sessionStorage.removeItem(draftKey)}catch(_){}}
-function exportDraft(){try{const d=draft(),url=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='vfx-'+d.hero+'-'+d.event+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){status('publishStatus',e.message,true)}}
+function exportDraft(){try{const d=draft(),url=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='vfx-'+d.hero+'-'+(d.costume?d.costume+'-':'')+d.event+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){status('publishStatus',e.message,true)}}
 async function api(token,path,method='GET',body){
  const r=await fetch(base+path,{method,redirect:'error',cache:'no-store',headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28',...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
  const data=await r.json();if(!r.ok)throw Error('GitHub HTTP '+r.status+(r.status===401?' — token ไม่ถูกต้องหรือหมดอายุ':r.status===403?' — ตรวจสิทธิ์ Contents: Read and write':r.status===422?' — branch อาจมีการอัปเดตพร้อมกัน ให้ลองใหม่':''));return data;
@@ -134,8 +145,8 @@ async function api(token,path,method='GET',body){
 async function publish(){
  if(busy)return;let token=$('token').value.trim();if(!token)return;
  let d;try{d=draft()}catch(e){status('publishStatus',e.message,true);return}
- if(!confirm('เผยแพร่ '+H[d.hero].name+' / '+labels[d.event]+' ให้ผู้เล่นทุกคน?'))return;
- busy=true;$('token').value='';$('commitLink').hidden=true;sync();$('asset').disabled=true;$('hero').disabled=true;$('event').disabled=true;
+ if(!confirm('เผยแพร่ '+H[d.hero].name+' / '+(costumeDef()?.name||'ชุดดั้งเดิม')+' / '+labels[d.event]+' ให้ผู้เล่นทุกคน?'))return;
+ busy=true;$('token').value='';$('commitLink').hidden=true;sync();$('asset').disabled=true;$('hero').disabled=true;$('event').disabled=true;$('costume').disabled=true;
  try{
   status('publishStatus','กำลังตรวจสิทธิ์และอ่านเวอร์ชันล่าสุด...');
   const ref=await api(token,'/git/ref/heads/main'),parent=ref.object.sha;
@@ -148,24 +159,27 @@ async function publish(){
   if(src.startsWith('data:')){
    status('publishStatus','กำลังอัปโหลดภาพ...');
    const blob=await api(token,'/git/blobs','POST',{content:src.split(',')[1],encoding:'base64'});
-   const path='assets/effects/'+d.hero+'/'+d.event+'-'+blob.sha.slice(0,12)+'.'+ext;
+   const path=(d.costume?'assets/heroes/'+d.hero+'/costumes/'+d.costume+'/vfx/':'assets/effects/'+d.hero+'/')+d.event+'-'+blob.sha.slice(0,12)+'.'+ext;
    entries.push({path,mode:'100644',type:'blob',sha:blob.sha});src='./'+path;
   }else{
    status('publishStatus','กำลังบันทึกค่าของภาพเดิม...');
-   if(!src.startsWith('./assets/effects/'))throw Error('ไฟล์ VFX ไม่ถูกต้อง');
+   if(!src.startsWith('./assets/effects/')&&!(d.costume&&src.startsWith('./assets/heroes/'+d.hero+'/costumes/'+d.costume+'/vfx/')))throw Error('ไฟล์ VFX ไม่ถูกต้อง');
    await api(token,'/contents/'+src.slice(2)+'?ref='+parent);
   }
-  config.heroes[d.hero]={...(config.heroes[d.hero]||{}),[d.event]:{...d.spec,src}};
+  if(d.costume){
+   config.costumes??={};config.costumes[d.hero]??={};
+   config.costumes[d.hero][d.costume]={...(config.costumes[d.hero][d.costume]||{}),[d.event]:{...d.spec,src}};
+  }else config.heroes[d.hero]={...(config.heroes[d.hero]||{}),[d.event]:{...d.spec,src}};
   entries.push({path:manifestPath,mode:'100644',type:'blob',content:JSON.stringify(config,null,2)+'\n'});
   const tree=await api(token,'/git/trees','POST',{base_tree:old.tree.sha,tree:entries});
-  const commit=await api(token,'/git/commits','POST',{message:'VFX Studio: '+d.hero+' / '+d.event,tree:tree.sha,parents:[parent]});
+  const commit=await api(token,'/git/commits','POST',{message:'VFX Studio: '+d.hero+' / '+(d.costume||'original')+' / '+d.event,tree:tree.sha,parents:[parent]});
   await api(token,'/git/refs/heads/main','PATCH',{sha:commit.sha,force:false});
   $('commitLink').href='https://github.com/'+repo+'/commit/'+commit.sha;$('commitLink').hidden=false;
   status('publishStatus','เผยแพร่ commit สำเร็จ! ผู้เล่นจะได้รับภาพใหม่เมื่อ GitHub Pages เผยแพร่และรีเฟรชเกม');
- }catch(e){status('publishStatus',e.message+' — ยังไม่ยืนยันว่าเผยแพร่สำเร็จ',true)}finally{token='';busy=false;$('asset').disabled=false;$('hero').disabled=false;$('event').disabled=false;sync()}
+ }catch(e){status('publishStatus',e.message+' — ยังไม่ยืนยันว่าเผยแพร่สำเร็จ',true)}finally{token='';busy=false;$('asset').disabled=false;$('hero').disabled=false;$('event').disabled=false;$('costume').disabled=!(H[$('hero').value].costumes||[]).length;sync()}
 }
 $('hero').replaceChildren(...Object.values(H).map(h=>new Option(h.rarity+' · '+h.name,h.id)));
-$('hero').addEventListener('change',selectHero);$('event').addEventListener('change',selectEvent);$('asset').addEventListener('change',loadFile);
+$('hero').addEventListener('change',selectHero);$('costume').addEventListener('change',selectCostume);$('event').addEventListener('change',selectEvent);$('asset').addEventListener('change',loadFile);
 for(const id of ['size','ms','cols','rows','frames','row','col','scaleX','scaleY','rotation','thickness','orientation','delayMs','airtimeMs','loopFrames','offsetX','offsetY'])$(id).addEventListener('change',()=>{drawGrid();invalidate();play()});
 for(const [id,dc,dr] of [['lessCols',-1,0],['moreCols',1,0],['lessRows',0,-1],['moreRows',0,1]])$(id).onclick=()=>applyGrid(Math.max(1,Math.min(32,Number($('cols').value)+dc)),Math.max(1,Math.min(32,Number($('rows').value)+dr)));
 $('pickStart').onclick=()=>{pick='start';drawGrid()};$('pickEnd').onclick=()=>{pick='end';drawGrid()};$('allFrames').onclick=()=>applyGrid(Number($('cols').value),Number($('rows').value));
