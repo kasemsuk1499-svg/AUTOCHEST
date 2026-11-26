@@ -297,17 +297,23 @@
  }
  // Fixed endgame budget, independent of roster size. Rebalance only when hero power ceiling rises.
  const ENDGAME_STAGE=50,ENDGAME_CAP_STAGE=70;
- const ENDGAME_BOSS_HP=160000,ENDGAME_BOSS_ATK=1500;
- const ENDGAME_BOSS_HP_CAP=200000,ENDGAME_BOSS_ATK_CAP=3500;
+ const ENDGAME_BOSS_HP=400000,ENDGAME_BOSS_ATK=3500;
+ const ENDGAME_BOSS_HP_CAP=600000,ENDGAME_BOSS_ATK_CAP=5500;
+ const ENDGAME_MOB_HP=40000,ENDGAME_MOB_ATK=1000;
+ const ENDGAME_MOB_HP_CAP=60000,ENDGAME_MOB_ATK_CAP=1500;
+ const enemyLevel=stage=>Math.round(1+(MAX_LEVEL-1)*clamp((number(stage,1)-1)/(ENDGAME_CAP_STAGE-1),0,1));
  function monster(stage,boss=false){
   const n=clamp(Math.floor(number(stage,1))-1,0,ENDGAME_CAP_STAGE-1);
   const early=Math.min(n,19),late=Math.max(0,Math.min(n,ENDGAME_STAGE-1)-19),t=late/(ENDGAME_STAGE-20);
   const endgame=clamp((n-(ENDGAME_STAGE-1))/(ENDGAME_CAP_STAGE-ENDGAME_STAGE),0,1);
-  const hpGrowth=Math.pow(1.145,early)*Math.pow(ENDGAME_BOSS_HP/(1100*Math.pow(1.145,19)),t)*(1+endgame*(ENDGAME_BOSS_HP_CAP/ENDGAME_BOSS_HP-1));
-  const atkGrowth=Math.pow(1.098,early)*Math.pow(ENDGAME_BOSS_ATK/(55*Math.pow(1.098,19)),t)*(1+endgame*(ENDGAME_BOSS_ATK_CAP/ENDGAME_BOSS_ATK-1));
-  const hp=Math.round((boss?1100:175)*hpGrowth);
-  const atk=Math.round((boss?55:15)*atkGrowth);
-  return {hp,atk,delay:boss?1.45:2.15};
+  const hpBase=boss?1100:175,atkBase=boss?55:15;
+  const hpTarget=boss?ENDGAME_BOSS_HP:ENDGAME_MOB_HP,atkTarget=boss?ENDGAME_BOSS_ATK:ENDGAME_MOB_ATK;
+  const hpCap=boss?ENDGAME_BOSS_HP_CAP:ENDGAME_MOB_HP_CAP,atkCap=boss?ENDGAME_BOSS_ATK_CAP:ENDGAME_MOB_ATK_CAP;
+  const hp20=hpBase*Math.pow(1.145,early),atk20=atkBase*Math.pow(1.098,early);
+  // Level progress drives the same bounded stat curve; never apply an extra player-level multiplier.
+  const hp=Math.round(hp20*Math.pow(hpTarget/(hpBase*Math.pow(1.145,19)),t)*(1+endgame*(hpCap/hpTarget-1)));
+  const atk=Math.round(atk20*Math.pow(atkTarget/(atkBase*Math.pow(1.098,19)),t)*(1+endgame*(atkCap/atkTarget-1)));
+  return {level:enemyLevel(stage),hp,atk,delay:boss?1.45:2.15};
  }
  // Boss stars primarily unlock skills; avoid multiplying the exponential stage curve by full player stat growth.
  function enemyHero(hero,stars=1,boss=false){
@@ -319,7 +325,7 @@
  function enemyStats(hero,stage,boss=false,mode='normal',randomStars=1){
   const night=mode==='nightmare',stars=boss?bossStars(stage):night?clamp(Math.floor(randomStars),1,MAX_STARS):1,h=enemyHero(hero,stars,boss),base=monster(stage,boss);
   const hpScale=night?(boss?1.35/nightmareBossCount(stage):1.15):1,atkScale=night?(boss?1.30/nightmareBossCount(stage):1.10):1;
-  return {stars,hp:Math.max(1,Math.round(base.hp*clamp(.8+hero.hp/3000,.8,1.3)*(1+(stars-1)*.03)*hpScale)),
+  return {stars,level:base.level,hp:Math.max(1,Math.round(base.hp*clamp(.8+hero.hp/3000,.8,1.3)*(1+(stars-1)*.03)*hpScale)),
    atk:Math.round(base.atk*clamp(.9+hero.dmg/900,.9,1.1)*(1+(stars-1)*.02)*atkScale),
    delay:Math.max(.75,h.cool*1.2),crit:h.critChance||.05,critDamage:h.critDamage||1.5};
  }
