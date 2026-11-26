@@ -42,6 +42,7 @@ window.AUTOCHEST_CHARACTERS.registerHero({
   }
 ],
 
+ costumes:[{id:'costume_01',name:'คอสตูม 01',unlock:'hero'}],
  id:'artoria',name:'อาเธอเรีย',subtitle:'Fate • King of Knights',team:'นักรบ',role:'BOSS SLAYER / FARMER',
  traits:['ฟันหมู่ทุกครั้ง','ดาเมจบอส x2','Excalibur ทะลุสนาม'],cost:3,playerOnly:true,
  hp:950,dmg:120,range:1.12,cool:.8,move:120,critChance:.18,critDamage:1.7,
