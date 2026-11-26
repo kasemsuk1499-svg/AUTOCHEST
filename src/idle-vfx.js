@@ -27,7 +27,8 @@
  function appearance(raw,mode='point'){
   return {mode,scaleX:bounded(raw.scaleX,1,.1,5),scaleY:bounded(raw.scaleY,1,.1,5),rotation:bounded(raw.rotation,0,-180,180),
    offsetX:bounded(raw.offsetX,0,-540,540),offsetY:bounded(raw.offsetY,0,-540,540),
-   thickness:bounded(raw.thickness,48,4,300),orientation:raw.orientation==='vertical'?'vertical':'horizontal'};
+   thickness:bounded(raw.thickness,48,4,300),orientation:raw.orientation==='vertical'?'vertical':'horizontal',
+   hue:bounded(raw.hue,0,-180,180),saturation:bounded(raw.saturation,100,0,300),brightness:bounded(raw.brightness,100,0,250),colorize:raw.colorize===true};
  }
  // Backward compatible: zero airtime means playback duration for regions,
  // and natural flight lifetime for travelling projectiles.
@@ -94,7 +95,13 @@
   const row=Math.max(0,Math.min(rows-1,Math.floor(raw.row||0))),col=Math.max(0,Math.min(cols-1,Math.floor(raw.col||0))),frames=Math.max(1,Math.min((rows-row)*cols-col,Math.floor(raw.frames||cols)));
   return {src:raw.src,cols,rows,row,col,frames,size:Math.max(16,Math.min(400,Number(raw.size)||100)),ms:Math.max(80,Math.min(3000,Number(raw.ms)||440)),...appearance(raw,slotLayout(hero,event)),...timing(raw)};
  }
+ function colorFilter(raw){
+  const a=appearance(raw);
+  if(!a.colorize&&a.hue===0&&a.saturation===100&&a.brightness===100)return 'none';
+  return (a.colorize?'grayscale(1) sepia(1) saturate(4) ':'')+'hue-rotate('+a.hue+'deg) saturate('+a.saturation+'%) brightness('+a.brightness+'%)';
+ }
  function paint(node,spec,animate=true){
+  node.style.filter=colorFilter(spec);
   node.style.backgroundImage='url("'+spec.src+'")';
   node.style.backgroundSize=(spec.cols*100)+'% '+(spec.rows*100)+'%';
   node.style.backgroundRepeat='no-repeat';
@@ -110,5 +117,5 @@
   for(const hero of Object.values(heroes))for(const event of Object.keys(generic)){const s=getSpec(hero,event);if(s)urls.add(s.src)}
   for(const url of urls){const img=new Image();img.src=url;img.decode?.().catch(()=>{});}
  }
- window.AUTOCHEST_VFX=Object.freeze({getSpec,paint,preload,loadPublished,slotLayout,appearance,rayEnd,visualOffset,geometry,placeRegion,timing,lifetime,animateLifetime});
+ window.AUTOCHEST_VFX=Object.freeze({getSpec,paint,preload,loadPublished,slotLayout,appearance,colorFilter,rayEnd,visualOffset,geometry,placeRegion,timing,lifetime,animateLifetime});
 })();
