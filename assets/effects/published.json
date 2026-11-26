@@ -1183,6 +1183,31 @@
           "delayMs": 0,
           "airtimeMs": 0,
           "loopFrames": false
+        },
+        "dot": {
+          "src": "./assets/effects/maruko/dot-ba01e93d0655.png",
+          "cols": 8,
+          "rows": 3,
+          "row": 0,
+          "col": 0,
+          "frames": 16,
+          "size": 105,
+          "ms": 800,
+          "mode": "point",
+          "scaleX": 1,
+          "scaleY": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "thickness": 48,
+          "orientation": "horizontal",
+          "hue": 123,
+          "saturation": 155,
+          "brightness": 200,
+          "colorize": false,
+          "delayMs": 0,
+          "airtimeMs": 0,
+          "loopFrames": false
         }
       }
     }
