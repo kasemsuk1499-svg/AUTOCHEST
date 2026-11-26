@@ -13,10 +13,10 @@
   deathgun:{projectile:'darkBullet',skillProjectile:'darkBullet',hit:'impact',cloak:'cloak',skillHit:'impact'}
  };
  const generic={freeze:'shield',dot:'debuff',hit:'impact',skillHit:'impact',projectile:'bullet',skillProjectile:'bullet',area:'hammer',heal:'heal',shield:'shield',revive:'revive',buff:'buff',debuff:'debuff',cloak:'cloak',cast:'buff',aftermath:'impact',cleave:'slashGold',groundFire:false};
- let published={},draft=null;
+ let published={},publishedCostumes={},draft=null;
  const studioMode=new URLSearchParams(window.location?.search||'').has('studioTrial');
  if(studioMode){try{draft=JSON.parse(sessionStorage.getItem('AUTOCHEST_VFX_DRAFT')||'null')}catch(_){}}
- async function loadPublished(){try{const response=await fetch('./assets/effects/published.json',{cache:'no-cache'});if(response.ok){const data=await response.json();if(data.version===1&&data.heroes&&typeof data.heroes==='object')published=data.heroes}}catch(_){}}
+ async function loadPublished(){try{const response=await fetch('./assets/effects/published.json',{cache:'no-cache'});if(response.ok){const data=await response.json();if(data.version===1&&data.heroes&&typeof data.heroes==='object'){published=data.heroes;publishedCostumes=data.costumes&&typeof data.costumes==='object'?data.costumes:{}}}}catch(_){}}
  // The game owns slot geometry. Uploaded art can tune appearance, never hit detection.
  function slotLayout(hero,event){
   const mode=hero?.visual?.layout?.[event];
@@ -82,11 +82,11 @@
   art.style.transform='translate(-50%,-50%)'+(vertical?' rotate(-90deg)':'');
   node.replaceChildren(art);paint(art,spec,true);return art;
  }
- function getSpec(hero,event,costumeFx=null){
-  const override=studioMode&&draft?.hero===hero?.id&&draft?.event===event?draft.spec:null;
+ function getSpec(hero,event,costumeFx=null,costumeId=''){
+  const override=studioMode&&draft?.hero===hero?.id&&draft?.event===event&&(draft.costume||'')===costumeId?draft.spec:null;
   const key=published[hero?.id]?.[event]??hero?.visual?.fx?.[event]??defaults[hero?.id]?.[event]??generic[event];
   const base=typeof key==='string'?specs[key]:key;
-  const costume=costumeFx?.[event];
+  const costume=(costumeId?publishedCostumes[hero?.id]?.[costumeId]?.[event]:undefined)??costumeFx?.[event];
   if(override===false||(!override&&(costume===false||(!costume&&key===false))))return null;
   const raw=override??(costume?{...base,cols:1,rows:1,row:0,col:0,frames:1,...costume}:base);
   if(!raw||typeof raw.src!=='string'||!(/^\.\/assets\/effects\/[a-z0-9_/-]+\.(svg|png|webp|gif)$/i.test(raw.src)||/^\.\/assets\/heroes\/[a-z0-9_-]+\/costumes\/[a-z0-9_-]+\/vfx\/[a-z0-9_-]+\.(svg|png|webp|gif)$/i.test(raw.src)||(override===raw&&/^data:image\/(png|gif|webp);base64,[a-z0-9+/=]+$/i.test(raw.src))))return null;
