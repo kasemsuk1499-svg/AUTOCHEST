@@ -884,7 +884,7 @@ function updateSummonWallet(){
  $('summonTickets').textContent=fmt(state.tickets);$('summonRubies').textContent=fmt(state.rubies);
  if($('universalShardValue'))$('universalShardValue').textContent=fmt(state.universalShards);
  if($('exchangeShardValue'))$('exchangeShardValue').textContent=fmt(state.universalShards);
- for(const [count,button,costId] of [[1,'summonOneBtn','summonOneCost'],[10,'summonTenBtn','summonTenCost']]){
+ for(const [count,button,costId] of [[1,'summonOneBtn','summonOneCost'],[10,'summonTenBtn','summonTenCost'],[100,'summonHundredBtn','summonHundredCost']]){
   const cost=CORE.summonCost(state,count);
   $(costId).textContent=summonCostLabel(cost);
   $(button).disabled=summonBusy||state.rubies<cost.rubies;
@@ -945,7 +945,7 @@ function showSummonOutcome(){
  $('summonResults').innerHTML=rewards.map((reward,i)=>{
   const h=HEROES[reward.id];
   return '<article class="summon-result-card tier-'+h.cost+' '+rarityClass(h)+(reward.isNew?' new-hero':'')+'" style="--delay:'+Math.min(i*65,550)+'ms">'+
-   '<div class="summon-result-art">'+rarityBadge(h)+'<img src="'+h.images.art+'" alt="'+escapeText(h.name)+'"><span class="result-tag">'+(reward.isNew?'NEW':reward.universal?'ครบเศษ 5★ · +'+fmt(reward.universal)+' เศษรวม':'+1 ชิ้นส่วน')+'</span></div>'+
+   '<div class="summon-result-art">'+rarityBadge(h)+'<img loading="lazy" src="'+h.images.art+'" alt="'+escapeText(h.name)+'"><span class="result-tag">'+(reward.isNew?'NEW':reward.universal?'ครบเศษ 5★ · +'+fmt(reward.universal)+' เศษรวม':'+1 ชิ้นส่วน')+'</span></div>'+
    '<strong>'+escapeText(h.name)+'</strong><small>'+escapeText(h.role||h.team)+'</small></article>';
  }).join('');
  $('summonReceipt').textContent='ใช้ '+summonCostLabel(cost)+' · อัญเชิญ '+count+' ครั้ง';
@@ -1980,6 +1980,7 @@ $('exchangeList').addEventListener('click',e=>{
 });
 $('summonOneBtn').addEventListener('click',()=>summon(1));
 $('summonTenBtn').addEventListener('click',()=>summon(10));
+$('summonHundredBtn').addEventListener('click',()=>summon(100));
 $('summonSkipBtn').addEventListener('click',showSummonOutcome);
 $('summonBackBtn').addEventListener('click',showSummonBanner);
 $('summonLastBtn').addEventListener('click',showSummonOutcome);
