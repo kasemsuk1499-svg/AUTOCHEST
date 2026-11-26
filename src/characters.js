@@ -22,7 +22,8 @@
        unit.executeMultiplier<1||unit.executeMultiplier>3)throw Error('Invalid cloakshot effect configuration for '+unit.id);
   }
   for(const key of ['hp','dmg','range','cool','move'])if(!(Number.isFinite(unit[key])&&unit[key]>0))throw Error('Invalid '+key+' for '+unit.id);
-  if(!['นักรบ','เวท','ยิงไกล','ป้องกัน'].includes(unit.team)||!['slash','chain','triple','shield','blink','slam','cloakshot','pierce','heal','explosion','dot','firetrail'].includes(unit.effect)||!Number.isInteger(unit.triggerEvery)||unit.triggerEvery<=0)throw Error('Invalid hero class/skill: '+unit.id);
+  if(!['นักรบ','เวท','ยิงไกล','ป้องกัน'].includes(unit.team)||!['slash','chain','triple','shield','blink','slam','cloakshot','pierce','heal','explosion','dot','firetrail','dash'].includes(unit.effect)||!Number.isInteger(unit.triggerEvery)||unit.triggerEvery<=0)throw Error('Invalid hero class/skill: '+unit.id);
+  if(unit.effect==='dash'&&(!(unit.skillPower>0&&unit.skillPower<=10)||!(unit.passive?.dodgeChance>=0&&unit.passive.dodgeChance<=.75)||!(unit.melee===true)))throw Error('Invalid dash configuration');
   if(unit.effect==='explosion'&&(!(unit.castSeconds>=1&&unit.castSeconds<=10)||!(unit.skillPower>0&&unit.skillPower<=20)))throw Error('Invalid explosion configuration');
   if(unit.effect==='firetrail'&&(!(unit.fireTrail?.hpRate>0&&unit.fireTrail.hpRate<=.1)||!(unit.fireTrail.duration>0&&unit.fireTrail.duration<=15)||!(unit.fireTrail.widthCells>0&&unit.fireTrail.widthCells<=6)))throw Error('Invalid fire trail');
   if(unit.cleave&&(!(unit.cleave.radius>0&&unit.cleave.radius<=500)||!(unit.cleave.power>0&&unit.cleave.power<=5)))throw Error('Invalid cleave');

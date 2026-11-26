@@ -732,6 +732,9 @@ function skillDescription(t,enemy=false){
   case 'slash':
    lines.push('ทุก '+n+' การโจมตี: โจมตีเป้าหมายเดียว '+Math.round((t.skillPower||2)*100)+'% ATK'+(t.skillGuaranteedCrit?' · ติดคริติคอลแน่นอน':' พร้อมเอฟเฟกต์วงพลัง'));
    break;
+  case 'dash':
+   lines.push('ทุก '+n+' การโจมตี: เทพอัสนีเหิน วาร์ปไปหลังศัตรูสายยิงไกลที่อยู่ไกลที่สุด (ถ้าไม่มี เลือกศัตรูที่อยู่ไกลที่สุด) และโจมตีด้วยกระสุนวงจักร '+Math.round(t.skillPower*100)+'% PATK · ใช้ได้จากทุกระยะเมื่อสกิลพร้อม · ไม่ทะลุโล่');
+   break;
   case 'blink':
    lines.push('ทุก '+n+' การโจมตี: เคลื่อนฉับไวเข้าหาเป้าหมาย ฟัน 200% ATK และตามด้วยโจมตีอีก 50% ATK');
    break;
@@ -778,6 +781,7 @@ function skillDescription(t,enemy=false){
  if(t.passive?.magicGuard)lines.push('พาสซีฟ — '+t.passive.name+': รับแทน '+Math.round(t.passive.magicGuard*100)+'% ของดาเมจที่เพื่อนสายเวทได้รับ ไม่ว่าดาเมจมาจากสายใด · ไม่รับแทนตนเอง · โล่ของผู้ปกป้องรับได้ · เลือกผู้ปกป้องที่มีอัตราสูงสุดหนึ่งคน · ไม่ส่งต่อซ้ำ');
  if(t.passive?.bossMultiplier)lines.push('พาสซีฟ — '+t.passive.name+': ดาเมจทุกชนิดต่อบอส ×'+t.passive.bossMultiplier+' ก่อนคริติคอลและการป้องกัน');
  if(t.passive?.healOnAttack)lines.push('พาสซีฟ — '+t.passive.name+': เมื่อโจมตีปกติ ฟื้น HP ให้สมาชิกที่บาดเจ็บหนักที่สุด (ตามเปอร์เซ็นต์ HP) เท่ากับ '+Math.round(t.passive.healOnAttack*100)+'% ของ ATK พื้นฐานในการต่อสู้ของตนเอง');
+ if(t.passive?.dodgeChance)lines.push('พาสซีฟ — '+t.passive.name+': มีโอกาส '+Math.round(t.passive.dodgeChance*100)+'% หลบการโจมตีโดยตรงทั้งหมด (รวมสกิล) ไม่เสีย HP หรือโล่ · สุ่มแยกแต่ละฮิต · ไม่หลบ DOT หรือดาเมจรับแทน');
  if(t.passive?.damageReduction)lines.push('พาสซีฟ — '+t.passive.name+': ลดความเสียหายที่ได้รับ '+Math.round(t.passive.damageReduction*100)+'% ตลอดการต่อสู้ ก่อนคำนวณโล่');
  if(t.passive?.focusCritStep)lines.push('พาสซีฟ — '+t.passive.name+': โจมตีเป้าหมายเดิมต่อเนื่องเพิ่มโอกาสคริติคอล '+Math.round(t.passive.focusCritStep*100)+' จุดเปอร์เซ็นต์ต่อครั้ง (สูงสุด +'+Math.round(t.passive.focusCritMax*100)+' จุดเปอร์เซ็นต์) · รีเซ็ตเมื่อเปลี่ยนเป้าหมาย');
  if(t.passive?.explosionImmune)lines.push('พาสซีฟ — '+t.passive.name+': ไม่ได้รับความเสียหายจาก EXPLOSION ทุกครั้ง');
@@ -1331,6 +1335,10 @@ function vtuberTeamBonus(actor){
  if(TFT.isImmortal(target,stageClock)){statusFx(target,'immune','อมตะ · 0');return false}
  const hero=combatHero(attacker)||{};
  if(TFT.blocksExplosion(hero,combatHero(target))){statusFx(target,'immune','กัน EXPLOSION · 0');return false}
+ const dodge=Number(combatHero(target)?.passive?.dodgeChance)||0;
+ if(!dot&&dodge>0&&Math.random()<Math.min(.75,dodge)){
+  unitFx(target,'DODGE · หลบหลีก','status');ring(target.x,target.y);return false;
+ }
  const chance=Math.min(1,Math.max(0,(attacker.crit||0)+bonusCrit));
  const critical=!dot&&(forcedCrit||(chance>0&&Math.random()<chance));
  const raw=TFT.incomingDamage(power*TFT.healDownDamageMultiplier(hero,target,stageClock)*TFT.bossDamageMultiplier(hero,target)*TFT.outgoingMultiplier(attacker,stageClock)*TFT.vulnerabilityMultiplier(target,stageClock)*(critical?(attacker.critDamage||hero.critDamage||1.5):1),combatHero(target));
@@ -1647,6 +1655,20 @@ function tftSkill(attacker,target){
    attacker.shield=(attacker.shield||0)+gain;attacker.shieldSource=attacker.id;
     shieldEffect(attacker);unitFx(attacker,'โล่ +'+fmt(gain),'shield');
    break;
+  case 'dash':{
+   const candidates=foes().filter(u=>u.alive!==false&&u.hp>0&&(u.cloakUntil||0)<=stageClock);
+   const victim=candidates.sort((a,b)=>Number(TFT.isRanged(combatHero(b)))-Number(TFT.isRanged(combatHero(a)))||TFT.pxDist(attacker,b)-TFT.pxDist(attacker,a))[0]||target;
+   const from={x:attacker.x,y:attacker.y};
+   const back=attacker.side==='ally'?-1:1;
+   attacker.x=Math.max(5.5,Math.min(94.5,victim.x));
+   attacker.y=Math.max(8,Math.min(92,victim.y+back*7));
+   attacker.walking=false;
+   projectile(from.x,from.y,attacker.x,attacker.y,'#ffe05d');
+   ring(from.x,from.y);position(attacker);ring(attacker.x,attacker.y);
+   unitFx(attacker,'⚡ เทพอัสนีเหิน','buff');
+   tftDamage(attacker,victim,attacker.atk*hero.skillPower,0,false,false,'skillHit');
+   return true;
+  }
   case 'blink':
    attacker.x=Math.max(5.5,Math.min(94.5,target.x+(Math.random()-.5)*5));
    attacker.y=Math.max(8,Math.min(92,target.y+(Math.random()-.5)*4));
@@ -1675,6 +1697,9 @@ function playAttackAnimation(attacker){
  requestAnimationFrame(()=>{
   if(node.isConnected&&attacker.attackUntil>(scene?scene.clock:stageClock))node.classList.add('burst');
  });
+}
+function dashCharged(actor,hero){
+ return hero?.effect==='dash'&&(actor.attacks||0)>=CORE.skillAttackCount(hero)-1&&stageClock+1e-9>=(actor.nextSkillAt||0);
 }
 function tftAttack(attacker,target,forceSkill=false){
  if(!target||target.hp<=0||attacker.exhausted||attacker.castUntil||TFT.isFrozen(attacker,stageClock))return;
@@ -1757,7 +1782,7 @@ function tick(dt){
   if(!target){f.walking=false;position(f);continue}
   const close=TFT.pursue(f,target,combatHero(f),t,'ally').inRange;
   position(f);
-  if(close&&f.remaining<=0&&f.cloakUntil<=stageClock){
+  if((close||dashCharged(f,combatHero(f)))&&f.remaining<=0&&f.cloakUntil<=stageClock){
    heroAttack(f,target);
    f.remaining=Math.max(.06,f.remaining+TFT.attackInterval(f,f.cool,stageClock));
    if(!combat)return;
@@ -1775,7 +1800,7 @@ function tick(dt){
   if(target){
    const close=TFT.pursue(foe,target,combatHero(foe),t,'enemy').inRange;
    position(foe);
-   if(close&&foe.remaining<=0&&foe.cloakUntil<=stageClock){
+   if((close||dashCharged(foe,combatHero(foe)))&&foe.remaining<=0&&foe.cloakUntil<=stageClock){
     enemyAttack(foe,target);
     foe.remaining=Math.max(.06,foe.remaining+TFT.attackInterval(foe,foe.delay,stageClock));
    }
@@ -1893,7 +1918,7 @@ function resetTrial(){
  $('trialSkillName').innerHTML=rarityBadge(h)+' '+escapeText(h.skill)+(trial.costume?' <span class="costume-rarity '+(CORE.costumeDefs(HEROES,id).find(c=>c.id===trial.costume)?.rarity==='LEGENDARY'?'legendary':'epic')+'">'+escapeText(CORE.costumeDefs(HEROES,id).find(c=>c.id===trial.costume)?.name||trial.costume)+'</span>':'');
  $('trialStats').textContent='HP '+fmt(st.hp)+' · '+attackTypeLabel(h)+' '+fmt(st.atk)+' · '+(h.globalRange?'ทั่วสนาม':h.range+' ช่อง');
  $('trialPassive').disabled=!(h.passive||h.guard||h.fireTrail||h.effect==='cloakshot');
- $('trialPassive').textContent=h.fireTrail?'ทดสอบทางไฟซ้อน':h.debuff?.healDown?'ทดสอบตัดฮีล':h.passive?.magicGuard?'ทดสอบรับดาเมจแทน':h.effect==='explosion'?'ทดลองหมดแรง':h.passive?.reviveHp?'ทดสอบคืนชีพตัวเอง':h.support?.reviveHp?'ทดสอบชุบเพื่อน':h.passive?.aquaReviveHp?'ทดสอบคืนชีพ':h.passive?.focusCritStep?'ทดสอบคริต่อเนื่อง':h.passive?.healOnAttack?'ทดสอบฮีลปกติ':h.guard?'ทดสอบยั่วยุ':h.effect==='cloakshot'?'ทดสอบซุ่มยิง':h.passive?.damageReduction?'ทดสอบลดดาเมจ':'ทดลองพาสซีฟ';
+ $('trialPassive').textContent=h.passive?.dodgeChance?'ทดสอบหลบหลีก ×5':h.fireTrail?'ทดสอบทางไฟซ้อน':h.debuff?.healDown?'ทดสอบตัดฮีล':h.passive?.magicGuard?'ทดสอบรับดาเมจแทน':h.effect==='explosion'?'ทดลองหมดแรง':h.passive?.reviveHp?'ทดสอบคืนชีพตัวเอง':h.support?.reviveHp?'ทดสอบชุบเพื่อน':h.passive?.aquaReviveHp?'ทดสอบคืนชีพ':h.passive?.focusCritStep?'ทดสอบคริต่อเนื่อง':h.passive?.healOnAttack?'ทดสอบฮีลปกติ':h.guard?'ทดสอบยั่วยุ':h.effect==='cloakshot'?'ทดสอบซุ่มยิง':h.passive?.damageReduction?'ทดสอบลดดาเมจ':'ทดลองพาสซีฟ';
  withTrial(renderTrial);
 }
 // Keep the whole delayed skill sequence visible in Hero Trial.
@@ -1941,6 +1966,7 @@ function queueTrial(mode){
    if(!fallen||(trial.hero.supportRevives||0)>=h.support.reviveLimit){trial.note='ใช้สิทธิ์ชุบชีวิตครบแล้ว · รีเซ็ตสนามเพื่อทดลองอีกครั้ง';withTrial(renderTrial);return;}
    fallen.hp=0;fallen.alive=false;fallen.node.style.opacity='.2';trial.queue=['skill'];
   }
+  else if(h.passive?.dodgeChance)trial.queue=Array(5).fill('hit');
   else if(h.fireTrail)trial.queue=['skill','skill'];
   else if(h.debuff?.healDown)trial.queue=['skill','healTest'];
   else if(h.passive?.magicGuard)trial.queue=['protect'];
@@ -1979,16 +2005,16 @@ function tickTrial(dt){
     if(victim&&victim.alive){
      if(cmd==='taunt')scene.note='AI เลือกเป้าหมาย: '+HEROES[victim.id].name;
      const power=cmd==='lethal'?Math.ceil((victim.hp+victim.shield+1)/(1-(combatHero(victim)?.passive?.damageReduction||0))):100;
-     tftDamage(dummy,victim,power);
+     const landed=tftDamage(dummy,victim,power);
      if(cmd==='protect')scene.note='ทดลองให้เพื่อนเวทรับดาเมจ 100 หน่วย';
-     else if(cmd!=='taunt')scene.note=cmd==='lethal'?'ทดลองรับดาเมจจน HP เหลือ 0':'รับการโจมตีพื้นฐาน 100 หน่วย';
+     else if(cmd!=='taunt')scene.note=!landed&&h.passive?.dodgeChance?'หลบหลีกสำเร็จ · ไม่เสีย HP หรือโล่':cmd==='lethal'?'ทดลองรับดาเมจจน HP เหลือ 0':'รับการโจมตีพื้นฐาน 100 หน่วย';
     }
     scene.active=null;scene.nextAt=stageClock+.55;
    }else if(!target||!actor.alive){
     scene.active=null;scene.queue=[];scene.note='รีเซ็ตสนามเพื่อทดลองใหม่';
    }else if(actor.cloakUntil<=stageClock){
     const close=TFT.pursue(actor,target,h,t,'ally').inRange;
-    if(close){
+    if(close||(h.effect==='dash'&&cmd==='skill')){
      actor.walking=false;
      actor.attacks=0;
      tftAttack(actor,target,cmd==='skill');
