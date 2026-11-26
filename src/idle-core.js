@@ -297,8 +297,9 @@
  }
  function monster(stage,boss=false){
   const n=stage-1;
-  const hp=Math.round((boss?1100:175)*Math.pow(1.145,n));
-  const atk=Math.round((boss?55:15)*Math.pow(1.098,n));
+  const early=Math.min(n,19),late=Math.max(0,n-19);
+  const hp=Math.round((boss?1100:175)*Math.pow(1.145,early)*Math.pow(1.095,late));
+  const atk=Math.round((boss?55:15)*Math.pow(1.098,early)*Math.pow(1.065,late));
   return {hp,atk,delay:boss?1.45:2.15};
  }
  // Boss stars primarily unlock skills; avoid multiplying the exponential stage curve by full player stat growth.
