@@ -1130,6 +1130,31 @@
         "delayMs": 0,
         "airtimeMs": 0,
         "loopFrames": false
+      },
+      "skillHit": {
+        "src": "./assets/effects/minato/skillHit-224bafc49ae5.png",
+        "cols": 8,
+        "rows": 1,
+        "row": 0,
+        "col": 0,
+        "frames": 7,
+        "size": 105,
+        "ms": 440,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "thickness": 48,
+        "orientation": "horizontal",
+        "hue": 0,
+        "saturation": 100,
+        "brightness": 100,
+        "colorize": false,
+        "delayMs": 0,
+        "airtimeMs": 0,
+        "loopFrames": false
       }
     }
   },
