@@ -295,15 +295,18 @@
    return sum+Math.round(s.atk*10*base.cool/s.cool*critRatio+s.hp*.3);
   },0);
  }
- // Fixed endgame budget: Lv.100 / 5-star SSR balanced squad, not roster size.
- // Future floors reuse this ceiling; boss kit and stars supply encounter variety.
- const ENDGAME_STAGE=50;
+ // Fixed endgame budget, independent of roster size. Rebalance only when hero power ceiling rises.
+ const ENDGAME_STAGE=50,ENDGAME_CAP_STAGE=70;
  const ENDGAME_BOSS_HP=160000,ENDGAME_BOSS_ATK=1500;
+ const ENDGAME_BOSS_HP_CAP=200000,ENDGAME_BOSS_ATK_CAP=3500;
  function monster(stage,boss=false){
-  const n=clamp(Math.floor(number(stage,1))-1,0,ENDGAME_STAGE-1);
-  const early=Math.min(n,19),late=Math.max(0,n-19),t=late/(ENDGAME_STAGE-20);
-  const hp=Math.round((boss?1100:175)*Math.pow(1.145,early)*Math.pow(ENDGAME_BOSS_HP/(1100*Math.pow(1.145,19)),t));
-  const atk=Math.round((boss?55:15)*Math.pow(1.098,early)*Math.pow(ENDGAME_BOSS_ATK/(55*Math.pow(1.098,19)),t));
+  const n=clamp(Math.floor(number(stage,1))-1,0,ENDGAME_CAP_STAGE-1);
+  const early=Math.min(n,19),late=Math.max(0,Math.min(n,ENDGAME_STAGE-1)-19),t=late/(ENDGAME_STAGE-20);
+  const endgame=clamp((n-(ENDGAME_STAGE-1))/(ENDGAME_CAP_STAGE-ENDGAME_STAGE),0,1);
+  const hpGrowth=Math.pow(1.145,early)*Math.pow(ENDGAME_BOSS_HP/(1100*Math.pow(1.145,19)),t)*(1+endgame*(ENDGAME_BOSS_HP_CAP/ENDGAME_BOSS_HP-1));
+  const atkGrowth=Math.pow(1.098,early)*Math.pow(ENDGAME_BOSS_ATK/(55*Math.pow(1.098,19)),t)*(1+endgame*(ENDGAME_BOSS_ATK_CAP/ENDGAME_BOSS_ATK-1));
+  const hp=Math.round((boss?1100:175)*hpGrowth);
+  const atk=Math.round((boss?55:15)*atkGrowth);
   return {hp,atk,delay:boss?1.45:2.15};
  }
  // Boss stars primarily unlock skills; avoid multiplying the exponential stage curve by full player stat growth.
