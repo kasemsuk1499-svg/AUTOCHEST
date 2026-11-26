@@ -869,3 +869,5 @@ body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
 .costume-rarity{font-size:10px;letter-spacing:1px;font-weight:800;color:#b9d0e4}.costume-rarity.epic{color:#dfafff;background:#432464;border:1px solid #9361c8;border-radius:4px;padding:2px 8px}.costume-price{color:#83d9ff;font-weight:700;font-size:12px}.costume-item:has(.costume-rarity.epic){border-color:#9060bf}.costume-item.active{border-color:#e7bd66!important}
 
 .costume-item .costume-trial{color:#e3b8ff;border-color:#8960b9;background:#2e2145}.trial-controls #trialCostume{min-width:0;max-width:100%}.trial-controls{flex-wrap:wrap}
+
+.costume-rarity.legendary{color:#ffe3a0;background:#53361b;border:1px solid #e5ad51;border-radius:4px;padding:2px 8px;box-shadow:0 0 9px #e9ab4033}.costume-item:has(.costume-rarity.legendary){border-color:#d6a149;background:linear-gradient(145deg,#30251c,#101b2c 55%)}
