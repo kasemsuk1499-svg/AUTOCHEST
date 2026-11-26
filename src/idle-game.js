@@ -625,7 +625,7 @@ function skillDescription(t,enemy=false){
    lines.push('แท็กพิเศษ KonoSuba: เมื่อคาซึมะและอควาฝั่งเดียวกันยังมีชีวิต จะพัก 4 วินาที (3.5 วินาทีเมื่อคาซึมะ 5★) แล้วร่าย Explosion ซ้ำได้ไม่จำกัดครั้ง · หากสมาชิกตายระหว่างร่ายซ้ำจะหยุดร่าย');
    break;
   case 'dot':
-   lines.push('ทุก '+n+' การโจมตี: โจมตีศัตรูสูงสุด '+t.passive.dotTargets+' ตัว ตัวละ '+Math.round(t.skillPower*100)+'% ATK และติดคำสาป '+Math.round(t.passive.dotPower*100)+'% ATK ทุก 1 วินาที นาน '+t.passive.dotTicks+' วินาที · DOT ไม่คริติคอล · คำสาปจากผู้ร่ายเดิมอัปเดตพลังโดยไม่ซ้อนหรือรีเซ็ตจำนวนครั้ง · ทำงานจนครบแม้ผู้ร่ายตาย (ภายในเวฟเดิม)');
+   lines.push('ทุก '+n+' การโจมตี: โจมตีศัตรูสูงสุด '+t.passive.dotTargets+' ตัว ตัวละ '+Math.round(t.skillPower*100)+'% ATK และติดคำสาป '+Math.round(t.passive.dotPower*100)+'% ATK ทุก 1 วินาที นาน '+t.passive.dotTicks+' วินาที · DOT ไม่คริติคอล · '+(t.passive.dotStack?'คำสาปซ้อนทับได้ แต่ละชั้นนับเวลาและแช่แข็งเมื่อครบแยกกัน':'คำสาปจากผู้ร่ายเดิมอัปเดตพลังโดยไม่ซ้อนหรือรีเซ็ตจำนวนครั้ง')+' · ทำงานจนครบแม้ผู้ร่ายตาย (ภายในเวฟเดิม)');
    if(t.passive.dotPierceShield)lines.push('DOT ทะลุโล่โดยตรง แต่ไม่ทะลุอมตะ');
    if(t.passive.dotFreezeSeconds)lines.push('เมื่อ DOT ครั้งสุดท้ายโดนเป้าหมายที่ยังมีชีวิต: แช่แข็ง '+t.passive.dotFreezeSeconds+' วินาที หยุดเดิน โจมตี และพักเวลาร่ายสกิล · ไม่ทะลุอมตะ');
    break;
