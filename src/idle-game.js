@@ -35,10 +35,16 @@ const run=()=>CORE.activeRun(state),night=()=>state.mode==='nightmare';
   const c=state.costumes?.[id]?.equipped;
   return side==='ally'&&c&&CORE.ownsCostume(state,HEROES,id,c)&&costumeImages(id,c)||HEROES[id].images;
  }
- function costumeFxFor(actor){
-  const id=actor.id,c=state.costumes?.[id]?.equipped;
-  return actor.side==='ally'&&c&&CORE.ownsCostume(state,HEROES,id,c)?costumeImages(id,c)?.fx:null;
+ function actorCostume(actor){
+  if(actor.side!=='ally')return null;
+  // A trial costume is a visual override only, including an explicit original outfit.
+  if(Object.hasOwn(actor,'trialCostume'))return costumeImages(actor.id,actor.trialCostume)||null;
+  if(trialContext?.id===actor.id)return costumeImages(actor.id,trialContext.costume)||null;
+  const c=state.costumes?.[actor.id]?.equipped;
+  return c&&CORE.ownsCostume(state,HEROES,actor.id,c)?costumeImages(actor.id,c)||null:null;
  }
+ function actorImages(actor){return actorCostume(actor)||HEROES[actor.id].images;}
+ function costumeFxFor(actor){return actorCostume(actor)?.fx||null;}
  function probeCostumeFx(url){
   return new Promise(resolve=>{const img=new Image();img.onload=()=>resolve(true);img.onerror=()=>resolve(false);img.src=url;});
  }
@@ -78,7 +84,7 @@ const run=()=>CORE.activeRun(state),night=()=>state.mode==='nightmare';
     const status=!images?(costumeAssets.has(costumeKey(id,def.id))?'รอไฟล์รูป':'กำลังตรวจรูป'):sale?'ซื้อชุด':!has?'🔒 ยังไม่ได้เป็นเจ้าของ':active?'✓ สวมใส่อยู่':def.id?'สวมใส่':'ถอดคอสตูม';
     return '<div class="costume-item'+(active?' active':'')+'">'+(images?'<img loading="lazy" src="'+escapeText(images.art)+'" alt="">':'<div class="costume-placeholder">👗</div>')+
      '<strong>'+escapeText(def.name||def.id)+'</strong>'+(def.rarity?'<span class="costume-rarity '+(def.rarity==='EPIC'?'epic':'')+'">'+escapeText(def.rarity)+'</span>':'')+(def.price&&!has?'<small class="costume-price">💎 '+fmt(def.price)+'</small>':'')+
-     '<button type="button" class="control-btn" data-costume-hero="'+id+'" data-costume-id="'+escapeText(def.id)+'"'+(sale?' data-costume-buy="1"':'')+(!images||(!has&&!sale)||active?' disabled':'')+'>'+status+'</button></div>';
+     '<button type="button" class="control-btn" data-costume-hero="'+id+'" data-costume-id="'+escapeText(def.id)+'"'+(sale?' data-costume-buy="1"':'')+(!images||(!has&&!sale)||active?' disabled':'')+'>'+status+'</button><button type="button" class="control-btn costume-trial" data-trial-hero="'+id+'" data-trial-costume="'+escapeText(def.id)+'"'+(!images?' disabled':'')+'>▶ ทดลองสกิล</button></div>';
    }).join('')+'</div><small>เปลี่ยนรูปลักษณ์และ VFX ตามชุด · ไม่เปลี่ยนค่าสเตตัส</small></section>';
  }
  let skillView=null;
@@ -226,7 +232,7 @@ function invaderPatrol(foe,t){
 }
 function pose(actor,attack){
  if(!actor.img)return;
- const image=heroImages(actor.id,actor.side)[attack?'attack':'idle'];
+ const image=actorImages(actor)[attack?'attack':'idle'];
  if(actor.sprite!==image){actor.img.src=image;actor.sprite=image}
 }
 // Translate on the compositor instead of restarting a 280ms CSS transition each frame.
@@ -1779,11 +1785,12 @@ function withTrial(fn){
 function trialUnit(id,side,x,y,hp,maxHp,label,stars=1){
  const progress={level:1,stars},h=HEROES[id],st=h?CORE.stats(h,progress):{atk:100,cool:1,crit:0,critDamage:1};
  const actor={id,side,damageType:CORE.damageType(h),x,y,hp,maxHp,progress,atk:st.atk,cool:st.cool,crit:st.crit,critDamage:st.critDamage,alive:true,shield:0,attacks:0,attackUntil:0,cloakUntil:0,ambush:false,walking:false,label};
+ if(side==='ally'&&trial?.id===id)actor.trialCostume=trial.costume;
  const node=el('div',{class:'fighter '+(side==='enemy'?'enemy-unit trial-dummy':'party-fighter')});
  node.innerHTML='<span class="mini-stars">'+(side==='enemy'?'DUMMY':'Lv.1 '+'★'.repeat(stars))+'</span>'+
- (h?'<img src="'+heroImages(id,side).idle+'" alt="">':'<div class="dummy-icon">◎</div>')+
+ (h?'<img src="'+actorImages(actor).idle+'" alt="">':'<div class="dummy-icon">◎</div>')+
  '<div class="mini-hp"><i></i></div><span class="fighter-name">'+escapeText(label||h.name)+'</span><span class="trial-values"></span>';
- $('trialUnits').appendChild(node);actor.node=node;actor.img=node.querySelector('img');actor.sprite=h?heroImages(id,side).idle:undefined;
+ $('trialUnits').appendChild(node);actor.node=node;actor.img=node.querySelector('img');actor.sprite=h?actorImages(actor).idle:undefined;
  actor.hpbar=actor.bar=node.querySelector('.mini-hp i');actor.values=node.querySelector('.trial-values');
  return actor;
 }
@@ -1791,7 +1798,7 @@ function resetTrial(){
  if($('trialModal').hidden)return;
  const id=$('trialHero').value,stars=Number($('trialStars').value)||1,h=CORE.heroAtStars(HEROES[id],stars),bossTrial=$('trialCount').value==='boss',count=bossTrial?1:Number($('trialCount').value),st=CORE.stats(HEROES[id],{level:1,stars}),arena=$('trialArena');
  $('trialUnits').replaceChildren();$('trialFx').replaceChildren();$('trialArena').querySelector('.fire-ground-layer')?.replaceChildren();$('trialLog').replaceChildren();
- trial={id,clock:0,size:{width:arena.clientWidth,height:arena.clientHeight},fighters:[],enemies:[],shots:[],fireTrails:[],revives:new Map(),events:[],queue:[],active:null,nextAt:0,lastLog:'',note:'พร้อมทดลอง'};
+ trial={id,costume:$('trialCostume').value,clock:0,size:{width:arena.clientWidth,height:arena.clientHeight},fighters:[],enemies:[],shots:[],fireTrails:[],revives:new Map(),events:[],queue:[],active:null,nextAt:0,lastLog:'',note:'พร้อมทดลอง'};
  trial.hero=trialUnit(id,'ally',50,78,st.hp,st.hp,undefined,stars);
  trial.fighters.push(trial.hero);
  if(h.passive?.magicGuard){const max=CORE.stats(HEROES.aqua,{level:1,stars:1}).hp;trial.fighters.push(trialUnit('aqua','ally',25,82,max,max,HEROES.aqua.name));}
@@ -1805,7 +1812,7 @@ function resetTrial(){
  }
  const cells=h.debuff?.healDown?[[50,42],[50,34],[59,42],[41,42],[50,25]]:h.cleave?[[50,42],[50,27],[66,37],[25,25],[80,20]]:(h.effect==='pierce'||h.effect==='firetrail')?[[50,42],[50,25],[50,10],[24,30],[76,30]]:[[50,38],[33,32],[67,32],[18,15],[82,15]];
  for(let i=0;i<count;i++){const [x,y]=cells[i];const dummy=trialUnit('__dummy','enemy',x,y,bossTrial?12000:3000,bossTrial?12000:3000,bossTrial?'👑 หุ่นบอส':'หุ่น '+(i+1));dummy.boss=bossTrial;trial.enemies.push(dummy)}
- $('trialSkillName').innerHTML=rarityBadge(h)+' '+escapeText(h.skill);
+ $('trialSkillName').innerHTML=rarityBadge(h)+' '+escapeText(h.skill)+(trial.costume?' <span class="costume-rarity epic">'+escapeText(CORE.costumeDefs(HEROES,id).find(c=>c.id===trial.costume)?.name||trial.costume)+'</span>':'');
  $('trialStats').textContent='HP '+fmt(st.hp)+' · '+attackTypeLabel(h)+' '+fmt(st.atk)+' · '+(h.globalRange?'ทั่วสนาม':h.range+' ช่อง');
  $('trialPassive').disabled=!(h.passive||h.guard||h.fireTrail||h.effect==='cloakshot');
  $('trialPassive').textContent=h.fireTrail?'ทดสอบทางไฟซ้อน':h.debuff?.healDown?'ทดสอบตัดฮีล':h.passive?.magicGuard?'ทดสอบรับดาเมจแทน':h.effect==='explosion'?'ทดลองหมดแรง':h.passive?.reviveHp?'ทดสอบคืนชีพตัวเอง':h.support?.reviveHp?'ทดสอบชุบเพื่อน':h.passive?.aquaReviveHp?'ทดสอบคืนชีพ':h.passive?.focusCritStep?'ทดสอบคริต่อเนื่อง':h.passive?.healOnAttack?'ทดสอบฮีลปกติ':h.guard?'ทดสอบยั่วยุ':h.effect==='cloakshot'?'ทดสอบซุ่มยิง':h.passive?.damageReduction?'ทดสอบลดดาเมจ':'ทดลองพาสซีฟ';
@@ -1925,11 +1932,20 @@ function recoverTrial(error){
  $('trialNote').textContent=trial.note;
  for(const id of ['trialNormal','trialSkill','trialPassive','trialHit','trialRevive'])if($(id))$(id).disabled=true;
 }
-function openTrial(id){
+function refreshTrialCostumes(id,preferred){
+ const picker=$('trialCostume'),defs=CORE.costumeDefs(HEROES,id).filter(c=>costumeImages(id,c.id));
+ const options=[{id:'',name:'ชุดดั้งเดิม'},...defs];
+ picker.innerHTML=options.map(c=>'<option value="'+escapeText(c.id)+'">'+escapeText((c.rarity?c.rarity+' · ':'')+c.name)+'</option>').join('');
+ const equipped=state.costumes?.[id]?.equipped||'';
+ const choice=preferred===undefined?equipped:preferred;
+ picker.value=options.some(c=>c.id===choice)?choice:'';
+ picker.disabled=options.length===1;
+}
+function openTrial(id,costume){
  if(!HEROES[id]||trial)return;
  trialReturnFocus=document.activeElement;
  $('trialHero').innerHTML=IDS.map(id=>'<option value="'+id+'">'+HEROES[id].rarity+' · '+escapeText(HEROES[id].name)+'</option>').join('');
- $('trialHero').value=id;$('trialStars').value='1';$('trialModal').hidden=false;resetTrial();$('trialClose').focus();
+ $('trialHero').value=id;refreshTrialCostumes(id,costume);$('trialStars').value='1';$('trialModal').hidden=false;resetTrial();$('trialClose').focus();
 }
 function closeTrial(){
  if($('trialModal').hidden)return;
@@ -1937,8 +1953,8 @@ function closeTrial(){
  trial=null;$('trialModal').hidden=true;$('trialUnits').replaceChildren();$('trialFx').replaceChildren();$('trialArena').querySelector('.fire-ground-layer')?.replaceChildren();
  if(trialReturnFocus?.isConnected)trialReturnFocus.focus();trialReturnFocus=null;
 }
-document.addEventListener('click',e=>{const b=e.target.closest('[data-trial-hero]');if(b){e.preventDefault();openTrial(b.dataset.trialHero)}});
-$('trialHero').addEventListener('change',resetTrial);$('trialCount').addEventListener('change',resetTrial);$('trialStars').addEventListener('change',resetTrial);
+document.addEventListener('click',e=>{const b=e.target.closest('[data-trial-hero]');if(b&&!b.disabled){e.preventDefault();openTrial(b.dataset.trialHero,b.dataset.trialCostume)}});
+$('trialHero').addEventListener('change',()=>{refreshTrialCostumes($('trialHero').value);resetTrial()});$('trialCostume').addEventListener('change',resetTrial);$('trialCount').addEventListener('change',resetTrial);$('trialStars').addEventListener('change',resetTrial);
 $('trialReset').addEventListener('click',resetTrial);$('trialClose').addEventListener('click',closeTrial);$('trialOverlay').addEventListener('click',closeTrial);
 for(const [id,mode] of [['trialNormal','normal'],['trialSkill','skill'],['trialPassive','passive'],['trialHit','hit'],['trialRevive','reviveTest']])$(id)?.addEventListener('click',()=>queueTrial(mode));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('trialModal').hidden){e.preventDefault();e.stopImmediatePropagation();closeTrial()}});
