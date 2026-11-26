@@ -38,8 +38,8 @@ const run=()=>CORE.activeRun(state),night=()=>state.mode==='nightmare';
  function actorCostume(actor){
   if(actor.side!=='ally')return null;
   // A trial costume is a visual override only, including an explicit original outfit.
-  if(Object.hasOwn(actor,'trialCostume'))return costumeImages(actor.id,actor.trialCostume)||null;
-  if(trialContext?.id===actor.id)return costumeImages(actor.id,trialContext.costume)||null;
+  if(Object.hasOwn(actor,'trialCostume'))return costumeImages(actor.id,actor.trialCostume)||(studioMode&&actor.trialCostume?{...HEROES[actor.id].images,id:actor.trialCostume}:null);
+  if(trialContext?.id===actor.id)return costumeImages(actor.id,trialContext.costume)||(studioMode&&trialContext.costume?{...HEROES[actor.id].images,id:trialContext.costume}:null);
   const c=state.costumes?.[actor.id]?.equipped;
   return c&&CORE.ownsCostume(state,HEROES,actor.id,c)?costumeImages(actor.id,c)||null:null;
  }
@@ -1933,7 +1933,7 @@ function recoverTrial(error){
  for(const id of ['trialNormal','trialSkill','trialPassive','trialHit','trialRevive'])if($(id))$(id).disabled=true;
 }
 function refreshTrialCostumes(id,preferred){
- const picker=$('trialCostume'),defs=CORE.costumeDefs(HEROES,id).filter(c=>costumeImages(id,c.id));
+ const picker=$('trialCostume'),defs=CORE.costumeDefs(HEROES,id).filter(c=>studioMode||costumeImages(id,c.id));
  const options=[{id:'',name:'ชุดดั้งเดิม'},...defs];
  picker.innerHTML=options.map(c=>'<option value="'+escapeText(c.id)+'">'+escapeText((c.rarity?c.rarity+' · ':'')+c.name)+'</option>').join('');
  const equipped=state.costumes?.[id]?.equipped||'';
