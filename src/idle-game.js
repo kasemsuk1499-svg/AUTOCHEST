@@ -707,7 +707,7 @@ function openSkill(id,source='hero',unit=null){
   ...(!enemy&&stat.dotDamage>0&&(h.passive?.dotPower||h.fireTrail)?[['โบนัส DOT','+'+Math.round(stat.dotDamage*100)+'%']]:[]),
   ['ความถี่สกิล',h.effect==='explosion'?'ร่าย '+CORE.explosionCastSeconds(h)+' วินาที':'ทุก '+CORE.skillAttackCount(h)+' ครั้ง · เว้น ≥ '+CORE.SKILL_MIN_INTERVAL+'s']
  ];
- const label=enemy?(active?.boss?'👑 บอสประจำชั้น · '+'★'.repeat(stars):'👹 ฮีโร่เงาศัตรู · '+'★'.repeat(stars))+' · ด่าน '+(dungeon?.stage||battleStage()):progress?
+ const label=enemy?(active?.boss?'👑 บอสประจำชั้น · '+'★'.repeat(stars):'👹 ฮีโร่เงาศัตรู · '+'★'.repeat(stars))+' · Lv.'+(active?.level||1)+' · ด่าน '+(dungeon?.stage||battleStage()):progress?
   '⭐ Lv.'+progress.level+' · '+progress.stars+' ดาว':'🔒 ยังไม่อัญเชิญ · ค่าสถานะพื้นฐาน';
  $('skillModalTitle').textContent=h.name+' — '+h.skill;
  $('skillModalContent').innerHTML=
@@ -1116,7 +1116,7 @@ function spawnMonster(boss=false,cell=null,quiet=false,forcedId=null){
  const hero=CORE.enemyHero(HEROES[id],stat.stars,boss),hp=stat.hp;
  const entry=cell?boardPoint(cell[0],cell[1]):
   boardPoint(boss?2:(encounters+2)%GRID_COLS,boss?1:encounters%3);
- const foe={id,side:'enemy',damageType:CORE.damageType(hero),boss,stars:stat.stars,hp,maxHp:hp,atk:stat.atk,
+ const foe={id,side:'enemy',damageType:CORE.damageType(hero),boss,stars:stat.stars,level:stat.level,hp,maxHp:hp,atk:stat.atk,
   remaining:.65+Math.random()*.35,delay:stat.delay,move:hero.move,
   shield:0,attacks:0,crit:stat.crit,critDamage:stat.critDamage,
   cloakUntil:0,ambush:false,attackUntil:0,walking:false,alive:true,
@@ -1125,7 +1125,7 @@ function spawnMonster(boss=false,cell=null,quiet=false,forcedId=null){
  node.dataset.inspectId=id;node.dataset.inspectSide='enemy';
  node.tabIndex=0;node.setAttribute('role','button');
  node.setAttribute('aria-label','ดูสกิลศัตรู '+hero.name);
- node.innerHTML='<span class="mini-stars">'+(boss?'👑 '+'★'.repeat(stat.stars):night()?'⚔ '+'★'.repeat(stat.stars):'⚔ ENEMY')+'</span>'+
+ node.innerHTML='<span class="mini-stars">'+(boss?'👑 '+'★'.repeat(stat.stars):night()?'⚔ '+'★'.repeat(stat.stars):'⚔')+' · Lv.'+stat.level+'</span>'+
   '<img src="'+hero.images.idle+'" alt="">'+
   '<div class="mini-hp enemy-hp"><i></i></div>'+
   '<span class="fighter-name">'+(boss?'👑 ':'⚔ เงา')+escapeText(hero.name)+'</span>';
