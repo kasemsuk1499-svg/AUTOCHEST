@@ -83,7 +83,7 @@ const run=()=>CORE.activeRun(state),night=()=>state.mode==='nightmare';
     const sale=owned&&!has&&Number.isSafeInteger(def.price)&&def.price>0;
     const status=!images?(costumeAssets.has(costumeKey(id,def.id))?'รอไฟล์รูป':'กำลังตรวจรูป'):sale?'ซื้อชุด':!has?'🔒 ยังไม่ได้เป็นเจ้าของ':active?'✓ สวมใส่อยู่':def.id?'สวมใส่':'ถอดคอสตูม';
     return '<div class="costume-item'+(active?' active':'')+'">'+(images?'<img loading="lazy" src="'+escapeText(images.art)+'" alt="">':'<div class="costume-placeholder">👗</div>')+
-     '<strong>'+escapeText(def.name||def.id)+'</strong>'+(def.rarity?'<span class="costume-rarity '+(def.rarity==='EPIC'?'epic':'')+'">'+escapeText(def.rarity)+'</span>':'')+(def.price&&!has?'<small class="costume-price">💎 '+fmt(def.price)+'</small>':'')+
+     '<strong>'+escapeText(def.name||def.id)+'</strong>'+(def.rarity?'<span class="costume-rarity '+(def.rarity==='EPIC'?'epic':def.rarity==='LEGENDARY'?'legendary':'')+'">'+escapeText(def.rarity)+'</span>':'')+(def.price&&!has?'<small class="costume-price">💎 '+fmt(def.price)+'</small>':'')+
      '<button type="button" class="control-btn" data-costume-hero="'+id+'" data-costume-id="'+escapeText(def.id)+'"'+(sale?' data-costume-buy="1"':'')+(!images||(!has&&!sale)||active?' disabled':'')+'>'+status+'</button><button type="button" class="control-btn costume-trial" data-trial-hero="'+id+'" data-trial-costume="'+escapeText(def.id)+'"'+(!images?' disabled':'')+'>▶ ทดลองสกิล</button></div>';
    }).join('')+'</div><small>เปลี่ยนรูปลักษณ์และ VFX ตามชุด · ไม่เปลี่ยนค่าสเตตัส</small></section>';
  }
@@ -1812,7 +1812,7 @@ function resetTrial(){
  }
  const cells=h.debuff?.healDown?[[50,42],[50,34],[59,42],[41,42],[50,25]]:h.cleave?[[50,42],[50,27],[66,37],[25,25],[80,20]]:(h.effect==='pierce'||h.effect==='firetrail')?[[50,42],[50,25],[50,10],[24,30],[76,30]]:[[50,38],[33,32],[67,32],[18,15],[82,15]];
  for(let i=0;i<count;i++){const [x,y]=cells[i];const dummy=trialUnit('__dummy','enemy',x,y,bossTrial?12000:3000,bossTrial?12000:3000,bossTrial?'👑 หุ่นบอส':'หุ่น '+(i+1));dummy.boss=bossTrial;trial.enemies.push(dummy)}
- $('trialSkillName').innerHTML=rarityBadge(h)+' '+escapeText(h.skill)+(trial.costume?' <span class="costume-rarity epic">'+escapeText(CORE.costumeDefs(HEROES,id).find(c=>c.id===trial.costume)?.name||trial.costume)+'</span>':'');
+ $('trialSkillName').innerHTML=rarityBadge(h)+' '+escapeText(h.skill)+(trial.costume?' <span class="costume-rarity '+(CORE.costumeDefs(HEROES,id).find(c=>c.id===trial.costume)?.rarity==='LEGENDARY'?'legendary':'epic')+'">'+escapeText(CORE.costumeDefs(HEROES,id).find(c=>c.id===trial.costume)?.name||trial.costume)+'</span>':'');
  $('trialStats').textContent='HP '+fmt(st.hp)+' · '+attackTypeLabel(h)+' '+fmt(st.atk)+' · '+(h.globalRange?'ทั่วสนาม':h.range+' ช่อง');
  $('trialPassive').disabled=!(h.passive||h.guard||h.fireTrail||h.effect==='cloakshot');
  $('trialPassive').textContent=h.fireTrail?'ทดสอบทางไฟซ้อน':h.debuff?.healDown?'ทดสอบตัดฮีล':h.passive?.magicGuard?'ทดสอบรับดาเมจแทน':h.effect==='explosion'?'ทดลองหมดแรง':h.passive?.reviveHp?'ทดสอบคืนชีพตัวเอง':h.support?.reviveHp?'ทดสอบชุบเพื่อน':h.passive?.aquaReviveHp?'ทดสอบคืนชีพ':h.passive?.focusCritStep?'ทดสอบคริต่อเนื่อง':h.passive?.healOnAttack?'ทดสอบฮีลปกติ':h.guard?'ทดสอบยั่วยุ':h.effect==='cloakshot'?'ทดสอบซุ่มยิง':h.passive?.damageReduction?'ทดสอบลดดาเมจ':'ทดลองพาสซีฟ';
