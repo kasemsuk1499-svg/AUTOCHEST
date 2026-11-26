@@ -874,4 +874,4 @@ body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
 
 /* Hidden tabs keep combat state, but suspend all rendering and animated sprites. */
 body.background-idle *,body.background-idle *::before,body.background-idle *::after{animation-play-state:paused!important;transition:none!important}
-body.background-idle #heroLayer,body.background-idle #monsterLayer,body.background-idle #fxLayer,body.background-idle #trialUnits,body.background-idle #trialFx,body.background-idle .fire-ground-layer,body.background-idle img{visibility:hidden!important}
+body.background-idle #heroLayer,body.background-idle #monsterLayer,body.background-idle #fxLayer,body.background-idle #trialUnits,body.background-idle #trialFx,body.background-idle .fire-ground-layer,body.background-idle img{visibility:hidden!important;display:none!important}
