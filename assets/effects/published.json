@@ -29,6 +29,10 @@
         "offsetY": 0,
         "thickness": 48,
         "orientation": "horizontal",
+        "hue": 180,
+        "saturation": 180,
+        "brightness": 100,
+        "colorize": false,
         "delayMs": 0,
         "airtimeMs": 0,
         "loopFrames": false
