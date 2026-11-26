@@ -295,11 +295,15 @@
    return sum+Math.round(s.atk*10*base.cool/s.cool*critRatio+s.hp*.3);
   },0);
  }
+ // Fixed endgame budget: Lv.100 / 5-star SSR balanced squad, not roster size.
+ // Future floors reuse this ceiling; boss kit and stars supply encounter variety.
+ const ENDGAME_STAGE=50;
+ const ENDGAME_BOSS_HP=160000,ENDGAME_BOSS_ATK=1500;
  function monster(stage,boss=false){
-  const n=stage-1;
-  const early=Math.min(n,19),late=Math.max(0,n-19);
-  const hp=Math.round((boss?1100:175)*Math.pow(1.145,early)*Math.pow(1.095,late));
-  const atk=Math.round((boss?55:15)*Math.pow(1.098,early)*Math.pow(1.065,late));
+  const n=clamp(Math.floor(number(stage,1))-1,0,ENDGAME_STAGE-1);
+  const early=Math.min(n,19),late=Math.max(0,n-19),t=late/(ENDGAME_STAGE-20);
+  const hp=Math.round((boss?1100:175)*Math.pow(1.145,early)*Math.pow(ENDGAME_BOSS_HP/(1100*Math.pow(1.145,19)),t));
+  const atk=Math.round((boss?55:15)*Math.pow(1.098,early)*Math.pow(ENDGAME_BOSS_ATK/(55*Math.pow(1.098,19)),t));
   return {hp,atk,delay:boss?1.45:2.15};
  }
  // Boss stars primarily unlock skills; avoid multiplying the exponential stage curve by full player stat growth.
@@ -312,8 +316,8 @@
  function enemyStats(hero,stage,boss=false,mode='normal',randomStars=1){
   const night=mode==='nightmare',stars=boss?bossStars(stage):night?clamp(Math.floor(randomStars),1,MAX_STARS):1,h=enemyHero(hero,stars,boss),base=monster(stage,boss);
   const hpScale=night?(boss?1.35/nightmareBossCount(stage):1.15):1,atkScale=night?(boss?1.30/nightmareBossCount(stage):1.10):1;
-  return {stars,hp:Math.max(1,Math.round(base.hp*(.8+hero.hp/3000)*(1+(stars-1)*.03)*hpScale)),
-   atk:Math.round(base.atk*(.9+hero.dmg/900)*(1+(stars-1)*.02)*atkScale),
+  return {stars,hp:Math.max(1,Math.round(base.hp*clamp(.8+hero.hp/3000,.8,1.3)*(1+(stars-1)*.03)*hpScale)),
+   atk:Math.round(base.atk*clamp(.9+hero.dmg/900,.9,1.1)*(1+(stars-1)*.02)*atkScale),
    delay:Math.max(.75,h.cool*1.2),crit:h.critChance||.05,critDamage:h.critDamage||1.5};
  }
  // Economy balance: speed up levelling without devaluing duplicate hero shards.
