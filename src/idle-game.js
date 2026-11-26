@@ -67,7 +67,7 @@ const run=()=>CORE.activeRun(state),night=()=>state.mode==='nightmare';
     const src=folder+'vfx/'+config.file;
     if(await probeCostumeFx(src))fx[event]={...config,src};
    }));
-   costumeAssets.set(costumeKey(id,def.id),art&&idle&&attack?{art,idle,attack,fx}:null);
+   costumeAssets.set(costumeKey(id,def.id),art&&idle&&attack?{art,idle,attack,fx,id:def.id}:null);
    syncCostumeSprites(id);
   })));
   renderPanels();
@@ -1112,7 +1112,7 @@ function renderVfxRegion(spec,from,to=null,scale=1){
  VFX.placeRegion(node,spec,region);VFX.animateLifetime(node,spec);addTransientFx(node,time.total);
 }
 function visualEffect(event,actor,x=actor.x,y=actor.y,scale=1){
- const spec=VFX?.getSpec(HEROES[actor.id],event,costumeFxFor(actor));if(!spec)return;
+ const spec=VFX?.getSpec(HEROES[actor.id],event,costumeFxFor(actor),actorCostume(actor)?.id||'');if(!spec)return;
  renderVfxRegion(spec,spec.mode==='beam'?actor:{x,y},spec.mode==='beam'?{x,y}:null,scale);
 }
 // Use the shield creator's artwork at the protected unit, even if the creator has left combat.
@@ -1120,12 +1120,12 @@ function visualEffect(event,actor,x=actor.x,y=actor.y,scale=1){
   visualEffect('shield',{id:source||target.id,side:target.side,x:target.x,y:target.y});
  }
  function beamEffect(actor,target,special=false){
- const spec=VFX?.getSpec(HEROES[actor.id],special?'skillProjectile':'projectile',costumeFxFor(actor));
+ const spec=VFX?.getSpec(HEROES[actor.id],special?'skillProjectile':'projectile',costumeFxFor(actor),actorCostume(actor)?.id||'');
  if(spec?.mode!=='beam')return false;
  renderVfxRegion(spec,actor,target);return true;
 }
 function imageProjectile(node,actor,special=false){
- const spec=VFX?.getSpec(HEROES[actor.id],special?'skillProjectile':'projectile',costumeFxFor(actor));if(!spec)return false;
+ const spec=VFX?.getSpec(HEROES[actor.id],special?'skillProjectile':'projectile',costumeFxFor(actor),actorCostume(actor)?.id||'');if(!spec)return false;
  node.classList.add('image-projectile');
  const size=(spec.src.endsWith('/combat-atlas.svg')?(special?58:36):spec.size)*Math.min(1,arenaSize.width/540);
  node.style.width=size*spec.scaleX+'px';node.style.height=size*spec.scaleY+'px';node.dataset.fxRotation=String(spec.rotation);node.dataset.fxOffsetX=String(spec.offsetX);node.dataset.fxOffsetY=String(spec.offsetY);VFX.paint(node,spec,spec.frames>1&&!spec.src.endsWith('/combat-atlas.svg'));VFX.animateLifetime(node,spec,true);return true;
@@ -1419,7 +1419,7 @@ function fireLayer(){
   const f=TFT.makeFireTrail(ray,hero.fireTrail,speed,stageClock,attacker.dotDamage||0);
   f.owner=attacker;f.side=attacker.side;
   const node=el('div',{class:'fire-ground-strip '+(f.side==='enemy'?'hostile-fire':'ally-fire')});
-  const art=el('span',{class:'fire-ground-art'}),spec=VFX?.getSpec(HEROES[attacker.id],'groundFire',costumeFxFor(attacker));
+  const art=el('span',{class:'fire-ground-art'}),spec=VFX?.getSpec(HEROES[attacker.id],'groundFire',costumeFxFor(attacker),actorCostume(attacker)?.id||'');
   if(spec)VFX.paint(art,{...spec,delayMs:0,loopFrames:true},true);
   node.appendChild(art);f.node=node;node.style.display='none';fireLayer().appendChild(node);fireTrails.push(f);return f;
  }
@@ -2276,9 +2276,9 @@ refreshArenaSize();
 if(typeof ResizeObserver==='function')new ResizeObserver(refreshArenaSize).observe($('stageViewport'));
 else window.addEventListener('resize',refreshArenaSize);
 if(VFX){VFX.preload(HEROES);VFX.loadPublished().then(()=>VFX.preload(HEROES))}
-if(studioMode){document.body.classList.add('studio-trial-mode');openTrial(studioTrialId)}
+if(studioMode)document.body.classList.add('studio-trial-mode');
 // Decode sprites before their first attack so changing pose is not a network stall.
 for(const hero of Object.values(HEROES))for(const url of new Set([hero.images.idle,hero.images.attack])){const img=new Image();img.src=url;img.decode?.().catch(()=>{});}
-loadCostumeAssets().catch(error=>console.warn('Costume asset check:',error));
+loadCostumeAssets().catch(error=>console.warn('Costume asset check:',error)).then(()=>{if(studioMode)openTrial(studioTrialId,new URLSearchParams(location.search).get('studioCostume')||'')});
 requestAnimationFrame(frame);
 })();
