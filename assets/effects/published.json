@@ -1233,6 +1233,31 @@
           "delayMs": 0,
           "airtimeMs": 0,
           "loopFrames": false
+        },
+        "freeze": {
+          "src": "./assets/heroes/maruko/costumes/costume_01/vfx/freeze-a1e6f0599043.png",
+          "cols": 8,
+          "rows": 4,
+          "row": 0,
+          "col": 0,
+          "frames": 32,
+          "size": 150,
+          "ms": 1000,
+          "mode": "point",
+          "scaleX": 1,
+          "scaleY": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": -40,
+          "thickness": 48,
+          "orientation": "horizontal",
+          "hue": 70,
+          "saturation": 255,
+          "brightness": 100,
+          "colorize": false,
+          "delayMs": 0,
+          "airtimeMs": 0,
+          "loopFrames": false
         }
       }
     }
