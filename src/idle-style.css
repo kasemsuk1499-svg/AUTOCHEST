@@ -871,3 +871,7 @@ body.studio-trial-mode .trial-dialog{max-height:98dvh;box-shadow:none}
 .costume-item .costume-trial{color:#e3b8ff;border-color:#8960b9;background:#2e2145}.trial-controls #trialCostume{min-width:0;max-width:100%}.trial-controls{flex-wrap:wrap}
 
 .costume-rarity.legendary{color:#ffe3a0;background:#53361b;border:1px solid #e5ad51;border-radius:4px;padding:2px 8px;box-shadow:0 0 9px #e9ab4033}.costume-item:has(.costume-rarity.legendary){border-color:#d6a149;background:linear-gradient(145deg,#30251c,#101b2c 55%)}
+
+/* Hidden tabs keep combat state, but suspend all rendering and animated sprites. */
+body.background-idle *,body.background-idle *::before,body.background-idle *::after{animation-play-state:paused!important;transition:none!important}
+body.background-idle #heroLayer,body.background-idle #monsterLayer,body.background-idle #fxLayer,body.background-idle #trialUnits,body.background-idle #trialFx,body.background-idle .fire-ground-layer,body.background-idle img{visibility:hidden!important}
