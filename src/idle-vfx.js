@@ -82,12 +82,14 @@
   art.style.transform='translate(-50%,-50%)'+(vertical?' rotate(-90deg)':'');
   node.replaceChildren(art);paint(art,spec,true);return art;
  }
- function getSpec(hero,event){
+ function getSpec(hero,event,costumeFx=null){
   const override=studioMode&&draft?.hero===hero?.id&&draft?.event===event?draft.spec:null;
-  const key=override??published[hero?.id]?.[event]??hero?.visual?.fx?.[event]??defaults[hero?.id]?.[event]??generic[event];
-  if(key===false)return null;
-  const raw=typeof key==='string'?specs[key]:key;
-  if(!raw||typeof raw.src!=='string'||!(/^\.\/assets\/effects\/[a-z0-9_/-]+\.(svg|png|webp|gif)$/i.test(raw.src)||(override===raw&&/^data:image\/(png|gif|webp);base64,[a-z0-9+/=]+$/i.test(raw.src))))return null;
+  const key=published[hero?.id]?.[event]??hero?.visual?.fx?.[event]??defaults[hero?.id]?.[event]??generic[event];
+  const base=typeof key==='string'?specs[key]:key;
+  const costume=costumeFx?.[event];
+  if(override===false||(!override&&(costume===false||(!costume&&key===false))))return null;
+  const raw=override??(costume?{...base,cols:1,rows:1,row:0,col:0,frames:1,...costume}:base);
+  if(!raw||typeof raw.src!=='string'||!(/^\.\/assets\/effects\/[a-z0-9_/-]+\.(svg|png|webp|gif)$/i.test(raw.src)||/^\.\/assets\/heroes\/[a-z0-9_-]+\/costumes\/[a-z0-9_-]+\/vfx\/[a-z0-9_-]+\.(svg|png|webp|gif)$/i.test(raw.src)||(override===raw&&/^data:image\/(png|gif|webp);base64,[a-z0-9+/=]+$/i.test(raw.src))))return null;
   const cols=Math.max(1,Math.min(32,Math.floor(raw.cols||1))),rows=Math.max(1,Math.min(32,Math.floor(raw.rows||1)));
   const row=Math.max(0,Math.min(rows-1,Math.floor(raw.row||0))),col=Math.max(0,Math.min(cols-1,Math.floor(raw.col||0))),frames=Math.max(1,Math.min((rows-row)*cols-col,Math.floor(raw.frames||cols)));
   return {src:raw.src,cols,rows,row,col,frames,size:Math.max(16,Math.min(400,Number(raw.size)||100)),ms:Math.max(80,Math.min(3000,Number(raw.ms)||440)),...appearance(raw,slotLayout(hero,event)),...timing(raw)};
