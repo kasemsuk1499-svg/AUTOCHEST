@@ -1349,6 +1349,32 @@
         "delayMs": 0,
         "airtimeMs": 1500,
         "loopFrames": false
+      },
+      "susanoo": {
+        "src": "./assets/effects/itachi/susanoo-996d7537defc.png",
+        "cols": 4,
+        "rows": 4,
+        "row": 0,
+        "col": 0,
+        "frames": 9,
+        "size": 250,
+        "ms": 2000,
+        "mode": "point",
+        "scaleX": 2,
+        "scaleY": 2,
+        "rotation": 0,
+        "spin": 0,
+        "offsetX": 0,
+        "offsetY": -35,
+        "thickness": 48,
+        "orientation": "horizontal",
+        "hue": 0,
+        "saturation": 100,
+        "brightness": 100,
+        "colorize": false,
+        "delayMs": 0,
+        "airtimeMs": 0,
+        "loopFrames": false
       }
     }
   },
