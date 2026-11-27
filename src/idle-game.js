@@ -637,19 +637,62 @@ function renderHeroes(){
  }).join('')||'<p class="hero-filter-empty">ไม่พบฮีโร่ที่ตรงกับตัวกรอง</p>';
 }
 let blessingExpanded=false,blessingGuideExpanded=false;
+let blessingFilterExpanded=false,blessingFilterSlot=0,blessingRun=null,blessingTimer=0,blessingMessage='';
+const blessingCanPay=()=>state.gold>=CORE.BLESSING_COST.gold&&state.heroExp>=CORE.BLESSING_COST.exp;
+function stopBlessingRun(message='',refresh=true){
+ clearTimeout(blessingTimer);blessingTimer=0;blessingRun=null;blessingMessage=message;
+ if(refresh&&!document.hidden&&!backgroundSession){renderSelected();updateResources();}
+}
+function blessingAutoAllowed(id){return !studioMode&&!suppressSave&&!document.hidden&&selected===id&&!!state.owned[id]&&!$('heroDetails').hidden&&!!$('blessingPanel')?.open&&managementPanel?.id==='panel-upgrade'&&!managementPanel.hidden}
+function pauseBlessingRun(message){
+ if(!blessingRun)return;clearTimeout(blessingTimer);blessingTimer=0;blessingRun.phase='paused';blessingMessage=message;renderSelected();updateResources();
+}
+function blessingAfterRoll(id){if(!combat)buildFighters();save();renderSelected();updateResources();}
+function scheduleBlessingRoll(){clearTimeout(blessingTimer);blessingTimer=setTimeout(()=>runBlessingStep(),220);}
+function runBlessingStep(approvedKey=null){
+ const r=blessingRun;if(!r||r.phase!=='running')return;
+ if(!blessingAutoAllowed(r.id)){stopBlessingRun('หยุดอัตโนมัติเมื่อออกจากหน้าพร',false);return;}
+ const p=state.owned[r.id],cfg=CORE.blessingSlots(p),key=cfg.slots[r.slot];
+ if(!cfg.targets[r.slot].length){stopBlessingRun('ไม่มีพรเป้าหมาย');return;}
+ const reason=CORE.blessingRollStop(p,r.slot);
+ if(reason==='target'&&approvedKey!==key){stopBlessingRun('พบพรเป้าหมาย '+CORE.BLESSINGS[key].name+' · รี '+r.count+' ครั้ง');return;}
+ if(reason==='protected'&&approvedKey!==key){pauseBlessingRun('พบ '+CORE.BLESSINGS[key].rarity.toUpperCase()+' · '+CORE.BLESSINGS[key].name+' จะเก็บไว้หรือรีทับ?');return;}
+ if(!blessingCanPay()){stopBlessingRun('Gold หรือ EXP ไม่พอ · รี '+r.count+' ครั้ง');return;}
+ const b=CORE.rollBlessing(state,r.id,r.slot,Math.random,approvedKey);if(!b){stopBlessingRun('หยุด: ไม่สามารถรีพรได้');return;}
+ r.count++;blessingAfterRoll(r.id);
+ const result=CORE.blessingRollStop(state.owned[r.id],r.slot);
+ if(result==='target'){stopBlessingRun('พบพรเป้าหมาย '+b.name+' · รี '+r.count+' ครั้ง');toast('✦ พบพรเป้าหมาย '+b.name);return;}
+ if(result==='protected'){pauseBlessingRun('พบ '+b.rarity.toUpperCase()+' · '+b.name+' จะเก็บไว้หรือรีทับ?');return;}
+ scheduleBlessingRoll();
+}
+function startBlessingRun(slot){
+ if(blessingRun||![0,1].includes(slot)||!blessingAutoAllowed(selected))return;
+ const cfg=CORE.blessingSlots(state.owned[selected]);if(!cfg.targets[slot].length){toast('ติ๊กเลือกพรเป้าหมายก่อน');return;}
+ blessingRun={id:selected,slot,count:0,phase:'running'};blessingMessage='';runBlessingStep();
+}
+function blessingSearchHtml(id,cfg,can){
+ const slot=blessingFilterSlot,targets=cfg.targets[slot],r=blessingRun?.id===id?blessingRun:null;
+ const status=r?(r.phase==='paused'?blessingMessage:'กำลังสุ่มสล็อต '+(r.slot+1)+' · '+r.count+' ครั้ง · ใช้ Gold '+fmt(r.count*CORE.BLESSING_COST.gold)+' / EXP '+fmt(r.count*CORE.BLESSING_COST.exp)):blessingMessage;
+ return '<details id="blessingFilter" class="blessing-filter"'+(blessingFilterExpanded||r?' open':'')+'><summary>⌕ สุ่มหาพรอัตโนมัติ <small>'+targets.length+' เป้าหมาย</small></summary><div class="blessing-filter-body"><p class="blessing-note">เลือกสล็อตและติ๊กได้หลายพร · พบพรใดพรหนึ่งที่เลือกจะหยุดทันที · Legendary / Mythic ต้องอนุญาตก่อนรีทับ</p>'+
+  '<div class="blessing-filter-tabs">'+[0,1].map(i=>'<button type="button" data-blessing-filter-slot="'+i+'" aria-pressed="'+(slot===i)+'" '+(r?'disabled':'')+'>สล็อต '+(i+1)+' · '+cfg.targets[i].length+' พร</button>').join('')+'</div>'+
+  '<div class="blessing-targets">'+Object.keys(CORE.BLESSING_ODDS).map(t=>'<section class="blessing-target-group '+t+'"><h4>'+t.toUpperCase()+'</h4>'+Object.values(CORE.BLESSINGS).filter(b=>b.rarity===t).map(b=>'<label><input type="checkbox" data-blessing-target="'+b.id+'" '+(targets.includes(b.id)?'checked':'')+' '+(r?'disabled':'')+'><span><b>'+escapeText(b.name)+'</b><small>'+escapeText(b.description)+'</small></span></label>').join('')+'</section>').join('')+'</div>'+
+  (status?'<p class="blessing-run-status" role="status">'+escapeText(status)+'</p>':'')+
+  '<div class="blessing-filter-tabs">'+(r?(r.phase==='paused'?'<button type="button" data-blessing-stop>เก็บพรไว้</button><button type="button" data-blessing-resume>ยืนยันรีทับแล้วสุ่มต่อ</button>':'<button type="button" data-blessing-stop>■ หยุดสุ่ม</button>'):'<button type="button" data-blessing-start="'+slot+'" '+(!targets.length||!can?'disabled':'')+'>▶ สุ่มจนเจอเป้าหมาย</button>')+'</div><p class="blessing-note">หยุดเมื่อปิดหน้าพร สลับตัวละคร สลับแท็บ หรือทรัพยากรหมด · ค่ารีเท่าเดิมทุกครั้ง</p></div></details>';
+}
 function blessingHtml(id){
  const p=state.owned[id];if(!p)return '';
  const cfg=CORE.blessingSlots(p),active=CORE.blessingFor(p),cost=CORE.BLESSING_COST,can=state.gold>=cost.gold&&state.heroExp>=cost.exp;
  const bonus=CORE.blessingFarmBonus(state);
  return '<details class="blessing-panel" id="blessingPanel"'+(blessingExpanded?' open':'')+'><summary><span>✦ พรประจำตัว</span><small>'+escapeText(active?active.name:'ยังไม่มีพร')+' · '+cfg.slots.filter(Boolean).length+'/2</small></summary><div class="blessing-content"><p class="blessing-note">เก็บ 2 พร · ใช้ 1 พร · ผลในการต่อสู้ถัดไป · รีทับเฉพาะสล็อตที่เลือก</p>'+
-  '<div class="blessing-slots">'+cfg.slots.map((key,i)=>{const b=CORE.BLESSINGS[key],on=!!b&&cfg.active===i;return '<section class="blessing-slot '+(b?b.rarity:'empty')+(on?' equipped':'')+'"><small>สล็อต '+(i+1)+' · '+(b?b.rarity.toUpperCase():'ว่าง')+'</small><strong>'+escapeText(b?b.name:'ยังไม่มีพร')+'</strong><p>'+escapeText(b?b.description:'รีเพื่อรับพร')+'</p><div class="blessing-actions"><button type="button" data-blessing-equip="'+i+'" '+(!b||on?'disabled':'')+'>'+(on?'✓ ใช้งาน':'เลือกใช้')+'</button><button type="button" data-blessing-roll="'+i+'" '+(!can?'disabled':'')+'>↻ รีพร</button></div></section>'}).join('')+'</div>'+
+  '<div class="blessing-slots">'+cfg.slots.map((key,i)=>{const b=CORE.BLESSINGS[key],on=!!b&&cfg.active===i;return '<section class="blessing-slot '+(b?b.rarity:'empty')+(on?' equipped':'')+'"><small>สล็อต '+(i+1)+' · '+(b?b.rarity.toUpperCase():'ว่าง')+'</small><strong>'+escapeText(b?b.name:'ยังไม่มีพร')+'</strong><p>'+escapeText(b?b.description:'รีเพื่อรับพร')+'</p><div class="blessing-actions"><button type="button" data-blessing-equip="'+i+'" '+(!b||on||blessingRun?'disabled':'')+'>'+(on?'✓ ใช้งาน':'เลือกใช้')+'</button><button type="button" data-blessing-roll="'+i+'" '+(!can||blessingRun?'disabled':'')+'>↻ รีพร</button></div></section>'}).join('')+'</div>'+
   '<p class="blessing-note">ต่อครั้ง 🪙 '+fmt(cost.gold)+' · EXP '+fmt(cost.exp)+'</p><p class="blessing-note">ทีมฟาร์ม: Gold +'+Math.round(bonus.gold*100)+'% · EXP +'+Math.round(bonus.exp*100)+'%</p>'+
+  blessingSearchHtml(id,cfg,can)+
   '<details class="blessing-guide" id="blessingGuide"'+(blessingGuideExpanded?' open':'')+'><summary>ⓘ คู่มือพรทั้งหมด · '+Object.keys(CORE.BLESSINGS).length+' พร</summary>'+
   '<p class="blessing-note">สุ่มระดับก่อน แล้วสุ่มพรในระดับนั้นเท่า ๆ กัน · ไม่มีการันตี · หลบหลีกสูงสุด 75% · ลดการโจมตีสะสมไม่ลดคูลดาวน์ 5 วินาที · พร Gold/EXP นับสมาชิกลงสนาม ณ เริ่มเวฟฟาร์ม แม้ตายระหว่างเวฟ · ไม่รวมบอส ดันเจี้ยน หรือออฟไลน์</p>'+
   Object.entries(CORE.BLESSING_ODDS).map(([rarity,odds])=>'<section class="blessing-guide-group '+rarity+'"><h4>'+rarity.toUpperCase()+' · '+odds+'% <small>('+odds/10+'% ต่อพร)</small></h4>'+Object.values(CORE.BLESSINGS).filter(b=>b.rarity===rarity).map(b=>'<div><b>'+escapeText(b.name)+'</b><span>'+escapeText(b.description)+'</span></div>').join('')+'</section>').join('')+'</details></div></details>';
 }
 function renderSelected(){
- if($('blessingPanel'))blessingExpanded=$('blessingPanel').open;if($('blessingGuide'))blessingGuideExpanded=$('blessingGuide').open;
+ if($('blessingPanel'))blessingExpanded=$('blessingPanel').open;if($('blessingGuide'))blessingGuideExpanded=$('blessingGuide').open;if($('blessingFilter'))blessingFilterExpanded=$('blessingFilter').open;
  const id=selected,hero=HEROES[id],p=state.owned[id],box=$('heroDetails');
  if(!hero){box.textContent='แตะฮีโร่ในทีมเพื่อดูข้อมูล';return}
  if(!p){
@@ -870,6 +913,7 @@ function renderPanels(){
 }
 function choose(id){
  if(!HEROES[id])return;
+ if(id!==selected){if(blessingRun)stopBlessingRun('',false);blessingMessage='';}
  selected=id;renderGrid();renderTeam();renderHeroes();renderSelected();refreshFormationControls();
 }
 function refreshUpgradeAvailability(){
@@ -886,7 +930,8 @@ function refreshUpgradeAvailability(){
  for(const n of $('heroList').querySelectorAll('[data-hero]'))syncReadyMark(n,n.dataset.hero);
  for(const option of $('upgradePicker')?.options||[]){if(HEROES[option.value]){const label=upgradeOptionLabel(option.value);if(option.textContent!==label)option.textContent=label;}}
  const canBless=state.gold>=CORE.BLESSING_COST.gold&&state.heroExp>=CORE.BLESSING_COST.exp;
- for(const n of $('heroDetails').querySelectorAll('[data-blessing-roll]'))n.disabled=!canBless;
+ for(const n of $('heroDetails').querySelectorAll('[data-blessing-roll]'))n.disabled=!canBless||!!blessingRun;
+ for(const n of $('heroDetails').querySelectorAll('[data-blessing-start]'))n.disabled=!canBless||!!blessingRun||!CORE.blessingSlots(state.owned[selected]).targets[Number(n.dataset.blessingStart)].length;
  const p=state.owned[selected];
  if(!p)return;
  const c=CORE.levelCost(p.level),need=CORE.shardsNeeded(p.stars),starCost=CORE.ascendCost(p.stars);
@@ -2112,12 +2157,14 @@ function searchUpgrade(){
  $('heroDetails').hidden=!eligible.length;
 }
 function closeManagement(){
+ if(blessingRun)stopBlessingRun('หยุดสุ่มแล้ว',false);
  if(!managementPanel)return;
  managementPanel.hidden=true;managementPanel=null;
  document.body.classList.remove('management-open');
  if(managementFocus?.isConnected)managementFocus.focus();managementFocus=null;
 }
 function openManagement(name,button){
+ if(name!=='upgrade'&&blessingRun)stopBlessingRun('หยุดสุ่มแล้ว',false);
  const next=$('panel-'+name);if(!next)return;
  if(managementPanel)managementPanel.hidden=true;
  managementPanel=next;managementFocus=button;
@@ -2169,9 +2216,24 @@ $('teamSlots').addEventListener('click',e=>{
  const target=n.dataset.slot;
  choose(target);
 });
+$('heroDetails').addEventListener('change',e=>{
+ const n=e.target.closest('[data-blessing-target]');if(!n||blessingRun)return;
+ CORE.setBlessingTarget(state,selected,blessingFilterSlot,n.dataset.blessingTarget,n.checked);blessingMessage='';save();renderSelected();
+});
+$('heroDetails').addEventListener('toggle',e=>{if(blessingRun&&e.target.id==='blessingPanel'&&e.target.isConnected&&!e.target.open)stopBlessingRun('หยุดสุ่มแล้ว',false);},true);
 $('heroDetails').addEventListener('click',e=>{
+ const filter=e.target.closest('[data-blessing-filter-slot]'),start=e.target.closest('[data-blessing-start]');
+ if(filter&&!blessingRun){blessingFilterSlot=Number(filter.dataset.blessingFilterSlot);blessingMessage='';renderSelected();return;}
+ if(start){startBlessingRun(Number(start.dataset.blessingStart));return;}
+ if(e.target.closest('[data-blessing-stop]')){stopBlessingRun('หยุดสุ่ม · เก็บพรล่าสุดไว้');return;}
+ if(e.target.closest('[data-blessing-resume]')){
+  const r=blessingRun;if(!r||r.phase!=='paused'||!blessingAutoAllowed(r.id))return;
+  const key=CORE.blessingSlots(state.owned[r.id]).slots[r.slot];
+  if(!CORE.protectedBlessing(key)){stopBlessingRun('พรมีการเปลี่ยนแปลง · เริ่มใหม่');return;}
+  r.phase='running';blessingMessage='';runBlessingStep(key);return;
+ }
  const roll=e.target.closest('[data-blessing-roll]'),equip=e.target.closest('[data-blessing-equip]');
- if(roll||equip){const slot=Number(roll?roll.dataset.blessingRoll:equip.dataset.blessingEquip);const b=roll?CORE.rollBlessing(state,selected,slot):CORE.equipBlessing(state,selected,slot);if(!b){toast('ทรัพยากรไม่พอหรือสล็อตไม่พร้อม');return;}if(!combat)buildFighters();save();renderPanels();toast(roll?'✦ ได้พร '+b.name+' · '+b.rarity.toUpperCase():'✦ เลือกพรแล้ว · มีผลการต่อสู้ถัดไป');return;}
+ if(roll||equip){if(blessingRun)return;const slot=Number(roll?roll.dataset.blessingRoll:equip.dataset.blessingEquip);const key=CORE.blessingSlots(state.owned[selected]).slots[slot];if(roll&&CORE.protectedBlessing(key)&&!window.confirm('สล็อต '+(slot+1)+' มีพร '+CORE.BLESSINGS[key].rarity.toUpperCase()+' · '+CORE.BLESSINGS[key].name+' อยู่ จะรีทับและเสียพรเดิมหรือไม่?'))return;const b=roll?CORE.rollBlessing(state,selected,slot,Math.random,key):CORE.equipBlessing(state,selected,slot);if(!b){toast('ทรัพยากรไม่พอหรือสล็อตไม่พร้อม');return;}if(!combat)buildFighters();save();renderPanels();toast(roll?'✦ ได้พร '+b.name+' · '+b.rarity.toUpperCase():'✦ เลือกพรแล้ว · มีผลการต่อสู้ถัดไป');return;}
  if(e.target.closest('#openSkillBtn'))openSkill(selected);
  else if(e.target.closest('#levelHeroBtn'))upgrade();
  else if(e.target.closest('#levelFiveBtn'))upgrade(5);
@@ -2406,9 +2468,9 @@ $('claimOfflineBtn').addEventListener('click',claimOffline);
 $('closeOfflineBtn').addEventListener('click',closeOffline);
 $('rewardModal').querySelector('.modal-overlay').addEventListener('click',closeOffline);
 window.addEventListener('beforeunload',save);
-window.addEventListener('pagehide',save);
+window.addEventListener('pagehide',()=>{if(blessingRun)stopBlessingRun('',false);save()});
 window.addEventListener('pageshow',()=>{if(!document.hidden)stopBackground()});
-document.addEventListener('visibilitychange',()=>{if(document.hidden)startBackground();else stopBackground()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(blessingRun)stopBlessingRun('หยุดสุ่มเมื่อสลับแท็บ',false);startBackground();}else stopBackground()});
 renderPanels();log('✨ สนาม AUTOCHEST 6×7 พร้อมสู้แบบ Idle แล้ว');
 beginTravel(1.8);save();
 if(floorResetGift&&!studioMode){log('🎁 อัปเดตชั้นใหม่: กลับด่าน 1 · ตั๋วสุ่ม +100 ใบ');toast('🎁 ตั๋วสุ่ม +100 ใบ! ตัวละครและทรัพยากรเดิมยังอยู่ครบ');}
