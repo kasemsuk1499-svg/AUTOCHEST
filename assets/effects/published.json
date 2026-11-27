@@ -1453,5 +1453,13 @@
         }
       }
     }
+  },
+  "models": {
+    "minato": {
+      "original": {
+        "idle": 0.9,
+        "attack": 0.9
+      }
+    }
   }
 }
