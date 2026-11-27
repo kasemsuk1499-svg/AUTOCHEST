@@ -833,7 +833,7 @@ function skillDescription(t,enemy=false){
    break;
   case 'dash':
    if(t.passive?.openingDash)lines.push('★ 3 ดาวขึ้นไป: เริ่มทุกเวฟ/บอสด้วยสแต็กเทพอัสนีเหินเต็ม วาร์ปได้ตั้งแต่การโจมตีแรก · หลังจากนั้นสะสมสแต็กและคูลดาวน์ตามปกติ');
-   lines.push('ทุก '+n+' การโจมตี: เทพอัสนีเหิน วาร์ปไปหลังศัตรูสายยิงไกลที่อยู่ไกลที่สุด (ถ้าไม่มี เลือกศัตรูที่อยู่ไกลที่สุด) และโจมตีด้วยกระสุนวงจักร '+Math.round(t.skillPower*100)+'% PATK · ใช้ได้จากทุกระยะเมื่อสกิลพร้อม · ไม่ทะลุโล่');
+   lines.push('ทุก '+n+' การโจมตี: เทพอัสนีเหิน วาร์ปไปหลังเป้าหมายที่ล็อกไว้ หากยังไม่ล็อก เลือกศัตรูสายยิงไกลที่อยู่ไกลที่สุด (ถ้าไม่มี เลือกศัตรูที่อยู่ไกลที่สุด) และโจมตีด้วยกระสุนวงจักร '+Math.round(t.skillPower*100)+'% PATK · ใช้ได้จากทุกระยะเมื่อสกิลพร้อม · ไม่ทะลุโล่');
    break;
   case 'blink':
    lines.push('ทุก '+n+' การโจมตี: เคลื่อนฉับไวเข้าหาเป้าหมาย ฟัน 200% ATK และตามด้วยโจมตีอีก 50% ATK');
@@ -881,6 +881,7 @@ function skillDescription(t,enemy=false){
  if(t.passive?.magicGuard)lines.push('พาสซีฟ — '+t.passive.name+': รับแทน '+Math.round(t.passive.magicGuard*100)+'% ของดาเมจที่เพื่อนสายเวทได้รับ ไม่ว่าดาเมจมาจากสายใด · ไม่รับแทนตนเอง · โล่ของผู้ปกป้องรับได้ · เลือกผู้ปกป้องที่มีอัตราสูงสุดหนึ่งคน · ไม่ส่งต่อซ้ำ');
  if(t.passive?.bossMultiplier)lines.push('พาสซีฟ — '+t.passive.name+': ดาเมจทุกชนิดต่อบอส ×'+t.passive.bossMultiplier+' ก่อนคริติคอลและการป้องกัน');
  if(t.passive?.healOnAttack)lines.push('พาสซีฟ — '+t.passive.name+': เมื่อโจมตีปกติ ฟื้น HP ให้สมาชิกที่บาดเจ็บหนักที่สุด (ตามเปอร์เซ็นต์ HP) เท่ากับ '+Math.round(t.passive.healOnAttack*100)+'% ของ ATK พื้นฐานในการต่อสู้ของตนเอง');
+ if(t.passive?.lockTarget)lines.push('พาสซีฟ — ล็อกเป้าหมายเมื่อโจมตีครั้งแรก: โจมตีและวาร์ปใส่เป้าหมายเดิมจนกว่าจะตายจริงหรือออกจากสนาม · ไม่เปลี่ยนตามระยะหรือยั่วยุ · หากเหยื่อพรางตัวจะรอจนปรากฏตัว');
  if(t.passive?.dodgeChance)lines.push('พาสซีฟ — '+t.passive.name+': มีโอกาส '+Math.round(t.passive.dodgeChance*100)+'% หลบการโจมตีโดยตรงทั้งหมด (รวมสกิล) ไม่เสีย HP หรือโล่ · สุ่มแยกแต่ละฮิต · ไม่หลบ DOT หรือดาเมจรับแทน');
  if(t.passive?.damageReduction)lines.push('พาสซีฟ — '+t.passive.name+': ลดความเสียหายที่ได้รับ '+Math.round(t.passive.damageReduction*100)+'% ตลอดการต่อสู้ ก่อนคำนวณโล่');
  if(t.passive?.focusCritStep)lines.push('พาสซีฟ — '+t.passive.name+': โจมตีเป้าหมายเดิมต่อเนื่องเพิ่มโอกาสคริติคอล '+Math.round(t.passive.focusCritStep*100)+' จุดเปอร์เซ็นต์ต่อครั้ง (สูงสุด +'+Math.round(t.passive.focusCritMax*100)+' จุดเปอร์เซ็นต์) · รีเซ็ตเมื่อเปลี่ยนเป้าหมาย');
@@ -1290,12 +1291,13 @@ function buildFighters(preserve=false){
    castUntil:old?.castUntil||0,exhausted:!!old?.exhausted,explosionCount:old?.explosionCount||0,explosionReadyAt:old?.explosionReadyAt||0,attacks:old?.attacks??(preserve&&combat?0:openingStacks),nextSkillAt:old?.nextSkillAt||0,shield:old?.shield||0,shieldSource:old?.shield>0?old.shieldSource||null:null,tauntUntil:old?.tauntUntil||0,
    attackDown:old?.attackDown||null,vulnerability:old?.vulnerability||null,healDown:old?.healDown||null,
    dots:old?.dots||[],freezeUntil:old?.freezeUntil||0,attackUp:old?.attackUp||null,physicalAttackUp:old?.physicalAttackUp||null,magicAttackUp:old?.magicAttackUp||null,speedUp:old?.speedUp||null,
-   focusTarget:old?.focusTarget||null,focusHits:old?.focusHits||0,
+   focusTarget:old?.focusTarget||null,focusHits:old?.focusHits||0,lockedTarget:old?.lockedTarget||null,
    crit:stat.crit,critDamage:stat.critDamage,
    cloakUntil:old?.cloakUntil||0,ambush:old?.ambush||false,
    reviveUsed:!!revive,reviveCount:Math.max(old?.reviveCount||0,revive?.count||0,revive?1:0),finalFlameUntil,finalFlameSpent,supportRevives:old?.supportRevives||0,revivedByAlly:!!old?.revivedByAlly,immortalUntil:Math.max(old?.immortalUntil||0,revive?.until||0),
    attackUntil:0,alive:hp>0&&(!old||old.alive),walking:false,progress,blessingSaved:!!old?.blessingSaved,blessingKills:old?.blessingKills||0,nextBlessingRegen:old?.nextBlessingRegen??stageClock+1};
  });
+ if(preserve)for(const foe of enemies){const old=foe.lockedTarget;if(old?.side==='ally')foe.lockedTarget=fighters.find(f=>f.id===old.id&&f.alive&&f.hp>0)||null;}
  const layer=$('heroLayer');layer.replaceChildren();
  for(const hero of fighters){
   const base=HEROES[hero.id],node=el('div',{class:'fighter party-fighter'});
@@ -1427,8 +1429,8 @@ function defeatMonster(foe){
   updateResources();
  }
 }
-function pickEnemy(f){return TFT.findTarget(f,enemies,stageClock)}
-function targetHero(enemy){return TFT.findTarget(enemy,fighters,stageClock)}
+function pickEnemy(f){return TFT.selectCombatTarget(f,enemies,stageClock,combatHero(f))}
+function targetHero(enemy){return TFT.selectCombatTarget(enemy,fighters,stageClock,combatHero(enemy))}
 // TFT-style shared damage pipeline. No damage is applied to ranged targets until the bullet lands.
 function vtuberTeamBonus(actor){
   const ids=actor.side==='ally'&&!trialContext?state.squad:(actor.side==='ally'?fighters:[...enemies,...fallenEnemies]).map(u=>u.id);
@@ -1776,8 +1778,8 @@ function tftSkill(attacker,target){
     shieldEffect(attacker);unitFx(attacker,'โล่ +'+fmt(gain),'shield');
    break;
   case 'dash':{
-   const candidates=foes().filter(u=>u.alive!==false&&u.hp>0&&(u.cloakUntil||0)<=stageClock);
-   const victim=candidates.sort((a,b)=>Number(TFT.isRanged(combatHero(b)))-Number(TFT.isRanged(combatHero(a)))||TFT.pxDist(attacker,b)-TFT.pxDist(attacker,a))[0]||target;
+   const victim=TFT.dashVictim(attacker,foes(),stageClock,combatHero);if(!victim)return true;
+   if(hero.passive?.lockTarget)attacker.lockedTarget=victim;
    const from={x:attacker.x,y:attacker.y};
    const back=attacker.side==='ally'?-1:1;
    attacker.x=Math.max(5.5,Math.min(94.5,victim.x));
@@ -1825,6 +1827,7 @@ function dashCharged(actor,hero){
 function tftAttack(attacker,target,forceSkill=false){
  if(!target||target.hp<=0||attacker.exhausted||attacker.castUntil||TFT.isFrozen(attacker,stageClock))return;
  const hero=combatHero(attacker),effect=hero.effect||'';
+ if(hero.passive?.lockTarget){const locked=TFT.lockedTarget(attacker,attacker.side==='ally'?enemies:fighters);if(locked){if((locked.cloakUntil||0)>stageClock)return;target=locked;}}
  const ambush=attacker.ambush&&attacker.cloakUntil<=stageClock;
  if(ambush)attacker.ambush=false;
  const special=CORE.consumeSkillAttack(attacker,hero,stageClock,forceSkill);
@@ -1838,6 +1841,7 @@ function tftAttack(attacker,target,forceSkill=false){
    return;
   }
  }
+ if(hero.passive?.lockTarget)attacker.lockedTarget=target;
  if(!special&&hero.passive?.healOnAttack){
   const allies=attacker.side==='ally'?fighters:enemies;
   showHealing(TFT.healWeakest(allies,1,()=>attacker.atk*hero.passive.healOnAttack,stageClock,vtuberTeamBonus(attacker).healPower),attacker);
@@ -2118,7 +2122,7 @@ function tickTrial(dt){
   if(actor.castUntil){advanceExplosion(actor,false);renderTrial();return}
   if(!scene.active&&scene.queue.length&&stageClock>=scene.nextAt&&!shots.length)scene.active=scene.queue.shift();
   if(scene.active){
-   const cmd=scene.active,target=enemies.find(u=>u.hp>0);
+   const cmd=scene.active,target=h.passive?.lockTarget?TFT.selectCombatTarget(actor,enemies,stageClock,h):enemies.find(u=>u.hp>0);
    if(cmd==='healTest'){
      if(target){const blocked=TFT.debuffValue(target,'healDown',stageClock);const result=TFT.healWeakest([target],1,()=>Math.min(400,target.maxHp-target.hp),stageClock);
       showHealing(result,target);scene.note='ทดลองฟื้นฟู · ลดฮีล '+Math.round(blocked*100)+'%';}

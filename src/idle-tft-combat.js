@@ -34,6 +34,23 @@
   }
   return taunter||best;
  }
+ // A marked victim is retained even while cloaked, until it leaves combat or dies.
+ function lockedTarget(actor,others){
+  const u=actor.lockedTarget;
+  if(u&&others.includes(u)&&u.hp>0&&u.alive!==false)return u;
+  actor.lockedTarget=null;return null;
+ }
+ function selectCombatTarget(actor,others,clock,hero){
+  if(!hero?.passive?.lockTarget)return findTarget(actor,others,clock);
+  const locked=lockedTarget(actor,others);
+  return locked?((locked.cloakUntil||0)>clock?null:locked):findTarget(actor,others,clock);
+ }
+ function dashVictim(actor,others,clock,heroFor){
+  const locked=lockedTarget(actor,others);
+  if(locked)return (locked.cloakUntil||0)>clock?null:locked;
+  return others.filter(u=>u&&u.alive!==false&&u.hp>0&&(u.cloakUntil||0)<=clock)
+   .sort((a,b)=>Number(isRanged(heroFor(b)))-Number(isRanged(heroFor(a)))||pxDist(actor,b)-pxDist(actor,a))[0]||null;
+ }
  function advanceShot(shot,dt){
   if(!shot.target||shot.target.hp<=0||shot.target.alive===false)return {hit:false,expired:true};
   shot.life-=dt;if(shot.life<=0)return {hit:false,expired:true};
@@ -244,5 +261,5 @@
   if(!target.shield)target.shieldSource=null;
   return {damage,absorbed,total};
  }
- window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,advanceShot,tryRevive,expireFinalFlame,reviveAlly,livingHero,linkedRevive,explosionParty,blocksExplosion,isImmortal,focusCritBonus,makePierce,advancePierce,makeFireTrail,fireBounds,fireContains,fireTicks,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,attackBuff,outgoingMultiplier,vulnerabilityMultiplier,healDownDamageMultiplier,boostedDebuff,attackInterval,healWeakest,applySupport,applyDot,dueDots,isFrozen,applyFreeze,splitMagicDamage,resolveDamage});
+ window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,lockedTarget,selectCombatTarget,dashVictim,advanceShot,tryRevive,expireFinalFlame,reviveAlly,livingHero,linkedRevive,explosionParty,blocksExplosion,isImmortal,focusCritBonus,makePierce,advancePierce,makeFireTrail,fireBounds,fireContains,fireTicks,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,attackBuff,outgoingMultiplier,vulnerabilityMultiplier,healDownDamageMultiplier,boostedDebuff,attackInterval,healWeakest,applySupport,applyDot,dueDots,isFrozen,applyFreeze,splitMagicDamage,resolveDamage});
 })();
