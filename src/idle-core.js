@@ -395,10 +395,10 @@
    delay:Math.max(.75,h.cool*1.2),crit:h.critChance||.05,critDamage:h.critDamage||1.5};
  }
  // Economy balance: speed up levelling without devaluing duplicate hero shards.
- const ECONOMY=Object.freeze({farm:3,boss:3,offline:5,bossRubies:3,killsPerTicket:20,offlineMinutesPerTicket:30});
+ const ECONOMY=Object.freeze({farm:3,farmGold:1.5,boss:3,offline:5,bossRubies:3,killsPerTicket:20,offlineMinutesPerTicket:30});
  function farmReward(stage,mode='normal'){
   const mult=mode==='nightmare'?2:1;
-  return {gold:Math.round((28+stage*8)*ECONOMY.farm*mult),exp:Math.round((18+stage*5)*ECONOMY.farm*mult),rubies:(3+floorNumber(stage))*mult};
+  return {gold:Math.round((28+stage*8)*ECONOMY.farm*ECONOMY.farmGold*mult),exp:Math.round((18+stage*5)*ECONOMY.farm*mult),rubies:(3+floorNumber(stage))*mult};
  }
  function bossReward(stage,mode='normal'){
   const mult=mode==='nightmare'?2:1;
