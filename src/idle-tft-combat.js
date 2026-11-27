@@ -237,7 +237,8 @@
  function resolveDamage(target,raw,pierceShield=false){
   const total=Math.max(0,Math.round(raw)),hpBefore=Math.max(0,Math.round(target.hp||0));
   const shieldBefore=Math.max(0,Math.round(target.shield||0));
-  const absorbed=pierceShield?0:Math.min(shieldBefore,total);
+  const bypass=pierceShield===true?total:Math.round(total*clamp(Number(pierceShield)||0,0,1));
+  const absorbed=Math.min(shieldBefore,total-bypass);
   const damage=Math.min(hpBefore,total-absorbed);
   target.shield=shieldBefore-absorbed;target.hp=hpBefore-damage;
   if(!target.shield)target.shieldSource=null;

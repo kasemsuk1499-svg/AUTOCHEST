@@ -5,6 +5,32 @@
  const FLOOR_RESET_EVENT=1,START_TICKETS=100,DUNGEON_REWARD_MULT=10,DUNGEON_ENTRY_COST=1000;
  const clamp=(n,lo,hi)=>Math.min(hi,Math.max(lo,n));
  const number=(n,fallback=0)=>Number.isFinite(Number(n))?Number(n):fallback;
+ const BLESSING_COST=Object.freeze({gold:100000,exp:50000});
+ const BLESSING_ODDS=Object.freeze({rare:60,epic:30,legendary:9,mythic:1});
+ const BLESSINGS=Object.freeze(Object.fromEntries([["rare","power","พละกำลัง","PATK +15%",{"patk":0.15}],["rare","magic","พลังเวท","MATK +15%",{"matk":0.15}],["rare","life","ชีวิต","HP สูงสุด +20%",{"hp":0.2}],["rare","swift","ว่องไว","ความเร็วโจมตี +10%",{"speed":0.1}],["rare","precision","แม่นยำ","CRIT +10 จุดเปอร์เซ็นต์",{"crit":0.1}],["rare","fatal","พิฆาต","CRIT DMG +25 จุดเปอร์เซ็นต์",{"critDamage":0.25}],["rare","iron","ผิวเหล็ก","ลดดาเมจที่ได้รับ 10%",{"reduction":0.1}],["rare","wind","สายลม","หลบหลีก +5 จุดเปอร์เซ็นต์",{"dodge":0.05}],["rare","regen","ฟื้นฟู","ฟื้น HP 1% ทุกวินาที",{"regen":0.01}],["rare","drain","ดูดกลืน","ดูดเลือด 5%",{"lifesteal":0.05}],["epic","lightning","อัสนี","ความเร็วโจมตี +20%",{"speed":0.2}],["epic","hunter","นักล่า","ดาเมจต่อบอส +30%",{"boss":0.3}],["epic","massacre","สังหารหมู่","ดาเมจต่อศัตรูที่ไม่ใช่บอส +35%",{"mob":0.35}],["epic","curse","คำสาป","ดาเมจ DOT +30%",{"dot":0.3}],["epic","priest","นักบวช","ประสิทธิภาพฮีล +30%",{"heal":0.3}],["epic","holyshield","เกราะศักดิ์สิทธิ์","โล่ที่สร้าง +30%",{"shield":0.3}],["epic","assassin","นักฆ่า","ดาเมจ +40% ต่อเป้าหมาย HP ต่ำกว่า 30%",{"lowTarget":0.4}],["epic","berserk","คลุ้มคลั่ง","ATK +30% เมื่อ HP ตนเองต่ำกว่า 50%",{"lowSelf":0.3}],["epic","focus","สมาธิ","CRIT +20 จุดเปอร์เซ็นต์",{"crit":0.2}],["epic","sun","สุริยัน","ดาเมจสกิล +25%",{"skill":0.25}],["legendary","gale","วิญญาณวายุ","หลบหลีก +15 จุดเปอร์เซ็นต์",{"dodge":0.15}],["legendary","eternal","ชีวิตนิรันดร์","คืนชีพ HP 50% หนึ่งครั้งต่อการต่อสู้",{"revive":0.5}],["legendary","vampire","แวมไพร์","ดูดเลือด 20%",{"lifesteal":0.2}],["legendary","breakshield","ทลายเกราะ","ดาเมจโจมตีตรง 30% ทะลุโล่",{"pierce":0.3}],["legendary","fortress","ปราการ","ลดดาเมจที่ได้รับ 25%",{"reduction":0.25}],["legendary","greatcurse","มหาคำสาป","ดาเมจ DOT +60%",{"dot":0.6}],["legendary","war","เทพสงคราม","ดาเมจต่อบอส +70%",{"boss":0.7}],["legendary","slayer","เทพพิฆาต","CRIT DMG +80 จุดเปอร์เซ็นต์",{"critDamage":0.8}],["legendary","mirror","กระจกสะท้อน","สะท้อน 20% ของ HP ที่เสียจากการโจมตีตรง ไม่สะท้อนซ้ำ",{"reflect":0.2}],["legendary","haste","เร่งเวลา","ลดจำนวนโจมตีสะสมก่อนใช้สกิล 1 ครั้ง",{"charge":1}],["mythic","time","กาลเวลา","ลดจำนวนโจมตีสะสมก่อนใช้สกิล 2 ครั้ง",{"charge":2}],["mythic","eternalcurse","คำสาปนิรันดร์","DOT สามารถติดคริติคอลได้",{"dotCrit":true}],["mythic","immortal","อมตะ","รอดจากดาเมจถึงตายด้วย HP 1 และอมตะ 5 วินาที ครั้งเดียวต่อการต่อสู้",{"immortal":5}],["mythic","destruction","การทำลายล้าง","ดาเมจสกิล +100%",{"skill":1}],["mythic","thunder","เทพอัสนี","ความเร็วโจมตี +50%",{"speed":0.5}],["mythic","reaper","มัจจุราช","สังหารทันทีเมื่อโจมตีโดนและ HP เหลือต่ำกว่า 10% (ไม่รวมบอส)",{"execute":0.1}],["mythic","wealth","เทพแห่งโชคลาภ","Gold จากการฟาร์ม +15% ต่อสมาชิกที่เปิดใช้ สะสมแบบบวก",{"gold":0.15}],["mythic","wisdom","ปัญญาแห่งเทพ","EXP จากการฟาร์ม +15% ต่อสมาชิกที่เปิดใช้ สะสมแบบบวก",{"exp":0.15}],["mythic","illusion","เทพมายา","หลบหลีก +25 จุดเปอร์เซ็นต์",{"dodge":0.25}],["mythic","unbeaten","ผู้ไร้พ่าย","สังหารศัตรู: ATK +10% สะสมสูงสุด 100% จนจบการต่อสู้",{"killStack":0.1}]].map(([rarity,id,name,description,effects])=>[id,Object.freeze({rarity,id,name,description,effects:Object.freeze(effects)})])));
+ function blessingSlots(p){
+  const raw=p?.blessings,slots=[0,1].map(i=>typeof raw?.slots?.[i]==='string'&&Object.hasOwn(BLESSINGS,raw.slots[i])?raw.slots[i]:null);
+  return {slots,active:raw?.active===1?1:0};
+ }
+ function blessingFor(p){const b=blessingSlots(p);return BLESSINGS[b.slots[b.active]]||null}
+ function rollBlessing(state,id,slot,rng=Math.random){
+  const p=state.owned[id];if(!p||![0,1].includes(slot)||state.gold<BLESSING_COST.gold||state.heroExp<BLESSING_COST.exp)return null;
+  let n=Math.max(0,Math.min(.999999999,rng()))*100;
+  let rarity='mythic';for(const [key,weight] of Object.entries(BLESSING_ODDS)){if(n<weight){rarity=key;break}n-=weight}
+  const pool=Object.values(BLESSINGS).filter(b=>b.rarity===rarity),b=pool[Math.floor(Math.max(0,Math.min(.999999999,rng()))*pool.length)];
+  const old=blessingSlots(p);old.slots[slot]=b.id;
+  if(!old.slots[old.active])old.active=slot;
+  p.blessings=old;state.gold-=BLESSING_COST.gold;state.heroExp-=BLESSING_COST.exp;return b;
+ }
+ function equipBlessing(state,id,slot){const p=state.owned[id];if(!p||![0,1].includes(slot))return false;const b=blessingSlots(p);if(!b.slots[slot])return false;b.active=slot;p.blessings=b;return true}
+ function blessingFarmBonus(state){const b={gold:0,exp:0};for(const id of new Set(state.squad)){const e=blessingFor(state.owned[id])?.effects;if(e){b.gold+=e.gold||0;b.exp+=e.exp||0}}return b}
+ function blessingRewards(reward,b){return {...reward,gold:Math.round(reward.gold*(1+(b?.gold||0))),exp:Math.round(reward.exp*(1+(b?.exp||0)))}}
+ function blessedHero(hero,progress){
+  const h=heroAtStars(hero,progress?.stars||1),b=blessingFor(progress)?.effects;if(!h||!b)return h;
+  const p=h.passive||{},out={...h,blessingCharge:b.charge||0,passive:{...p,dodgeChance:Math.min(.75,(p.dodgeChance||0)+(b.dodge||0)),damageReduction:Math.min(.95,(p.damageReduction||0)+(b.reduction||0)),lifesteal:(p.lifesteal||0)+(b.lifesteal||0)}};
+  if(h.guard&&b.shield)out.guard={...h.guard,selfShield:h.guard.selfShield*(1+b.shield),allyShield:h.guard.allyShield*(1+b.shield)};
+  return out;
+ }
  const initial=()=>({
   version:1,floorResetEvent:FLOOR_RESET_EVENT,accountEpoch:'',mode:'normal',nightmare:{stage:1,clearedStage:0,kills:0,bossRetryWaves:0,bossWins:0},stage:1,clearedStage:0,kills:0,bossRetryWaves:0,gold:3000,heroExp:1800,rubies:1200,tickets:START_TICKETS,universalShards:0,
   costumes:{},farmMode:'push',farmGoal:'gold',farmStages:{normal:1,nightmare:1},dungeonRepeat:true,favorites:[],squad:['asuna','kirito','silica'],owned:{
@@ -209,7 +235,7 @@
    const hero=raw.owned[id];if(!hero||typeof hero!=='object')continue;
    state.owned[id]={level:Math.floor(clamp(number(hero.level,1),1,MAX_LEVEL)),
     stars:Math.floor(clamp(number(hero.stars,1),1,MAX_STARS)),
-    shards:Math.floor(clamp(number(hero.shards,0),0,999999))};
+    shards:Math.floor(clamp(number(hero.shards,0),0,999999)),blessings:blessingSlots(hero)};
   }
   // Avoid a damaged save leaving the player with no usable team.
   if(!Object.keys(state.owned).length){
@@ -232,7 +258,7 @@
  }
  // Skill cadence is separate from normal attack speed and VFX timing.
  const SKILL_MIN_INTERVAL=5;
- const skillAttackCount=hero=>Math.max(1,Math.floor(number(hero?.triggerEvery,4)))+3;
+ const skillAttackCount=hero=>Math.max(1,Math.max(1,Math.floor(number(hero?.triggerEvery,4)))+3-(hero?.blessingCharge||0));
  const explosionCastSeconds=hero=>Math.max(1,number(hero?.castSeconds,5))+1;
  const explosionRestSeconds=rest=>Math.max(0,number(rest,2))+2;
  function consumeSkillAttack(actor,hero,clock,force=false){
@@ -264,11 +290,12 @@
   if(!hero||!progress)return null;
   const level=Math.max(1,progress.level),star=clamp(Math.floor(number(progress.stars,1)),1,MAX_STARS);
   hero=heroAtStars(hero,star);
+  const b=blessingFor(progress)?.effects||{};
   return {
-   hp:Math.round(hero.hp*(1+(level-1)*.11)*(1+(star-1)*.32)),
-   atk:Math.round(hero.dmg*(1+(level-1)*.09)*(1+(star-1)*.26)),
-   cool:Math.max(.28,hero.cool),range:hero.range,crit:hero.critChance||.05,
-   critDamage:hero.critDamage||1.5
+   hp:Math.round(hero.hp*(1+(level-1)*.11)*(1+(star-1)*.32)*(1+(b.hp||0))),
+   atk:Math.round(hero.dmg*(1+(level-1)*.09)*(1+(star-1)*.26)*(1+(damageType(hero)==='magic'?b.matk||0:b.patk||0))),
+   cool:Math.max(.28,hero.cool/(1+(b.speed||0))),range:hero.range,crit:Math.min(1,(hero.critChance||.05)+(b.crit||0)),
+   critDamage:(hero.critDamage||1.5)+(b.critDamage||0)
   };
  }
  // Deployed unique heroes activate only the highest reached threshold per tag.
@@ -402,8 +429,8 @@
   return {minutes:mins,gold:mins*(24+stage*6)*ECONOMY.offline*mult,exp:mins*(14+stage*4)*ECONOMY.offline*mult,
    rubies:mins*(4+floorNumber(stage))*mult,tickets:Math.floor(total/ECONOMY.offlineMinutesPerTicket),ticketRemainder:total%ECONOMY.offlineMinutesPerTicket};
  }
- function awardFarmKill(state,stage=battleStage(state)){
-  const reward=farmReward(stage,state.mode);
+ function awardFarmKill(state,stage=battleStage(state),bonus=blessingFarmBonus(state)){
+  const reward=blessingRewards(farmReward(stage,state.mode),bonus);
   state.gold+=reward.gold;state.heroExp+=reward.exp;state.rubies+=reward.rubies;
   const kills=(state.farmTicketKills||0)+(state.mode==='nightmare'?2:1);
   const tickets=Math.floor(kills/ECONOMY.killsPerTicket);
@@ -482,7 +509,7 @@
  function draw(state,roster,count,rng=Math.random){
   return drawDetailed(state,roster,count,rng)?.rewards.map(u=>u.id)||null;
  }
- window.AUTOCHEST_IDLE_CORE=Object.freeze({KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,DUNGEON_REWARD_MULT,DUNGEON_ENTRY_COST,dungeonTiers,dungeonReward,canEnterDungeon,payDungeonEntry,claimDungeon,
+ window.AUTOCHEST_IDLE_CORE=Object.freeze({BLESSINGS,BLESSING_COST,BLESSING_ODDS,blessingSlots,blessingFor,rollBlessing,equipBlessing,blessingFarmBonus,blessingRewards,blessedHero,KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,DUNGEON_REWARD_MULT,DUNGEON_ENTRY_COST,dungeonTiers,dungeonReward,canEnterDungeon,payDungeonEntry,claimDungeon,
   initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,bossStars,floorCount,maxStage,floorBossId,nightmareUnlocked,activeRun,nightmareBossCount,nightmareStars,nightmareBossIds,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,shardsToMax,ascendCost,
   normalized,costumeDefs,ownsCostume,grantCostume,buyCostume,equipCostume,farmMaxStage,clampFarmStage,farming,battleStage,FARM_GOALS,farmRates,recordFarmWave,smartFarmStage,heroAtStars,damageType,SKILL_MIN_INTERVAL,skillAttackCount,consumeSkillAttack,explosionCastSeconds,explosionRestSeconds,stats,teamSynergies,synergyBonus,vtuberBonus,teamHeroStats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,universalShardYield,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
 })();
