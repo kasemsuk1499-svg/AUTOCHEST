@@ -4,7 +4,7 @@ window.AUTOCHEST_CHARACTERS.registerHero({
  team:'นักรบ',damageType:'physical',role:'ASSASSIN / DASH / EVASION',traits:['ลอบสังหาร','แดช','หลบหลีก','Naruto'],cost:3,
  hp:760,dmg:156,range:1.1,melee:true,cool:.82,move:145,critChance:.18,critDamage:1.7,
  skill:'เทพอัสนีเหิน • กระสุนวงจักร',effect:'dash',triggerEvery:3,skillPower:3.2,
- passive:{name:'ประกายแสงสีเหลือง',dodgeChance:.25,lockTarget:true},
+ passive:{name:'ประกายแสงสีเหลือง',dodgeChance:.25,lockTarget:true,approachDash:true},
  starUpgrades:[
   {star:2,label:'หลบหลีก 30% · สกิล 350% PATK',patch:{skillPower:3.5,passive:{dodgeChance:.30}}},
   {star:3,label:'หลบหลีก 35% · CRIT 25% · เริ่มการต่อสู้สแต็กวาร์ปเต็ม',patch:{critChance:.25,passive:{dodgeChance:.35,openingDash:true}}},

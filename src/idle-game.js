@@ -881,7 +881,8 @@ function skillDescription(t,enemy=false){
  if(t.passive?.magicGuard)lines.push('พาสซีฟ — '+t.passive.name+': รับแทน '+Math.round(t.passive.magicGuard*100)+'% ของดาเมจที่เพื่อนสายเวทได้รับ ไม่ว่าดาเมจมาจากสายใด · ไม่รับแทนตนเอง · โล่ของผู้ปกป้องรับได้ · เลือกผู้ปกป้องที่มีอัตราสูงสุดหนึ่งคน · ไม่ส่งต่อซ้ำ');
  if(t.passive?.bossMultiplier)lines.push('พาสซีฟ — '+t.passive.name+': ดาเมจทุกชนิดต่อบอส ×'+t.passive.bossMultiplier+' ก่อนคริติคอลและการป้องกัน');
  if(t.passive?.healOnAttack)lines.push('พาสซีฟ — '+t.passive.name+': เมื่อโจมตีปกติ ฟื้น HP ให้สมาชิกที่บาดเจ็บหนักที่สุด (ตามเปอร์เซ็นต์ HP) เท่ากับ '+Math.round(t.passive.healOnAttack*100)+'% ของ ATK พื้นฐานในการต่อสู้ของตนเอง');
- if(t.passive?.lockTarget)lines.push('พาสซีฟ — ล็อกเป้าหมายเมื่อโจมตีครั้งแรก: โจมตีและวาร์ปใส่เป้าหมายเดิมจนกว่าจะตายจริงหรือออกจากสนาม · ไม่เปลี่ยนตามระยะหรือยั่วยุ · หากเหยื่อพรางตัวจะรอจนปรากฏตัว');
+ if(t.passive?.approachDash)lines.push('พาสซีฟ — พุ่งล็อกเหยื่อ: เมื่อยังไม่มีเป้าหมาย วาร์ปไปหลังศัตรูยิงไกลที่อยู่ไกลที่สุดทันที (หากไม่มี เลือกศัตรูที่ไกลที่สุด) โดยไม่ต้องสะสมสแต็ก ไม่สร้างดาเมจและไม่ใช้คูลดาวน์สกิล จากนั้นโจมตีเป้าหมายเดิมจนตายจริง จึงวาร์ปหาเหยื่อใหม่ · ไม่เปลี่ยนตามระยะหรือยั่วยุ · หากเหยื่อพรางตัวจะรอจนปรากฏตัว');
+ else if(t.passive?.lockTarget)lines.push('พาสซีฟ — ล็อกเป้าหมายเมื่อโจมตีครั้งแรก: โจมตีและวาร์ปใส่เป้าหมายเดิมจนกว่าจะตายจริงหรือออกจากสนาม · ไม่เปลี่ยนตามระยะหรือยั่วยุ · หากเหยื่อพรางตัวจะรอจนปรากฏตัว');
  if(t.passive?.dodgeChance)lines.push('พาสซีฟ — '+t.passive.name+': มีโอกาส '+Math.round(t.passive.dodgeChance*100)+'% หลบการโจมตีโดยตรงทั้งหมด (รวมสกิล) ไม่เสีย HP หรือโล่ · สุ่มแยกแต่ละฮิต · ไม่หลบ DOT หรือดาเมจรับแทน');
  if(t.passive?.damageReduction)lines.push('พาสซีฟ — '+t.passive.name+': ลดความเสียหายที่ได้รับ '+Math.round(t.passive.damageReduction*100)+'% ตลอดการต่อสู้ ก่อนคำนวณโล่');
  if(t.passive?.focusCritStep)lines.push('พาสซีฟ — '+t.passive.name+': โจมตีเป้าหมายเดิมต่อเนื่องเพิ่มโอกาสคริติคอล '+Math.round(t.passive.focusCritStep*100)+' จุดเปอร์เซ็นต์ต่อครั้ง (สูงสุด +'+Math.round(t.passive.focusCritMax*100)+' จุดเปอร์เซ็นต์) · รีเซ็ตเมื่อเปลี่ยนเป้าหมาย');
@@ -1429,8 +1430,28 @@ function defeatMonster(foe){
   updateResources();
  }
 }
-function pickEnemy(f){return TFT.selectCombatTarget(f,enemies,stageClock,combatHero(f))}
-function targetHero(enemy){return TFT.selectCombatTarget(enemy,fighters,stageClock,combatHero(enemy))}
+// Free positioning dash acquires a victim; only the charged skill deals Rasengan damage.
+function warpToVictim(actor,victim){
+ const from={x:actor.x,y:actor.y},back=actor.side==='ally'?-1:1;
+ actor.x=Math.max(5.5,Math.min(94.5,victim.x));
+ actor.y=Math.max(8,Math.min(92,victim.y+back*7));
+ actor.walking=false;
+ const dashFx=VFX?.getSpec(HEROES[actor.id],'dash',costumeFxFor(actor),actorCostume(actor)?.id||'');
+ if(dashFx)renderVfxRegion(dashFx,from,actor);else projectile(from.x,from.y,actor.x,actor.y,'#ffe05d');
+ ring(from.x,from.y);position(actor);ring(actor.x,actor.y);
+}
+function selectAssassinTarget(actor,others,hero,skillOpening=false){
+ if(!hero?.passive?.approachDash)return TFT.selectCombatTarget(actor,others,stageClock,hero);
+ const locked=TFT.lockedTarget(actor,others);
+ if(locked)return (locked.cloakUntil||0)>stageClock?null:locked;
+ const victim=TFT.dashVictim(actor,others,stageClock,combatHero);
+ if(!victim)return null;
+ actor.lockedTarget=victim;
+ if(!skillOpening){warpToVictim(actor,victim);unitFx(actor,'⚡ ล็อกเป้าหมาย','buff');}
+ return victim;
+}
+function pickEnemy(f){const h=combatHero(f);return selectAssassinTarget(f,enemies,h,dashCharged(f,h)&&f.remaining<=0)}
+function targetHero(enemy){const h=combatHero(enemy);return selectAssassinTarget(enemy,fighters,h,dashCharged(enemy,h)&&enemy.remaining<=0)}
 // TFT-style shared damage pipeline. No damage is applied to ranged targets until the bullet lands.
 function vtuberTeamBonus(actor){
   const ids=actor.side==='ally'&&!trialContext?state.squad:(actor.side==='ally'?fighters:[...enemies,...fallenEnemies]).map(u=>u.id);
@@ -1780,14 +1801,7 @@ function tftSkill(attacker,target){
   case 'dash':{
    const victim=TFT.dashVictim(attacker,foes(),stageClock,combatHero);if(!victim)return true;
    if(hero.passive?.lockTarget)attacker.lockedTarget=victim;
-   const from={x:attacker.x,y:attacker.y};
-   const back=attacker.side==='ally'?-1:1;
-   attacker.x=Math.max(5.5,Math.min(94.5,victim.x));
-   attacker.y=Math.max(8,Math.min(92,victim.y+back*7));
-   attacker.walking=false;
-   const dashFx=VFX?.getSpec(HEROES[attacker.id],'dash',costumeFxFor(attacker),actorCostume(attacker)?.id||'');
-   if(dashFx)renderVfxRegion(dashFx,from,attacker);else projectile(from.x,from.y,attacker.x,attacker.y,'#ffe05d');
-   ring(from.x,from.y);position(attacker);ring(attacker.x,attacker.y);
+   warpToVictim(attacker,victim);
    unitFx(attacker,'⚡ เทพอัสนีเหิน','buff');
    tftDamage(attacker,victim,attacker.atk*hero.skillPower,0,false,false,'skillHit');
    return true;
@@ -1922,8 +1936,8 @@ function tick(dt){
   if(!backgroundSession&&foe.attackUntil<stageClock&&foe.sprite!==HEROES[foe.id].images.idle){
    pose(foe,false);foe.node.classList.remove('burst');
   }
-  const target=targetHero(foe);
   foe.remaining-=t;
+  const target=targetHero(foe);
   if(target){
    const close=TFT.pursue(foe,target,combatHero(foe),t,'enemy').inRange;
    position(foe);
@@ -2122,7 +2136,7 @@ function tickTrial(dt){
   if(actor.castUntil){advanceExplosion(actor,false);renderTrial();return}
   if(!scene.active&&scene.queue.length&&stageClock>=scene.nextAt&&!shots.length)scene.active=scene.queue.shift();
   if(scene.active){
-   const cmd=scene.active,target=h.passive?.lockTarget?TFT.selectCombatTarget(actor,enemies,stageClock,h):enemies.find(u=>u.hp>0);
+   const cmd=scene.active,target=h.passive?.approachDash&&!['hit','lethal','taunt','protect','healTest'].includes(cmd)?selectAssassinTarget(actor,enemies,h,cmd==='skill'):h.passive?.lockTarget?TFT.selectCombatTarget(actor,enemies,stageClock,h):enemies.find(u=>u.hp>0);
    if(cmd==='healTest'){
      if(target){const blocked=TFT.debuffValue(target,'healDown',stageClock);const result=TFT.healWeakest([target],1,()=>Math.min(400,target.maxHp-target.hp),stageClock);
       showHealing(result,target);scene.note='ทดลองฟื้นฟู · ลดฮีล '+Math.round(blocked*100)+'%';}
