@@ -896,3 +896,6 @@ body.background-idle #heroLayer,body.background-idle #monsterLayer,body.backgrou
 
 /* Sprite-only model scaling: independent of motion animation, grid, hitboxes and UI. */
 .fighter img{scale:var(--model-scale,1);transform-origin:center bottom;object-position:center bottom}
+
+/* Itachi status presentation; no changes to combat geometry. */
+.fighter[data-sharingan]::after{content:'◉ ' attr(data-sharingan);position:absolute;top:-22px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:#ffc1c6;background:#5f1b2e;padding:2px 5px;border-radius:5px;white-space:nowrap;pointer-events:none}.fighter.tsukuyomi img{filter:drop-shadow(0 0 7px #ed4859) saturate(.55)!important;animation:none!important}.fighter.sealed{filter:grayscale(1)}

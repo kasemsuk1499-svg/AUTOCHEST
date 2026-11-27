@@ -62,7 +62,7 @@
  // Generic resurrection passive: resolve lethal damage before death or loot.
  function tryRevive(actor,hero,clock,alreadyUsed=false){
   const p=hero?.passive;
-  if(!actor||actor.hp>0||actor.finalFlameSpent||!(p?.reviveHp>0))return false;
+  if(!actor||actor.hp>0||actor.sealed||actor.finalFlameSpent||!(p?.reviveHp>0))return false;
   const used=Math.max(actor.reviveCount||0,actor.reviveUsed?1:0,Number(alreadyUsed)||0);
   const limit=Math.max(1,Math.floor(p.reviveLimit||1));
   if(used>=limit)return false;
@@ -84,7 +84,7 @@
  // A caster can resurrect a fallen ally only a limited number of times per encounter.
  function reviveAlly(caster,allies,config,clock){
   if(!caster||caster.hp<=0||caster.alive===false||!(config?.reviveHp>0)||!(config?.reviveLimit>0)||(caster.supportRevives||0)>=config.reviveLimit)return null;
-  const target=allies.filter(u=>u&&u!==caster&&u.side===caster.side&&u.hp<=0&&u.alive===false&&!u.finalFlameSpent&&!u.revivedByAlly&&u.maxHp>0)
+  const target=allies.filter(u=>u&&u!==caster&&u.side===caster.side&&u.hp<=0&&u.alive===false&&!u.sealed&&!u.finalFlameSpent&&!u.revivedByAlly&&u.maxHp>0)
    .sort((a,b)=>b.maxHp-a.maxHp)[0];
   if(!target)return null;
   caster.supportRevives=(caster.supportRevives||0)+1;
@@ -97,7 +97,7 @@
  const livingHero=(allies,id,side)=>allies.find(u=>u.id===id&&u.side===side&&u.alive!==false&&u.hp>0);
  function linkedRevive(actor,hero,allies,clock){
   const p=hero?.passive;
-  if(!actor||actor.hp>0||!(p?.aquaReviveHp>0)||!livingHero(allies,'aqua',actor.side))return false;
+  if(!actor||actor.hp>0||actor.sealed||!(p?.aquaReviveHp>0)||!livingHero(allies,'aqua',actor.side))return false;
   actor.hp=Math.max(1,Math.round(actor.maxHp*Math.min(1,p.aquaReviveHp)));
   actor.alive=true;actor.immortalUntil=clock+Math.max(0,p.aquaImmortalSeconds||0);
   actor.shield=0;actor.shieldSource=null;actor.attackDown=null;actor.vulnerability=null;actor.remaining=.5;
@@ -119,6 +119,27 @@
   if(actor.focusTarget!==target){actor.focusTarget=target;actor.focusHits=0}
   else actor.focusHits=Math.min(Math.ceil(p.focusCritMax/p.focusCritStep), (actor.focusHits||0)+1);
   return Math.min(p.focusCritMax,actor.focusHits*p.focusCritStep);
+ }
+ // Sharingan stacks belong to the combat actor, not the current target.
+ function addSharingan(actor,hero){
+  const max=hero?.passive?.sharinganMax||0;if(!max)return 0;
+  actor.sharinganStacks=Math.min(max,(actor.sharinganStacks||0)+1);return actor.sharinganStacks;
+ }
+ function sharinganBonus(actor,hero){
+  const p=hero?.passive,n=Math.min(p?.sharinganMax||0,actor.sharinganStacks||0);
+  return {atk:n*(p?.sharinganAtk||0),crit:n*(p?.sharinganCrit||0)};
+ }
+ function applyTsukuyomi(actor,target,hero,clock){
+  const p=hero?.passive;
+  if(!p?.tsukuyomiSeconds||!(p.sharinganMax>0)||(actor.sharinganStacks||0)<p.sharinganMax||target.boss||target.hp<=0||target.alive===false||isImmortal(target,clock))return false;
+  const key=target.side==='ally'?target.id:target;
+  actor.sharinganSeen??=new Set();if(actor.sharinganSeen.has(key))return false;
+  if(!applyFreeze(target,p.tsukuyomiSeconds,clock))return false;
+  actor.sharinganSeen.add(key);target.tsukuyomiUntil=clock+p.tsukuyomiSeconds;return true;
+ }
+ function markTotsukaSeal(target,hero,event){
+  if(event!=='totsuka'||!hero?.passive?.totsukaSeal||target.hp>0)return false;
+  target.sealed=true;return true;
  }
  // Straight piercing shot in physical board coordinates, with swept collision.
  function makePierce(actor,target){
@@ -261,5 +282,5 @@
   if(!target.shield)target.shieldSource=null;
   return {damage,absorbed,total};
  }
- window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,lockedTarget,selectCombatTarget,dashVictim,advanceShot,tryRevive,expireFinalFlame,reviveAlly,livingHero,linkedRevive,explosionParty,blocksExplosion,isImmortal,focusCritBonus,makePierce,advancePierce,makeFireTrail,fireBounds,fireContains,fireTicks,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,attackBuff,outgoingMultiplier,vulnerabilityMultiplier,healDownDamageMultiplier,boostedDebuff,attackInterval,healWeakest,applySupport,applyDot,dueDots,isFrozen,applyFreeze,splitMagicDamage,resolveDamage});
+ window.AUTOCHEST_TFT_COMBAT=Object.freeze({W,H,SX,pxDist,attackRange,isRanged,pursue,findTarget,lockedTarget,selectCombatTarget,dashVictim,advanceShot,tryRevive,expireFinalFlame,reviveAlly,livingHero,linkedRevive,explosionParty,blocksExplosion,isImmortal,focusCritBonus,addSharingan,sharinganBonus,applyTsukuyomi,markTotsukaSeal,makePierce,advancePierce,makeFireTrail,fireBounds,fireContains,fireTicks,applyGuard,incomingDamage,bossDamageMultiplier,cleaveTargets,applyDebuff,debuffValue,attackBuff,outgoingMultiplier,vulnerabilityMultiplier,healDownDamageMultiplier,boostedDebuff,attackInterval,healWeakest,applySupport,applyDot,dueDots,isFrozen,applyFreeze,splitMagicDamage,resolveDamage});
 })();

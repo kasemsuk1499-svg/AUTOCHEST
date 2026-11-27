@@ -13,7 +13,7 @@
   silica:{projectile:'bullet',heal:'heal',buff:'buff',hit:'impact'},
   deathgun:{projectile:'darkBullet',skillProjectile:'darkBullet',hit:'impact',cloak:'cloak',skillHit:'impact'}
  };
- const generic={rasengan:'impact',dash:'slashGold',dodge:'cloak',freeze:'shield',dot:'debuff',hit:'impact',skillHit:'impact',projectile:'bullet',skillProjectile:'bullet',area:'hammer',heal:'heal',shield:'shield',revive:'revive',buff:'buff',debuff:'debuff',cloak:'cloak',cast:'buff',aftermath:'impact',cleave:'slashGold',groundFire:false};
+ const generic={sharingan:'buff',tsukuyomi:'debuff',susanoo:'buff',totsuka:'slashGold',totsukaSeal:'cloak',rasengan:'impact',dash:'slashGold',dodge:'cloak',freeze:'shield',dot:'debuff',hit:'impact',skillHit:'impact',projectile:'bullet',skillProjectile:'bullet',area:'hammer',heal:'heal',shield:'shield',revive:'revive',buff:'buff',debuff:'debuff',cloak:'cloak',cast:'buff',aftermath:'impact',cleave:'slashGold',groundFire:false};
  let published={},publishedCostumes={},publishedModels={},draft=null;
  const studioMode=new URLSearchParams(window.location?.search||'').has('studioTrial');
  if(studioMode){try{draft=JSON.parse(sessionStorage.getItem('AUTOCHEST_VFX_DRAFT')||'null')}catch(_){}}
