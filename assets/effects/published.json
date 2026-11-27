@@ -1493,6 +1493,12 @@
         "idle": 0.83,
         "attack": 1.37
       }
+    },
+    "itachi": {
+      "original": {
+        "idle": 0.97,
+        "attack": 1.22
+      }
     }
   }
 }
