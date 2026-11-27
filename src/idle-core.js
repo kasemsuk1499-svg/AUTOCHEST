@@ -165,7 +165,7 @@
   return state.bossRetryWaves;
  };
  const stageName=stage=>['ทุ่งหญ้าแห่งการเริ่มต้น','ป่าแห่งความทรงจำ','หุบเขาเหล็ก','วิหารรัตติกาล','ปราสาทลอยฟ้า'][floorNumber(stage)-1]||('ชั้นที่ '+floorNumber(stage));
- const levelCost=level=>({gold:Math.round(75*Math.pow(level,1.35)),exp:Math.round(32*Math.pow(level,1.25))});
+ const levelCost=level=>({gold:Math.round(75*Math.pow(level,1.35)),exp:Math.round(32*Math.pow(level,1.25)*1.15)});
  const shardsNeeded=stars=>stars>=MAX_STARS?0:stars===1?3:stars===2?6:stars===3?10:15;
  const shardsToMax=stars=>{let total=0;for(let n=stars;n<MAX_STARS;n++)total+=shardsNeeded(n);return total;};
  const ascendCost=stars=>250*stars*stars;
@@ -395,10 +395,10 @@
    delay:Math.max(.75,h.cool*1.2),crit:h.critChance||.05,critDamage:h.critDamage||1.5};
  }
  // Economy balance: speed up levelling without devaluing duplicate hero shards.
- const ECONOMY=Object.freeze({farm:3,farmGold:1.5,farmExp:1.15,boss:3,offline:5,bossRubies:3,killsPerTicket:20,offlineMinutesPerTicket:30});
+ const ECONOMY=Object.freeze({farm:3,farmGold:1.5,boss:3,offline:5,bossRubies:3,killsPerTicket:20,offlineMinutesPerTicket:30});
  function farmReward(stage,mode='normal'){
   const mult=mode==='nightmare'?2:1;
-  return {gold:Math.round((28+stage*8)*ECONOMY.farm*ECONOMY.farmGold*mult),exp:Math.round((18+stage*5)*ECONOMY.farm*ECONOMY.farmExp*mult),rubies:(3+floorNumber(stage))*mult};
+  return {gold:Math.round((28+stage*8)*ECONOMY.farm*ECONOMY.farmGold*mult),exp:Math.round((18+stage*5)*ECONOMY.farm*mult),rubies:(3+floorNumber(stage))*mult};
  }
  function bossReward(stage,mode='normal'){
   const mult=mode==='nightmare'?2:1;
