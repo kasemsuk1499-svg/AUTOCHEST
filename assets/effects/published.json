@@ -1460,6 +1460,12 @@
         "idle": 0.9,
         "attack": 0.9
       }
+    },
+    "artoria": {
+      "costume_01": {
+        "idle": 0.83,
+        "attack": 1.37
+      }
     }
   }
 }
