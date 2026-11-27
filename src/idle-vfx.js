@@ -14,10 +14,17 @@
   deathgun:{projectile:'darkBullet',skillProjectile:'darkBullet',hit:'impact',cloak:'cloak',skillHit:'impact'}
  };
  const generic={rasengan:'impact',dash:'slashGold',dodge:'cloak',freeze:'shield',dot:'debuff',hit:'impact',skillHit:'impact',projectile:'bullet',skillProjectile:'bullet',area:'hammer',heal:'heal',shield:'shield',revive:'revive',buff:'buff',debuff:'debuff',cloak:'cloak',cast:'buff',aftermath:'impact',cleave:'slashGold',groundFire:false};
- let published={},publishedCostumes={},draft=null;
+ let published={},publishedCostumes={},publishedModels={},draft=null;
  const studioMode=new URLSearchParams(window.location?.search||'').has('studioTrial');
  if(studioMode){try{draft=JSON.parse(sessionStorage.getItem('AUTOCHEST_VFX_DRAFT')||'null')}catch(_){}}
- async function loadPublished(){try{const response=await fetch('./assets/effects/published.json',{cache:'no-cache'});if(response.ok){const data=await response.json();if(data.version===1&&data.heroes&&typeof data.heroes==='object'){published=data.heroes;publishedCostumes=data.costumes&&typeof data.costumes==='object'?data.costumes:{}}}}catch(_){}}
+ async function loadPublished(){try{const response=await fetch('./assets/effects/published.json',{cache:'no-cache'});if(response.ok){const data=await response.json();if(data.version===1&&data.heroes&&typeof data.heroes==='object'){published=data.heroes;publishedModels=data.models&&typeof data.models==='object'?data.models:{};publishedCostumes=data.costumes&&typeof data.costumes==='object'?data.costumes:{}}}}catch(_){}}
+ // Model scale settings are independent from visual effects and combat geometry.
+ function modelScale(hero,pose,costumeId=''){
+  const key=pose==='attack'?'attack':'idle',id=hero?.id;
+  const override=studioMode&&draft?.hero===id&&(draft.costume||'')===costumeId?draft.model?.[key]:undefined;
+  const value=override??publishedModels[id]?.[costumeId||'original']?.[key]??publishedModels[id]?.original?.[key]??1;
+  return Math.max(.5,Math.min(2,Number.isFinite(Number(value))?Number(value):1));
+ }
  // The game owns slot geometry. Uploaded art can tune appearance, never hit detection.
  function slotLayout(hero,event){
   const mode=hero?.visual?.layout?.[event];
@@ -120,5 +127,5 @@
   for(const hero of Object.values(heroes))for(const event of Object.keys(generic)){const s=getSpec(hero,event);if(s)urls.add(s.src)}
   for(const url of urls){const img=new Image();img.src=url;img.decode?.().catch(()=>{});}
  }
- window.AUTOCHEST_VFX=Object.freeze({getSpec,paint,preload,loadPublished,slotLayout,appearance,colorFilter,rayEnd,visualOffset,geometry,placeRegion,timing,lifetime,animateLifetime});
+ window.AUTOCHEST_VFX=Object.freeze({modelScale,getSpec,paint,preload,loadPublished,slotLayout,appearance,colorFilter,rayEnd,visualOffset,geometry,placeRegion,timing,lifetime,animateLifetime});
 })();

@@ -893,3 +893,6 @@ body.background-idle #heroLayer,body.background-idle #monsterLayer,body.backgrou
 
 /* Formation synergy: keep existing tag panel and distinguish members outside the allowed row. */
 .synergy-row-rule{font-size:10px;color:#b5c9e2;margin:4px 0}.synergy-members span.wrong-row{opacity:.65;filter:saturate(.35);border-color:#d6a65d}.synergy-members span.receives{border-color:#75d0a2;box-shadow:inset 0 0 0 1px #75d0a2}.hero-synergy-note.row-blocked{color:#efc78e;border-color:#987444;background:#3b3026}.board-cell.formation-row-4{--formation-tint:#67b69b}.board-cell.formation-row-5{--formation-tint:#e3b963}.board-cell.formation-row-6{--formation-tint:#909be2}.board-cell[class*="formation-row-"]{box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--formation-tint) 52%,transparent)}
+
+/* Sprite-only model scaling: independent of motion animation, grid, hitboxes and UI. */
+.fighter img{scale:var(--model-scale,1);transform-origin:center bottom;object-position:center bottom}

@@ -234,8 +234,10 @@ function invaderPatrol(foe,t){
 }
 function pose(actor,attack){
  if(backgroundSession||!actor.img)return;
- const image=actorImages(actor)[attack?'attack':'idle'];
+ const slot=attack?'attack':'idle',image=actorImages(actor)[slot];
  if(actor.sprite!==image){actor.img.src=image;actor.sprite=image}
+ const scale=VFX?.modelScale(HEROES[actor.id],slot,actorCostume(actor)?.id||'')??1;
+ if(actor.modelScale!==scale){actor.modelScale=scale;actor.img.style.setProperty('--model-scale',String(scale));}
 }
 // Translate on the compositor instead of restarting a 280ms CSS transition each frame.
 let arenaSize={width:0,height:0};
@@ -1320,7 +1322,7 @@ function buildFighters(preserve=false){
   layer.appendChild(node);hero.node=node;hero.img=node.querySelector('img');
   hero.hpbar=node.querySelector('.mini-hp i');hero.sprite=backgroundSession?'':heroImages(hero.id).idle;
   hero.hpbar.style.width=Math.max(0,hero.hp/hero.maxHp*100)+'%';
-  position(hero);
+  pose(hero,false);position(hero);
   if(!hero.alive)node.style.opacity='.2';
  }
 }
@@ -1361,7 +1363,7 @@ function spawnMonster(boss=false,cell=null,quiet=false,forcedId=null){
   '<span class="fighter-name">'+(boss?'👑 ':'⚔ เงา')+escapeText(hero.name)+'</span>';
  $('monsterLayer').appendChild(node);
  foe.node=node;foe.img=node.querySelector('img');foe.bar=node.querySelector('.enemy-hp i');
- foe.sprite=backgroundSession?'':hero.images.idle;
+ foe.sprite=backgroundSession?'':hero.images.idle;pose(foe,false);
  enemies.push(foe);combat=enemies[0];
  position(foe);travelScene();
  if(!quiet){
@@ -2045,7 +2047,7 @@ function trialUnit(id,side,x,y,hp,maxHp,label,stars=1){
  (h?'<img src="'+actorImages(actor).idle+'" alt="">':'<div class="dummy-icon">◎</div>')+
  '<div class="mini-hp"><i></i></div><span class="fighter-name">'+escapeText(label||h.name)+'</span><span class="trial-values"></span>';
  $('trialUnits').appendChild(node);actor.node=node;actor.img=node.querySelector('img');actor.sprite=h?actorImages(actor).idle:undefined;
- actor.hpbar=actor.bar=node.querySelector('.mini-hp i');actor.values=node.querySelector('.trial-values');
+ actor.hpbar=actor.bar=node.querySelector('.mini-hp i');actor.values=node.querySelector('.trial-values');if(h)pose(actor,false);
  return actor;
 }
 function resetTrial(){
@@ -2545,7 +2547,7 @@ if(pending.minutes>0)openOffline();
 refreshArenaSize();
 if(typeof ResizeObserver==='function')new ResizeObserver(refreshArenaSize).observe($('stageViewport'));
 else window.addEventListener('resize',refreshArenaSize);
-if(VFX){VFX.preload(HEROES);VFX.loadPublished().then(()=>VFX.preload(HEROES))}
+if(VFX){VFX.preload(HEROES);VFX.loadPublished().then(()=>{VFX.preload(HEROES);for(const actor of [...fighters,...enemies])pose(actor,actor.attackUntil>stageClock)})}
 if(studioMode)document.body.classList.add('studio-trial-mode');
 // Decode sprites before their first attack so changing pose is not a network stall.
 for(const hero of Object.values(HEROES))for(const url of new Set([hero.images.idle,hero.images.attack])){const img=new Image();img.src=url;img.decode?.().catch(()=>{});}

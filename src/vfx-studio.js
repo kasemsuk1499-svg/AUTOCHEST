@@ -40,7 +40,7 @@ function previewImage(node,slot,h,c){
  const img=new Image();img.onload=()=>{if($('hero').value===h.id&&selectedCostume()===c.id)node.src=img.src};img.onerror=()=>{img.onerror=null;img.src=base+'.gif'};img.src=base+'.png';
 }
 function clearAsset(){sequence++;file=null;dataURL='';ext='';sheet=null;$('asset').value='';$('sheetHelper').hidden=true;status('fileInfo','')}
-function selectCostume(){clearAsset();const h=H[$('hero').value],c=costumeDef();previewImage($('portrait'),'art',h,c);previewImage($('previewUnit'),'idle',h,c);$('heroName').textContent=h.rarity+' · '+h.name+(c?' / '+c.name:'');selectEvent()}
+function selectCostume(){clearAsset();const h=H[$('hero').value],c=costumeDef();previewImage($('portrait'),'art',h,c);previewImage($('previewUnit'),'idle',h,c);$('heroName').textContent=h.rarity+' · '+h.name+(c?' / '+c.name:'');selectEvent();loadModelEditor()}
 function selectHero(){
  const h=H[$('hero').value];$('costume').replaceChildren(new Option('ชุดดั้งเดิม',''),...(h.costumes||[]).map(c=>new Option((c.rarity?c.rarity+' · ':'')+c.name,c.id)));$('costume').disabled=!(h.costumes||[]).length;$('heroSkill').textContent=h.skill;
  const prior=$('event').value;$('event').replaceChildren(...eventsFor(h).map(event=>new Option(labels[event],event)));if(eventsFor(h).includes(prior))$('event').value=prior;
@@ -64,7 +64,7 @@ function settings(src){
 }
 function currentSource(){return dataURL||currentSpec()?.src||''}
 function validDraft(){return !!(currentSource()&&!busy)}
-function sync(){let v=validDraft();for(const id of ['trialBtn','exportBtn'])$(id).disabled=!v;$('publishBtn').disabled=!v||!$('token').value.trim();}
+function sync(){let v=validDraft();for(const id of ['trialBtn','exportBtn'])$(id).disabled=!v;$('publishBtn').disabled=busy||!v||!$('token').value.trim();$('publishModelBtn').disabled=busy||!$('token').value.trim();}
 function invalidate(){if(!$('trialPanel').hidden)closeTrial();sync()}
 function updateDyeReadout(){for(const [id,suffix] of [['hue','°'],['saturation','%'],['brightness','%']])$(id+'Value').textContent=$(id).value+suffix;}
 function play(){
@@ -138,13 +138,59 @@ async function loadFile(){
   prepareSheet(img);sync();play();
  }catch(e){if(seq!==sequence)return;status('fileInfo',e.message,true);sync()}
 }
-function draft(){if(!validDraft())throw Error('เลือกภาพก่อน');return {hero:$('hero').value,costume:selectedCostume(),event:$('event').value,spec:settings(currentSource())}}
-function openTrial(){try{const d=draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&studioCostume='+encodeURIComponent(d.costume)+'&v=0.20.77';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
+const modelDrafts=new Map(),modelKey=()=> $('hero').value+'/'+(selectedCostume()||'original');
+function modelValues(){return {idle:Number($('modelIdleScale').value)/100,attack:Number($('modelAttackScale').value)/100}}
+function loadModelEditor(){
+ const hero=H[$('hero').value],c=costumeDef(),m=modelDrafts.get(modelKey())||{idle:V.modelScale(hero,'idle',selectedCostume()),attack:V.modelScale(hero,'attack',selectedCostume())};
+ $('modelCurrentName').textContent=hero.name+(c?' / '+c.name:'');
+ for(const [pose,id] of [['idle','modelIdle'],['attack','modelAttack']]){previewImage($(id),pose,hero,c);$(id+'Scale').value=Math.round(m[pose]*100);}
+ renderModelScales(false);
+}
+function loadModelReference(changeCostume=false){
+ const hero=H[$('modelReference').value];if(!hero)return;
+ if(changeCostume){$('modelRefCostume').replaceChildren(new Option('ชุดดั้งเดิม',''),...(hero.costumes||[]).map(c=>new Option(c.name,c.id)));$('modelRefCostume').disabled=!(hero.costumes||[]).length;}
+ const costumeId=$('modelRefCostume').value,c=hero.costumes?.find(c=>c.id===costumeId);
+ $('modelRefName').textContent=hero.name+(c?' / '+c.name:'');
+ for(const [pose,id] of [['idle','modelRefIdle'],['attack','modelRefAttack']]){
+  const node=$(id);previewModelReference(node,pose,hero,c);node.style.setProperty('--model-scale',String(V.modelScale(hero,pose,costumeId)));
+ }
+}
+function previewModelReference(node,slot,hero,c){
+ node.src=hero.images[slot];if(!c)return;
+ const base='./assets/heroes/'+hero.id+'/costumes/'+c.id+'/'+slot,img=new Image();
+ img.onload=()=>{if($('modelReference').value===hero.id&&$('modelRefCostume').value===c.id)node.src=img.src};
+ img.onerror=()=>{img.onerror=null;img.src=base+'.gif'};img.src=base+'.png';
+}
+function renderModelScales(remember=true){
+ const m=modelValues();if(remember)modelDrafts.set(modelKey(),m);
+ for(const [pose,id] of [['idle','modelIdle'],['attack','modelAttack']]){$(id+'Value').textContent=Math.round(m[pose]*100)+'%';$(id).style.setProperty('--model-scale',String(m[pose]));}
+ $('previewUnit').style.scale=String(m.idle);
+}
+function draft(){if(!validDraft())throw Error('เลือกภาพก่อน');return {hero:$('hero').value,costume:selectedCostume(),event:$('event').value,spec:settings(currentSource()),model:modelValues()}}
+function openTrial(modelOnly=false){try{const d=modelOnly?{hero:$('hero').value,costume:selectedCostume(),model:modelValues()}:draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&studioCostume='+encodeURIComponent(d.costume)+'&v=0.20.81';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
 function closeTrial(){$('trialFrame').src='about:blank';$('trialPanel').hidden=true;try{sessionStorage.removeItem(draftKey)}catch(_){}}
 function exportDraft(){try{const d=draft(),url=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='vfx-'+d.hero+'-'+(d.costume?d.costume+'-':'')+d.event+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){status('publishStatus',e.message,true)}}
 async function api(token,path,method='GET',body){
  const r=await fetch(base+path,{method,redirect:'error',cache:'no-store',headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28',...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
  const data=await r.json();if(!r.ok)throw Error('GitHub HTTP '+r.status+(r.status===401?' — token ไม่ถูกต้องหรือหมดอายุ':r.status===403?' — ตรวจสิทธิ์ Contents: Read and write':r.status===422?' — branch อาจมีการอัปเดตพร้อมกัน ให้ลองใหม่':''));return data;
+}
+async function publishModel(){
+ if(busy)return;let token=$('token').value.trim();if(!token)return;
+ const id=$('hero').value,costume=selectedCostume(),model=modelValues();
+ if(!confirm('เผยแพร่ขนาด '+H[id].name+' / '+(costumeDef()?.name||'ชุดดั้งเดิม')+' · Idle '+Math.round(model.idle*100)+'% / Attack '+Math.round(model.attack*100)+'% ?'))return;
+ busy=true;$('token').value='';$('commitLink').hidden=true;sync();$('hero').disabled=true;$('costume').disabled=true;
+ try{
+  status('publishStatus','กำลังบันทึกขนาดโมเดล...');
+  const parent=(await api(token,'/git/ref/heads/main')).object.sha,old=await api(token,'/git/commits/'+parent),manifest=await api(token,'/contents/'+manifestPath+'?ref='+parent);
+  const config=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(manifest.content.replace(/\s/g,'')),c=>c.charCodeAt(0))));
+  if(config.version!==1||!config.heroes||Array.isArray(config.heroes))throw Error('รูปแบบ manifest ไม่ถูกต้อง');
+  config.models??={};config.models[id]??={};config.models[id][costume||'original']=model;
+  const tree=await api(token,'/git/trees','POST',{base_tree:old.tree.sha,tree:[{path:manifestPath,mode:'100644',type:'blob',content:JSON.stringify(config,null,2)+'\n'}]});
+  const commit=await api(token,'/git/commits','POST',{message:'Model Studio: '+id+' / '+(costume||'original'),tree:tree.sha,parents:[parent]});
+  await api(token,'/git/refs/heads/main','PATCH',{sha:commit.sha,force:false});
+  $('commitLink').href='https://github.com/'+repo+'/commit/'+commit.sha;$('commitLink').hidden=false;status('publishStatus','เผยแพร่ขนาดโมเดลสำเร็จ! รีเฟรชเกมหลัง GitHub Pages อัปเดต');
+  await V.loadPublished();loadModelReference();
+ }catch(e){status('publishStatus',e.message+' — ยังไม่ยืนยันว่าเผยแพร่สำเร็จ',true)}finally{token='';busy=false;$('hero').disabled=false;$('costume').disabled=!(H[$('hero').value].costumes||[]).length;sync()}
 }
 async function publish(){
  if(busy)return;let token=$('token').value.trim();if(!token)return;
@@ -191,7 +237,8 @@ $('loopBtn').onclick=()=>{loop=!loop;$('loopBtn').setAttribute('aria-pressed',St
 for(const id of ['hue','saturation','brightness','colorize'])$(id).addEventListener('input',()=>{invalidate();play()});
 $('resetDye').onclick=()=>{$('hue').value=0;$('saturation').value=100;$('brightness').value=100;$('colorize').checked=false;invalidate();play()};
 $('resetOffset').onclick=()=>{$('offsetX').value=0;$('offsetY').value=0;invalidate();play()};
-$('playBtn').onclick=play;$('trialBtn').onclick=openTrial;$('closeTrial').onclick=closeTrial;$('exportBtn').onclick=exportDraft;$('token').oninput=sync;$('forgetToken').onclick=()=>{$('token').value='';sync()};$('publishBtn').onclick=publish;
+$('playBtn').onclick=play;$('trialBtn').onclick=()=>openTrial(false);$('modelTrial').onclick=()=>openTrial(true);$('closeTrial').onclick=closeTrial;$('exportBtn').onclick=exportDraft;$('token').oninput=sync;$('forgetToken').onclick=()=>{$('token').value='';sync()};$('publishBtn').onclick=publish;$('publishModelBtn').onclick=publishModel;
+$('modelReference').replaceChildren(...Object.values(H).map(h=>new Option(h.rarity+' · '+h.name,h.id)));$('modelReference').value=H.kirito?'kirito':Object.keys(H)[0];$('modelReference').onchange=()=>loadModelReference(true);$('modelRefCostume').onchange=()=>loadModelReference();for(const id of ['modelIdleScale','modelAttackScale'])$(id).oninput=()=>renderModelScales();$('modelReset').onclick=()=>{$('modelIdleScale').value=100;$('modelAttackScale').value=100;renderModelScales()};
 window.addEventListener('pagehide',()=>{try{sessionStorage.removeItem(draftKey)}catch(_){}});
-V.loadPublished().then(()=>{if(!file)selectEvent()});selectHero();sync();
+V.loadPublished().then(()=>{if(!file)selectEvent();loadModelEditor();loadModelReference()});selectHero();loadModelReference(true);sync();
 })();
