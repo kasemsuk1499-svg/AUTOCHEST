@@ -1297,6 +1297,32 @@
         "delayMs": 0,
         "airtimeMs": 0,
         "loopFrames": false
+      },
+      "sharingan": {
+        "src": "./assets/effects/itachi/sharingan-7dbbc7ae724d.gif",
+        "cols": 1,
+        "rows": 1,
+        "row": 0,
+        "col": 0,
+        "frames": 1,
+        "size": 35,
+        "ms": 1000,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "spin": 1,
+        "offsetX": 0,
+        "offsetY": -65,
+        "thickness": 48,
+        "orientation": "horizontal",
+        "hue": -4,
+        "saturation": 100,
+        "brightness": 70,
+        "colorize": false,
+        "delayMs": 0,
+        "airtimeMs": 760,
+        "loopFrames": false
       }
     }
   },
