@@ -5,12 +5,12 @@ window.AUTOCHEST_CHARACTERS.registerHero({
  hp:760,dmg:156,range:1.1,melee:true,cool:.82,move:145,critChance:.18,critDamage:1.7,
  skill:'เทพอัสนีเหิน • กระสุนวงจักร',effect:'dash',triggerEvery:3,skillPower:3.2,
  passive:{name:'ประกายแสงสีเหลือง',dodgeChance:.25,lockTarget:true,approachDash:true},
- starBaseLabel:'พุ่งล็อกแนวหลังทันทีเมื่อเริ่มต่อสู้และเมื่อเป้าหมายตาย · หลบหลีก 25% · กระสุนวงจักร 320% PATK ทุก 6 การโจมตี',
+ starBaseLabel:'พุ่งล็อกแนวหลังทันทีเมื่อเริ่มต่อสู้ · หลบหลีก 25% · กระสุนวงจักร 320% PATK ทุก 6 การโจมตี',
  starUpgrades:[
   {star:2,label:'หลบหลีก 30% · กระสุนวงจักร 350% PATK',patch:{skillPower:3.5,passive:{dodgeChance:.30}}},
   {star:3,label:'หลบหลีก 35% · CRIT 25% · เริ่มทุกการต่อสู้ด้วยสแต็กสกิลเต็ม พุ่งโจมตีด้วยกระสุนวงจักรทันที',patch:{critChance:.25,passive:{dodgeChance:.35,openingDash:true}}},
   {star:4,label:'กระสุนวงจักรทุก 5 ครั้ง · ดาเมจ 400% PATK',patch:{triggerEvery:2,skillPower:4}},
-  {star:5,label:'หลบหลีก 45% · กระสุนวงจักร 460% PATK · CRIT DMG ×2',patch:{skillPower:4.6,critDamage:2,passive:{dodgeChance:.45}}}
+  {star:5,label:'หลบหลีก 45% · กระสุนวงจักร 460% PATK · CRIT DMG ×2 · เมื่อเหยื่อตาย พุ่งล็อกเป้าหมายใหม่ทันทีโดยไม่ใช้สแต็ก',patch:{skillPower:4.6,critDamage:2,passive:{dodgeChance:.45,chainDash:true}}}
  ],
  col:'#ffe05d',e:'⚡',portrait:'./assets/heroes/minato/art.png',
  images:{art:'./assets/heroes/minato/art.png',idle:'./assets/heroes/minato/idle.png',attack:'./assets/heroes/minato/attack.png'},

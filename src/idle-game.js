@@ -881,7 +881,10 @@ function skillDescription(t,enemy=false){
  if(t.passive?.magicGuard)lines.push('พาสซีฟ — '+t.passive.name+': รับแทน '+Math.round(t.passive.magicGuard*100)+'% ของดาเมจที่เพื่อนสายเวทได้รับ ไม่ว่าดาเมจมาจากสายใด · ไม่รับแทนตนเอง · โล่ของผู้ปกป้องรับได้ · เลือกผู้ปกป้องที่มีอัตราสูงสุดหนึ่งคน · ไม่ส่งต่อซ้ำ');
  if(t.passive?.bossMultiplier)lines.push('พาสซีฟ — '+t.passive.name+': ดาเมจทุกชนิดต่อบอส ×'+t.passive.bossMultiplier+' ก่อนคริติคอลและการป้องกัน');
  if(t.passive?.healOnAttack)lines.push('พาสซีฟ — '+t.passive.name+': เมื่อโจมตีปกติ ฟื้น HP ให้สมาชิกที่บาดเจ็บหนักที่สุด (ตามเปอร์เซ็นต์ HP) เท่ากับ '+Math.round(t.passive.healOnAttack*100)+'% ของ ATK พื้นฐานในการต่อสู้ของตนเอง');
- if(t.passive?.approachDash)lines.push('พาสซีฟ — ประกายแสงสีเหลือง (ปลดตั้งแต่ 1★): เริ่มการต่อสู้และทุกครั้งที่เหยื่อตายจริงหรือออกจากสนาม พุ่งไปด้านหลังศัตรูสายยิงไกลที่อยู่ไกลที่สุดทันที (หากไม่มี เลือกศัตรูที่ไกลที่สุด) แล้วล็อกโจมตีเหยื่อเดิมจนตาย · การพุ่งจากพาสซีฟไม่สร้างดาเมจ ไม่ใช้สแต็กหรือคูลดาวน์ · หากสกิลพร้อม สามารถใช้กระสุนวงจักรในการพุ่งเปิดฉากได้ · ไม่เปลี่ยนตามระยะหรือยั่วยุ · รอเหยื่อที่พรางตัวจนปรากฏตัว');
+ if(t.passive?.approachDash){
+  lines.push('พาสซีฟ — ประกายแสงสีเหลือง (ปลดตั้งแต่ 1★): เมื่อเริ่มต่อสู้ พุ่งไปหลังศัตรูสายยิงไกลที่อยู่ไกลที่สุด (หากไม่มี เลือกศัตรูที่ไกลที่สุด) แล้วล็อกโจมตีเหยื่อเดิมจนตายจริง · การพุ่งจากพาสซีฟไม่สร้างดาเมจ ไม่ใช้สแต็กหรือคูลดาวน์ · ไม่เปลี่ยนตามระยะหรือยั่วยุ · รอเหยื่อที่พรางตัวจนปรากฏตัว');
+  lines.push(t.passive.chainDash?'★ 5 ดาว: เมื่อเป้าหมายตายจริงหรือออกจากสนาม จะพุ่งล็อกเหยื่อใหม่ทันที ไม่ใช้สแต็กหรือคูลดาวน์ ทำซ้ำได้ตลอดการต่อสู้':'หลังเหยื่อตาย จะเลือกเป้าหมายใหม่และเดินเข้าหา หรือวาร์ปด้วยกระสุนวงจักรเมื่อสกิลพร้อม · พุ่งต่อเนื่องฟรีหลังเหยื่อตายปลดที่ 5 ดาว');
+ }
  else if(t.passive?.lockTarget)lines.push('พาสซีฟ — ล็อกเป้าหมายเมื่อโจมตีครั้งแรก: โจมตีและวาร์ปใส่เป้าหมายเดิมจนกว่าจะตายจริงหรือออกจากสนาม · ไม่เปลี่ยนตามระยะหรือยั่วยุ · หากเหยื่อพรางตัวจะรอจนปรากฏตัว');
  if(t.passive?.dodgeChance)lines.push('พาสซีฟ — '+t.passive.name+': มีโอกาส '+Math.round(t.passive.dodgeChance*100)+'% หลบการโจมตีโดยตรงทั้งหมด (รวมสกิล) ไม่เสีย HP หรือโล่ · สุ่มแยกแต่ละฮิต · ไม่หลบ DOT หรือดาเมจรับแทน');
  if(t.passive?.damageReduction)lines.push('พาสซีฟ — '+t.passive.name+': ลดความเสียหายที่ได้รับ '+Math.round(t.passive.damageReduction*100)+'% ตลอดการต่อสู้ ก่อนคำนวณโล่');
@@ -1292,7 +1295,7 @@ function buildFighters(preserve=false){
    castUntil:old?.castUntil||0,exhausted:!!old?.exhausted,explosionCount:old?.explosionCount||0,explosionReadyAt:old?.explosionReadyAt||0,attacks:old?.attacks??(preserve&&combat?0:openingStacks),nextSkillAt:old?.nextSkillAt||0,shield:old?.shield||0,shieldSource:old?.shield>0?old.shieldSource||null:null,tauntUntil:old?.tauntUntil||0,
    attackDown:old?.attackDown||null,vulnerability:old?.vulnerability||null,healDown:old?.healDown||null,
    dots:old?.dots||[],freezeUntil:old?.freezeUntil||0,attackUp:old?.attackUp||null,physicalAttackUp:old?.physicalAttackUp||null,magicAttackUp:old?.magicAttackUp||null,speedUp:old?.speedUp||null,
-   focusTarget:old?.focusTarget||null,focusHits:old?.focusHits||0,lockedTarget:old?.lockedTarget||null,
+   focusTarget:old?.focusTarget||null,focusHits:old?.focusHits||0,lockedTarget:old?.lockedTarget||null,assassinAcquired:!!(old?.assassinAcquired||old?.lockedTarget),
    crit:stat.crit,critDamage:stat.critDamage,
    cloakUntil:old?.cloakUntil||0,ambush:old?.ambush||false,
    reviveUsed:!!revive,reviveCount:Math.max(old?.reviveCount||0,revive?.count||0,revive?1:0),finalFlameUntil,finalFlameSpent,supportRevives:old?.supportRevives||0,revivedByAlly:!!old?.revivedByAlly,immortalUntil:Math.max(old?.immortalUntil||0,revive?.until||0),
@@ -1446,8 +1449,9 @@ function selectAssassinTarget(actor,others,hero,skillOpening=false){
  if(locked)return (locked.cloakUntil||0)>stageClock?null:locked;
  const victim=TFT.dashVictim(actor,others,stageClock,combatHero);
  if(!victim)return null;
- actor.lockedTarget=victim;
- if(!skillOpening){warpToVictim(actor,victim);unitFx(actor,'⚡ ล็อกเป้าหมาย','buff');}
+ const canWarp=!actor.assassinAcquired||hero.passive.chainDash;
+ actor.lockedTarget=victim;actor.assassinAcquired=true;
+ if(canWarp&&!skillOpening){warpToVictim(actor,victim);unitFx(actor,'⚡ ล็อกเป้าหมาย','buff');}
  return victim;
 }
 function pickEnemy(f){const h=combatHero(f);return selectAssassinTarget(f,enemies,h,dashCharged(f,h)&&f.remaining<=0)}
