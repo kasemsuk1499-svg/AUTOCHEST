@@ -3,8 +3,9 @@
 const $=id=>document.getElementById(id);
 const HEROES=window.AUTOCHEST_CHARACTERS?.HEROES;
 const CORE=window.AUTOCHEST_IDLE_CORE;
-const combatHero=actor=>actor?.side==='ally'?CORE.heroAtStars(HEROES[actor?.id],actor.progress?.stars||1):CORE.enemyHero(HEROES[actor?.id],actor?.stars||1,!!actor?.boss);
+const combatHero=actor=>actor?.side==='ally'?CORE.blessedHero(HEROES[actor?.id],actor.progress):CORE.enemyHero(HEROES[actor?.id],actor?.stars||1,!!actor?.boss);
 const TFT=window.AUTOCHEST_TFT_COMBAT;
+const blessingFx=actor=>actor?.side==='ally'?CORE.blessingFor(actor.progress)?.effects||{}:{};
 const VFX=window.AUTOCHEST_VFX;
 if(!TFT)throw Error('TFT combat module missing: src/idle-tft-combat.js');
 if(!HEROES||!CORE)throw Error('Character and Idle Core modules must be loaded before idle-game.js');
@@ -171,7 +172,7 @@ function renderFarmControls(){
  const s=battleStage(),r=farmRecords[s],rates=CORE.farmRates(r);
  if($('farmQuickSummary'))$('farmQuickSummary').textContent=dungeon?'ดันเจี้ยน · '+(dungeon.kind==='gold'?'Gold':'EXP'):state.farmMode==='smart'?'Smart Farm · ด่าน '+s:state.farmMode==='manual'?'ล็อกฟาร์ม · ด่าน '+s:'ดันด่าน · AUTO FARM';
  $('farmStatus').textContent=(farming()?'ฟาร์มด่าน '+s+' · ด่านหลัก '+run().stage+' · ไม่ท้าบอส':'ดันด่าน '+run().stage)+' · '+(state.farmMode==='smart'?'ประเมินจากเวฟจริง':'ไม่เสียค่าเข้า');
- $('farmRates').textContent=rates?'ต่อชั่วโมง (ประมาณจาก '+r.waves+' เวฟ): '+fmt(rates.gold)+' G · '+fmt(rates.exp)+' EXP · '+fmt(rates.rubies)+' 💎 · '+rates.tickets.toFixed(1)+' 🎟':'ยังไม่มีตัวอย่าง · รอจบเวฟแรก';
+ $('farmRates').textContent=rates?'ต่อชั่วโมง (ประมาณจาก '+r.waves+' เวฟ): '+fmt(Math.round(rates.gold*(1+CORE.blessingFarmBonus(state).gold)))+' G · '+fmt(Math.round(rates.exp*(1+CORE.blessingFarmBonus(state).exp)))+' EXP · '+fmt(rates.rubies)+' 💎 · '+rates.tickets.toFixed(1)+' 🎟':'ยังไม่มีตัวอย่าง · รอจบเวฟแรก';
 }
 const enemyLimit=()=>CORE.waveSize(battleStage());
 const waveSlots=[[1,0],[4,0],[2,1],[0,1],[5,1]]; // finite TFT wave formation
@@ -422,7 +423,7 @@ function updateResources(){
  $('fightLabel').classList.toggle('boss-mode',!!combat?.boss);
  $('fightLabel').textContent=combat?.boss?'BOSS BATTLE':combat?'WAVE '+waveCount:'WAVE READY';
  if(combat?.boss){$('bossCountdown').textContent=Math.max(0,Math.ceil(bossTime))}
- const farm=CORE.farmReward(stage,state.mode);
+ const farm=CORE.blessingRewards(CORE.farmReward(stage,state.mode),farmWave?.bonus||CORE.blessingFarmBonus(state));
  $('farmGain').textContent='+'+fmt(farm.gold)+' G / +'+fmt(farm.exp)+' EXP / +'+fmt(farm.rubies)+' 💎 · 🎟 '+state.farmTicketKills+'/'+CORE.ECONOMY.killsPerTicket;
  $('autoBossBtn').disabled=!!dungeon||farming();
   if(farming()&&!dungeon){$('autoBossBtn').textContent='🔒 AUTO BOSS OFF · FARM';$('autoBossBtn').classList.remove('selected');$('challengeBtn').disabled=true;$('challengeBtn').textContent='🪙 โหมดฟาร์ม · ไม่ท้าบอส';$('killCounter').textContent=p.kills+' / '+need+' · ด่านหลัก';}
@@ -635,7 +636,20 @@ function renderHeroes(){
    '<button type="button" class="hero-favorite-btn '+(state.favorites.includes(id)?'is-favorite':'')+'" data-favorite-hero="'+id+'" aria-pressed="'+state.favorites.includes(id)+'" title="'+(state.favorites.includes(id)?'นำออกจากตัวโปรด':'ตั้งเป็นตัวโปรด')+'" aria-label="ตัวโปรด '+escapeText(t.name)+'">'+(state.favorites.includes(id)?'★':'☆')+'</button></div>';
  }).join('')||'<p class="hero-filter-empty">ไม่พบฮีโร่ที่ตรงกับตัวกรอง</p>';
 }
+let blessingExpanded=false,blessingGuideExpanded=false;
+function blessingHtml(id){
+ const p=state.owned[id];if(!p)return '';
+ const cfg=CORE.blessingSlots(p),active=CORE.blessingFor(p),cost=CORE.BLESSING_COST,can=state.gold>=cost.gold&&state.heroExp>=cost.exp;
+ const bonus=CORE.blessingFarmBonus(state);
+ return '<details class="blessing-panel" id="blessingPanel"'+(blessingExpanded?' open':'')+'><summary><span>✦ พรประจำตัว</span><small>'+escapeText(active?active.name:'ยังไม่มีพร')+' · '+cfg.slots.filter(Boolean).length+'/2</small></summary><div class="blessing-content"><p class="blessing-note">เก็บ 2 พร · ใช้ 1 พร · ผลในการต่อสู้ถัดไป · รีทับเฉพาะสล็อตที่เลือก</p>'+
+  '<div class="blessing-slots">'+cfg.slots.map((key,i)=>{const b=CORE.BLESSINGS[key],on=!!b&&cfg.active===i;return '<section class="blessing-slot '+(b?b.rarity:'empty')+(on?' equipped':'')+'"><small>สล็อต '+(i+1)+' · '+(b?b.rarity.toUpperCase():'ว่าง')+'</small><strong>'+escapeText(b?b.name:'ยังไม่มีพร')+'</strong><p>'+escapeText(b?b.description:'รีเพื่อรับพร')+'</p><div class="blessing-actions"><button type="button" data-blessing-equip="'+i+'" '+(!b||on?'disabled':'')+'>'+(on?'✓ ใช้งาน':'เลือกใช้')+'</button><button type="button" data-blessing-roll="'+i+'" '+(!can?'disabled':'')+'>↻ รีพร</button></div></section>'}).join('')+'</div>'+
+  '<p class="blessing-note">ต่อครั้ง 🪙 '+fmt(cost.gold)+' · EXP '+fmt(cost.exp)+'</p><p class="blessing-note">ทีมฟาร์ม: Gold +'+Math.round(bonus.gold*100)+'% · EXP +'+Math.round(bonus.exp*100)+'%</p>'+
+  '<details class="blessing-guide" id="blessingGuide"'+(blessingGuideExpanded?' open':'')+'><summary>ⓘ คู่มือพรทั้งหมด · '+Object.keys(CORE.BLESSINGS).length+' พร</summary>'+
+  '<p class="blessing-note">สุ่มระดับก่อน แล้วสุ่มพรในระดับนั้นเท่า ๆ กัน · ไม่มีการันตี · หลบหลีกสูงสุด 75% · ลดการโจมตีสะสมไม่ลดคูลดาวน์ 5 วินาที · พร Gold/EXP นับสมาชิกลงสนาม ณ เริ่มเวฟฟาร์ม แม้ตายระหว่างเวฟ · ไม่รวมบอส ดันเจี้ยน หรือออฟไลน์</p>'+
+  Object.entries(CORE.BLESSING_ODDS).map(([rarity,odds])=>'<section class="blessing-guide-group '+rarity+'"><h4>'+rarity.toUpperCase()+' · '+odds+'% <small>('+odds/10+'% ต่อพร)</small></h4>'+Object.values(CORE.BLESSINGS).filter(b=>b.rarity===rarity).map(b=>'<div><b>'+escapeText(b.name)+'</b><span>'+escapeText(b.description)+'</span></div>').join('')+'</section>').join('')+'</details></div></details>';
+}
 function renderSelected(){
+ if($('blessingPanel'))blessingExpanded=$('blessingPanel').open;if($('blessingGuide'))blessingGuideExpanded=$('blessingGuide').open;
  const id=selected,hero=HEROES[id],p=state.owned[id],box=$('heroDetails');
  if(!hero){box.textContent='แตะฮีโร่ในทีมเพื่อดูข้อมูล';return}
  if(!p){
@@ -647,9 +661,9 @@ function renderSelected(){
   return;
  }
  const tags=CORE.teamSynergies(state,HEROES),stats=CORE.teamHeroStats(state,HEROES,id,p,tags),nextLv=p.level<CORE.MAX_LEVEL?
-  CORE.teamHeroStats(state,HEROES,id,{level:p.level+1,stars:p.stars},tags):stats;
+  CORE.teamHeroStats(state,HEROES,id,{...p,level:p.level+1},tags):stats;
  const nextStar=p.stars<CORE.MAX_STARS?
-  CORE.teamHeroStats(state,HEROES,id,{level:p.level,stars:p.stars+1},tags):stats;
+  CORE.teamHeroStats(state,HEROES,id,{...p,stars:p.stars+1},tags):stats;
  const activeTags=tags.filter(t=>t.active&&t.members.includes(id));
  const atMax=p.level>=CORE.MAX_LEVEL,atStarMax=p.stars>=CORE.MAX_STARS;
  const cost=CORE.levelCost(p.level),starNeed=CORE.shardsNeeded(p.stars),starGold=CORE.ascendCost(p.stars);
@@ -702,7 +716,7 @@ function renderSelected(){
   '</section>')+
   '<div class="upgrade-footer-actions"><button type="button" id="deployHeroBtn" class="deploy-action"'+'>'+
    (inTeam?'↩ ถอนเข้าตัวสำรอง':full?'↔️ ลากทับฮีโร่ในทีม':'⚔️ เพิ่มเข้าทีม')+'</button>'+
-   '<button type="button" id="openSkillBtn" class="inspect-skill-btn">ⓘ ดูสกิลทั้งหมด</button></div>'+costumeHtml(id);
+   '<button type="button" id="openSkillBtn" class="inspect-skill-btn">ⓘ ดูสกิลทั้งหมด</button></div>'+blessingHtml(id)+costumeHtml(id);
 }
 function starPerkLabel(step){
  let label=step.label;
@@ -800,7 +814,7 @@ function openSkill(id,source='hero',unit=null){
  skillView={id,source,unit};
  const enemy=source==='enemy',progress=enemy?null:state.owned[id];
  const active=enemy?(unit||enemies.find(x=>x.id===id)):null;
- const stars=enemy?(active?.stars||1):(progress?.stars||1),h=enemy?CORE.enemyHero(base,stars,!!active?.boss):CORE.heroAtStars(base,stars),stat=enemy?CORE.stats(base,{level:1,stars}):CORE.teamHeroStats(state,HEROES,id,progress||{level:1,stars});
+ const stars=enemy?(active?.stars||1):(progress?.stars||1),h=enemy?CORE.enemyHero(base,stars,!!active?.boss):CORE.blessedHero(base,progress||{stars}),stat=enemy?CORE.stats(base,{level:1,stars}):CORE.teamHeroStats(state,HEROES,id,progress||{level:1,stars});
  const stats=[
   ['HP',fmt(active?active.maxHp:stat.hp)],
   [attackTypeLabel(h),fmt(active?active.atk:stat.atk)],
@@ -808,7 +822,7 @@ function openSkill(id,source='hero',unit=null){
   ['ระยะโจมตี',h.globalRange?'ทั่วสนาม':Number(h.range).toFixed(2)+' ช่อง'],
   ['ความเร็วเดิน',String(h.move)],
   ['โอกาสคริ',Math.round((active?active.crit:stat.crit)*100)+'%'],
-  ['ความแรงคริ','×'+Number(h.critDamage||1.5).toFixed(2)],
+  ['ความแรงคริ','×'+Number(enemy?(active?.critDamage||h.critDamage||1.5):stat.critDamage).toFixed(2)],
   ...(!enemy&&stat.dotDamage>0&&(h.passive?.dotPower||h.fireTrail)?[['โบนัส DOT','+'+Math.round(stat.dotDamage*100)+'%']]:[]),
   ['ความถี่สกิล',h.effect==='explosion'?'ร่าย '+CORE.explosionCastSeconds(h)+' วินาที':'ทุก '+CORE.skillAttackCount(h)+' ครั้ง · เว้น ≥ '+CORE.SKILL_MIN_INTERVAL+'s']
  ];
@@ -824,7 +838,7 @@ function openSkill(id,source='hero',unit=null){
   '</div></div></div><section class="skill-ability"><small>⚔ AUTO SKILL · IDLE MODE</small>'+
   '<h3>✨ '+escapeText(h.skill)+'</h3><ul>'+
   skillDescription(h,enemy).map(x=>'<li>'+escapeText(x)+'</li>').join('')+'</ul>'+
-  '<p class="skill-mode-note">ใช้กติกาต่อสู้ TFT เดิม ผสมระบบฟาร์มและกาชาแบบ Idle · เลเวลและดาวอิงค่าปัจจุบัน</p></section>'+starUpgradeHtml(base,stars)+(enemy?'':costumeHtml(id));
+  '<p class="skill-mode-note">ใช้กติกาต่อสู้ TFT เดิม ผสมระบบฟาร์มและกาชาแบบ Idle · เลเวลและดาวอิงค่าปัจจุบัน</p></section>'+starUpgradeHtml(base,stars)+(enemy?'':(progress&&CORE.blessingFor(progress)?'<p class="blessing-inspect">✦ '+escapeText(CORE.blessingFor(progress).name)+' · '+escapeText(CORE.blessingFor(progress).description)+'</p>':'')+costumeHtml(id));
  $('skillModalContent').insertAdjacentHTML('beforeend','<button type="button" class="trial-entry" data-trial-hero="'+id+'">▶ ทดลองฮีโร่ฟรี</button>');
  skillReturnFocus=modal.hidden?document.activeElement:skillReturnFocus;
  modal.hidden=false;$('closeSkillBtn').focus();
@@ -871,6 +885,8 @@ function refreshUpgradeAvailability(){
  }
  for(const n of $('heroList').querySelectorAll('[data-hero]'))syncReadyMark(n,n.dataset.hero);
  for(const option of $('upgradePicker')?.options||[]){if(HEROES[option.value]){const label=upgradeOptionLabel(option.value);if(option.textContent!==label)option.textContent=label;}}
+ const canBless=state.gold>=CORE.BLESSING_COST.gold&&state.heroExp>=CORE.BLESSING_COST.exp;
+ for(const n of $('heroDetails').querySelectorAll('[data-blessing-roll]'))n.disabled=!canBless;
  const p=state.owned[selected];
  if(!p)return;
  const c=CORE.levelCost(p.level),need=CORE.shardsNeeded(p.stars),starCost=CORE.ascendCost(p.stars);
@@ -901,9 +917,9 @@ function refreshUpgradeAvailability(){
 function applyLiveHeroStats(id){
  const actor=fighters.find(f=>f.id===id&&f.alive);
  if(!actor)return;
- const stat=CORE.teamHeroStats(state,HEROES,id),old=actor.maxHp;
+ const progress={...state.owned[id],blessings:CORE.blessingSlots(actor.progress)},stat=CORE.teamHeroStats(state,HEROES,id,progress),old=actor.maxHp;
  actor.hp=actor.finalFlameUntil?1:Math.max(1,Math.round(actor.hp/old*stat.hp));
- actor.maxHp=stat.hp;actor.atk=stat.atk;actor.dotDamage=stat.dotDamage||0;actor.cool=stat.cool;actor.progress=state.owned[id];
+ actor.maxHp=stat.hp;actor.atk=stat.atk;actor.dotDamage=stat.dotDamage||0;actor.cool=stat.cool;actor.progress=progress;
  actor.crit=stat.crit;actor.critDamage=stat.critDamage;
  const stars=actor.node?.querySelector('.mini-stars');
  if(stars)stars.textContent='★'.repeat(state.owned[id].stars)+' · Lv.'+state.owned[id].level;
@@ -1175,9 +1191,9 @@ function clearFx(){for(const node of Array.from($('fxLayer').children))if(!node.
 function buildFighters(preserve=false){
  const previous=new Map(preserve?fighters.map(f=>[f.id,f]):[]),tags=CORE.teamSynergies(state,HEROES);
  fighters=state.squad.filter(id=>state.owned[id]).map((id,i)=>{
-  const stat=CORE.teamHeroStats(state,HEROES,id,state.owned[id],tags);
+  const old=previous.get(id),progress={...state.owned[id],blessings:CORE.blessingSlots(old?.progress||state.owned[id])};
+  const stat=CORE.teamHeroStats(state,HEROES,id,progress,tags);
   const place=state.placements?.[id]||CORE.defaultCells[i],point=boardPoint(place.col,place.row);
-  const old=previous.get(id);
   const revive=allyRevives.get(id);
   const finalFlameUntil=old?.finalFlameUntil||revive?.finalFlameUntil||0,finalFlameSpent=!!(old?.finalFlameSpent||revive?.finalFlameSpent);
    const hp=finalFlameSpent?0:finalFlameUntil?1:old?Math.max(0,Math.min(stat.hp,Math.round(old.hp/Math.max(1,old.maxHp)*stat.hp))):stat.hp;
@@ -1190,7 +1206,7 @@ function buildFighters(preserve=false){
    crit:stat.crit,critDamage:stat.critDamage,
    cloakUntil:old?.cloakUntil||0,ambush:old?.ambush||false,
    reviveUsed:!!revive,reviveCount:Math.max(old?.reviveCount||0,revive?.count||0,revive?1:0),finalFlameUntil,finalFlameSpent,supportRevives:old?.supportRevives||0,revivedByAlly:!!old?.revivedByAlly,immortalUntil:Math.max(old?.immortalUntil||0,revive?.until||0),
-   attackUntil:0,alive:hp>0&&(!old||old.alive),walking:false,progress:state.owned[id]};
+   attackUntil:0,alive:hp>0&&(!old||old.alive),walking:false,progress,blessingSaved:!!old?.blessingSaved,blessingKills:old?.blessingKills||0,nextBlessingRegen:old?.nextBlessingRegen??stageClock+1};
  });
  const layer=$('heroLayer');layer.replaceChildren();
  for(const hero of fighters){
@@ -1267,7 +1283,7 @@ function spawnBossEncounter(){
 function spawnWave(){
  if(combat||enemies.length)return;
  waveCount++;
-  syncFarmRecords();farmWave={key:farmRecordKey,stage:battleStage(),kills:0};
+  syncFarmRecords();farmWave={key:farmRecordKey,stage:battleStage(),kills:0,bonus:CORE.blessingFarmBonus(state)};
   const count=enemyLimit(),shift=waveCount%2;
  for(let i=0;i<count;i++)spawnMonster(false,waveSlots[(i+shift)%waveSlots.length],true);
  $('battleMessage').textContent='⚔️ เวฟ '+waveCount+' • ศัตรู '+count+' ตัวพร้อมกัน';
@@ -1306,7 +1322,7 @@ function defeatMonster(foe){
  // A revived enemy never pays out its loot twice.
  if(!foe.rewarded){
   foe.rewarded=true;
-  const reward=CORE.awardFarmKill(state,farmWave?.stage||battleStage());
+  const reward=CORE.awardFarmKill(state,farmWave?.stage||battleStage(),farmWave?.bonus||CORE.blessingFarmBonus(state));
    if(farmWave)farmWave.kills++;
    const p=run();if(!farming())p.kills=Math.min(CORE.killsNeeded(p.stage),p.kills+1);
   if(reward.tickets){log('🎟️ ฟาร์มครบ '+CORE.ECONOMY.killsPerTicket+' ตัว! ได้ตั๋วสุ่ม +'+reward.tickets);save();}
@@ -1328,9 +1344,9 @@ function targetHero(enemy){return TFT.findTarget(enemy,fighters,stageClock)}
 // TFT-style shared damage pipeline. No damage is applied to ranged targets until the bullet lands.
 function vtuberTeamBonus(actor){
   const ids=actor.side==='ally'&&!trialContext?state.squad:(actor.side==='ally'?fighters:[...enemies,...fallenEnemies]).map(u=>u.id);
-  return CORE.vtuberBonus(ids,HEROES);
+  const b=CORE.vtuberBonus(ids,HEROES);return {...b,healPower:(b.healPower||0)+(blessingFx(actor).heal||0)};
  }
- function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false,pierceShield=false,visual='hit',dot=false){
+ function tftDamage(attacker,target,power,bonusCrit=0,forcedCrit=false,pierceShield=false,visual='hit',dot=false,skill=false){
  if(!target||target.hp<=0||target.alive===false)return false;
  if(TFT.isImmortal(target,stageClock)){statusFx(target,'immune','อมตะ · 0');return false}
  const hero=combatHero(attacker)||{};
@@ -1340,7 +1356,10 @@ function vtuberTeamBonus(actor){
   unitFx(target,'DODGE · หลบหลีก','status');visualEffect('dodge',target);ring(target.x,target.y);return false;
  }
  const chance=Math.min(1,Math.max(0,(attacker.crit||0)+bonusCrit));
- const critical=!dot&&(forcedCrit||(chance>0&&Math.random()<chance));
+ const b=blessingFx(attacker),tb=blessingFx(target);
+ const critical=(!dot||b.dotCrit)&&(forcedCrit||(chance>0&&Math.random()<chance));
+ power*= (1+(target.boss?b.boss||0:b.mob||0))*(1+(dot?b.dot||0:0))*(1+(!dot&&(skill||visual==='skillHit')?b.skill||0:0))*(1+(target.hp/target.maxHp<.3?b.lowTarget||0:0))*(1+(attacker.hp/attacker.maxHp<.5?b.lowSelf||0:0))*(1+Math.min(1,(attacker.blessingKills||0)*(b.killStack||0)));
+ if(!dot&&!pierceShield&&b.pierce)pierceShield=b.pierce;
  const raw=TFT.incomingDamage(power*TFT.healDownDamageMultiplier(hero,target,stageClock)*TFT.bossDamageMultiplier(hero,target)*TFT.outgoingMultiplier(attacker,stageClock)*TFT.vulnerabilityMultiplier(target,stageClock)*(critical?(attacker.critDamage||hero.critDamage||1.5):1),combatHero(target));
  const split=TFT.splitMagicDamage(target,target.side==='ally'?fighters:enemies,combatHero,stageClock,raw);
  const shieldSource=target.shieldSource;
@@ -1354,7 +1373,8 @@ function vtuberTeamBonus(actor){
   if(transferred.absorbed){unitFx(split.guard,'โล่ −'+fmt(transferred.absorbed),'shield');shieldEffect(split.guard,guardShieldSource)}
    else visualEffect('shield',split.guard);
  }
- const {damage,absorbed}=hit;
+ let {damage,absorbed}=hit;
+ if(!dot&&b.execute&&!target.boss&&target.hp>0&&(damage||absorbed)&&target.hp/target.maxHp<b.execute){damage+=target.hp;target.hp=0;unitFx(target,'มัจจุราช','status');}
  if(hero.passive?.lifesteal&&attacker.alive!==false&&attacker.hp>0){
   const drain=(damage+(transferred?.damage||0))*hero.passive.lifesteal;
   if(drain>0)showHealing(TFT.healWeakest([attacker],1,()=>drain,stageClock,vtuberTeamBonus(attacker).healPower),attacker);
@@ -1365,7 +1385,12 @@ function vtuberTeamBonus(actor){
  if(!damage&&!absorbed)statusFx(target,'zero','0');
  if(critical)ring(target.x,target.y);
  if(transferred)finishDamage(split.guard);
- finishDamage(target);return true;
+ const reflect= !dot&&tb.reflect&&damage>0&&attacker.hp>0&&attacker.alive!==false&&!TFT.isImmortal(attacker,stageClock)?TFT.resolveDamage(attacker,damage*tb.reflect):null;
+ if(reflect){position(attacker);if(reflect.damage)unitFx(attacker,'สะท้อน −'+fmt(reflect.damage),'damage');if(reflect.absorbed)unitFx(attacker,'โล่ −'+fmt(reflect.absorbed),'shield');}
+ finishDamage(target);
+ if(target.alive===false&&b.killStack){attacker.blessingKills=Math.min(10,(attacker.blessingKills||0)+1);unitFx(attacker,'พร ATK +'+attacker.blessingKills*10+'%','buff');}
+ if(reflect)finishDamage(attacker);
+ return true;
 }
 function finishDamage(target){
  const bar=target.side==='enemy'?target.bar:target.hpbar;
@@ -1378,6 +1403,12 @@ function finishDamage(target){
    if(bar)bar.style.width=target.hp/target.maxHp*100+'%';
    position(target);visualEffect('revive',target);unitFx(target,target.finalFlameUntil?'🔥 เพลิงสุดท้าย · อมตะ 10 วิ':'คืนชีพ +'+fmt(target.hp),'heal');if(TFT.isImmortal(target,stageClock))statusFx(target,'revive','อมตะ');
    if(!trialContext)log('✦ '+HEROES[target.id].name+' คืนชีพ!');return true;
+  }
+  const b=blessingFx(target);
+  if(!target.finalFlameSpent&&!target.blessingSaved&&(b.revive||b.immortal)){
+   target.blessingSaved=true;target.hp=b.revive?Math.max(1,Math.round(target.maxHp*b.revive)):1;target.alive=true;
+   if(b.immortal)target.immortalUntil=stageClock+b.immortal;
+   if(bar)bar.style.width=target.hp/target.maxHp*100+'%';position(target);visualEffect(b.revive?'revive':'buff',target);unitFx(target,b.revive?'พรคืนชีพ':'พรอมตะ 5 วิ','status');return true;
   }
   target.alive=false;
   if(trialContext){if(target.node)target.node.style.opacity='.22'}
@@ -1394,6 +1425,7 @@ function advanceFinalFlames(){
   if(!trialContext&&!combat)return;
  }
 }
+function advanceBlessingRegen(){for(const u of fighters){const b=blessingFx(u);if(!b.regen||u.hp<=0||u.alive===false)continue;if(stageClock>=(u.nextBlessingRegen??0)){u.nextBlessingRegen=stageClock+1;showHealing(TFT.healWeakest([u],1,()=>u.maxHp*b.regen,stageClock),u)}}}
 function advanceDots(){
  const units=[...fighters,...enemies];
  for(const target of units){
@@ -1414,7 +1446,7 @@ function tftShot(attacker,target,mult=1,bonusCrit=0,execute=false,heavy=false,co
  if(shots.length>=MAX_ACTIVE_SHOTS){
   const h=combatHero(attacker);
   const executeMult=execute&&target.hp/target.maxHp<(h.executeThreshold||.35)?h.executeMultiplier||1.2:1;
-  tftDamage(attacker,target,attacker.atk*mult*executeMult,bonusCrit);
+  tftDamage(attacker,target,attacker.atk*mult*executeMult,bonusCrit,false,false,heavy?'skillHit':'hit');
   return;
  }
  const palette=color||HEROES[attacker.id].col||'#c3f7ff';
@@ -1566,7 +1598,7 @@ function advanceExplosion(actor,auto=false){
  visualEffect('aftermath',actor,50,50,2.4);visualEffect('area',actor,50,50,2.4);
  unitFx(actor,'EXPLOSION!','status');
  const foes=(actor.side==='ally'?enemies:fighters).filter(e=>e.hp>0&&e.alive!==false);
- for(const target of foes)tftDamage(actor,target,actor.atk*hero.skillPower,0,false,false,null);
+ for(const target of foes)tftDamage(actor,target,actor.atk*hero.skillPower,0,false,false,null,false,true);
  if(trialContext)trialContext.note='EXPLOSION! สำเร็จ · หมดแรงจนจบการต่อสู้';
  return true;
 }
@@ -1616,7 +1648,7 @@ function tftSkill(attacker,target){
    const nearby=foes().filter(x=>TFT.pxDist(x,target)<=(hero.slamRadius||140)).sort((a,b)=>TFT.pxDist(a,target)-TFT.pxDist(b,target)).slice(0,hero.slamTargets||Infinity);
    visualEffect('area',attacker,target.x,target.y,1.3);
    for(const e of nearby){
-    const landed=tftDamage(attacker,e,attacker.atk*(hero.skillPower||1.8),0,false,false,null);
+    const landed=tftDamage(attacker,e,attacker.atk*(hero.skillPower||1.8),0,false,false,null,false,true);
     if(landed&&hero.debuff&&TFT.applyDebuff(e,TFT.boostedDebuff(hero.debuff,vtuberTeamBonus(attacker).antiHealPower),stageClock)){
      const labels=[['attackDown','ATK −'],['vulnerability','DMG +'],['healDown','ฮีล −']].filter(([k])=>hero.debuff[k]).map(([k,label])=>label+Math.round(TFT.debuffValue(e,k,stageClock)*100)+'%');
      position(e);visualEffect('debuff',attacker,e.x,e.y,.75);unitFx(e,labels.join(' · '),'debuff');
@@ -1634,7 +1666,7 @@ function tftSkill(attacker,target){
    let prev=attacker;
    for(const e of sorted){
     projectile(prev.x,prev.y,e.x,e.y,hero.col||'#cfa9f8');
-    tftDamage(attacker,e,attacker.atk*(hero.chainPower||1.12),0,false);
+    tftDamage(attacker,e,attacker.atk*(hero.chainPower||1.12),0,false,false,'skillHit',false,true);
     prev=e;
    }
    return true;
@@ -1651,7 +1683,7 @@ function tftSkill(attacker,target){
     statusFx(attacker,'taunt','ยั่วยุ');
     return true;
    }
-   const gain=Math.round(attacker.maxHp*.30);
+   const gain=Math.round(attacker.maxHp*.30*(1+(blessingFx(attacker).shield||0)));
    attacker.shield=(attacker.shield||0)+gain;attacker.shieldSource=attacker.id;
     shieldEffect(attacker);unitFx(attacker,'โล่ +'+fmt(gain),'shield');
    break;
@@ -1734,7 +1766,7 @@ function tftAttack(attacker,target,forceSkill=false){
     .sort((a,b)=>TFT.pxDist(a,attacker)-TFT.pxDist(b,attacker));
    for(let i=0;i<2;i++){
     const second=extra[i]||target;
-    tftShot(attacker,second,.85,0,false,false,'#b4ffe5');
+    tftShot(attacker,second,.85,0,false,true,'#b4ffe5');
    }
   }
  }else{
@@ -1745,7 +1777,7 @@ function tftAttack(attacker,target,forceSkill=false){
   if(!special&&hero.cleave)visualEffect('cleave',attacker,target.x,target.y);
   tftDamage(attacker,target,attacker.atk*actual,bonusCrit,!!(special&&hero.skillGuaranteedCrit),false,special?'skillHit':'hit');
   for(const u of extra)tftDamage(attacker,u,attacker.atk*hero.cleave.power,0,false,false,null);
-  if(special&&effect==='blink'&&target.hp>0)tftDamage(attacker,target,attacker.atk*.5);
+  if(special&&effect==='blink'&&target.hp>0)tftDamage(attacker,target,attacker.atk*.5,0,false,false,'skillHit',false,true);
  }
 }
 function enemyAttack(enemy,target){tftAttack(enemy,target)}
@@ -1771,6 +1803,7 @@ function tick(dt){
  if(state.farmMode==='smart'&&farmWave&&farmElapsed>=60){finishFarmWave();beginTravel(1.2);save();return;}
   advanceFinalFlames();if(!combat)return;
   advanceDots();if(!combat)return;
+  advanceBlessingRegen();
   for(const f of fighters){
   if(!f.alive)continue;
   if(TFT.isFrozen(f,stageClock)){f.walking=false;if(f.castUntil)f.castUntil+=t;position(f);continue;}
@@ -2066,14 +2099,14 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('trialModal').hi
 if(typeof ResizeObserver==='function')new ResizeObserver(()=>{if(trial){trial.size={width:$('trialArena').clientWidth,height:$('trialArena').clientHeight};withTrial(()=>{renderTrial();for(const shot of shots)positionShot(shot);for(const f of fireTrails)positionFireTrail(f)})}}).observe($('trialArena'));
 function refreshUpgradePicker(){
  const picker=$('upgradePicker');if(!picker)return;
- const all=IDS.filter(id=>state.owned[id]&&!CORE.isMaxHero(state.owned[id])),eligible=filterHeroes(all,'Upgrade');
- if($('filterCountUpgrade'))$('filterCountUpgrade').textContent='พบ '+eligible.length+' / '+all.length+' ตัวที่ยังไม่ MAX';
+ const all=IDS.filter(id=>state.owned[id]),eligible=filterHeroes(all,'Upgrade');
+ if($('filterCountUpgrade'))$('filterCountUpgrade').textContent='พบ '+eligible.length+' / '+all.length+' ตัวที่มีแล้ว';
  const ids=eligible.includes(selected)?eligible:[selected,...eligible].filter(id=>HEROES[id]);
  picker.innerHTML=ids.map(id=>'<option value="'+id+'"'+(id===selected?' selected':'')+'>'+escapeText(upgradeOptionLabel(id))+'</option>').join('');
  picker.disabled=!eligible.length;
 }
 function searchUpgrade(){
- const eligible=filterHeroes(IDS.filter(id=>state.owned[id]&&!CORE.isMaxHero(state.owned[id])),'Upgrade');
+ const eligible=filterHeroes(IDS.filter(id=>state.owned[id]),'Upgrade');
  if(eligible.length&&!eligible.includes(selected))choose(eligible[0]);
  refreshUpgradePicker();
  $('heroDetails').hidden=!eligible.length;
@@ -2088,7 +2121,7 @@ function openManagement(name,button){
  const next=$('panel-'+name);if(!next)return;
  if(managementPanel)managementPanel.hidden=true;
  managementPanel=next;managementFocus=button;
- if(name==='upgrade'){const eligible=filterHeroes(IDS.filter(id=>state.owned[id]&&!CORE.isMaxHero(state.owned[id])),'Upgrade');if(eligible.length&&!eligible.includes(selected))choose(eligible[0]);$('heroDetails').hidden=false;renderSelected();refreshUpgradePicker()}
+ if(name==='upgrade'){const eligible=filterHeroes(IDS.filter(id=>state.owned[id]),'Upgrade');if(eligible.length&&!eligible.includes(selected))choose(eligible[0]);$('heroDetails').hidden=false;renderSelected();refreshUpgradePicker()}
  if(name==='summon'){renderSummonPool();if(!summonBusy)showSummonBanner();updateSummonWallet()}
  next.hidden=false;document.body.classList.add('management-open');
  next.querySelector('.panel-close').focus();
@@ -2137,6 +2170,8 @@ $('teamSlots').addEventListener('click',e=>{
  choose(target);
 });
 $('heroDetails').addEventListener('click',e=>{
+ const roll=e.target.closest('[data-blessing-roll]'),equip=e.target.closest('[data-blessing-equip]');
+ if(roll||equip){const slot=Number(roll?roll.dataset.blessingRoll:equip.dataset.blessingEquip);const b=roll?CORE.rollBlessing(state,selected,slot):CORE.equipBlessing(state,selected,slot);if(!b){toast('ทรัพยากรไม่พอหรือสล็อตไม่พร้อม');return;}if(!combat)buildFighters();save();renderPanels();toast(roll?'✦ ได้พร '+b.name+' · '+b.rarity.toUpperCase():'✦ เลือกพรแล้ว · มีผลการต่อสู้ถัดไป');return;}
  if(e.target.closest('#openSkillBtn'))openSkill(selected);
  else if(e.target.closest('#levelHeroBtn'))upgrade();
  else if(e.target.closest('#levelFiveBtn'))upgrade(5);

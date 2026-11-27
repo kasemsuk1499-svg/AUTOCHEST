@@ -27,7 +27,7 @@
  function blessingRewards(reward,b){return {...reward,gold:Math.round(reward.gold*(1+(b?.gold||0))),exp:Math.round(reward.exp*(1+(b?.exp||0)))}}
  function blessedHero(hero,progress){
   const h=heroAtStars(hero,progress?.stars||1),b=blessingFor(progress)?.effects;if(!h||!b)return h;
-  const p=h.passive||{},out={...h,blessingCharge:b.charge||0,passive:{...p,dodgeChance:Math.min(.75,(p.dodgeChance||0)+(b.dodge||0)),damageReduction:Math.min(.95,(p.damageReduction||0)+(b.reduction||0)),lifesteal:(p.lifesteal||0)+(b.lifesteal||0)}};
+  const p=h.passive||{},out={...h,blessingCharge:b.charge||0,passive:{name:p.name||'พรประจำตัว',...p,dodgeChance:Math.min(.75,(p.dodgeChance||0)+(b.dodge||0)),damageReduction:Math.min(.95,(p.damageReduction||0)+(b.reduction||0)),lifesteal:(p.lifesteal||0)+(b.lifesteal||0)}};
   if(h.guard&&b.shield)out.guard={...h.guard,selfShield:h.guard.selfShield*(1+b.shield),allyShield:h.guard.allyShield*(1+b.shield)};
   return out;
  }
