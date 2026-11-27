@@ -7,7 +7,7 @@ window.AUTOCHEST_CHARACTERS.registerHero({
  passive:{name:'ประกายแสงสีเหลือง',dodgeChance:.25},
  starUpgrades:[
   {star:2,label:'หลบหลีก 30% · สกิล 350% PATK',patch:{skillPower:3.5,passive:{dodgeChance:.30}}},
-  {star:3,label:'หลบหลีก 35% · CRIT 25%',patch:{critChance:.25,passive:{dodgeChance:.35}}},
+  {star:3,label:'หลบหลีก 35% · CRIT 25% · เริ่มการต่อสู้สแต็กวาร์ปเต็ม',patch:{critChance:.25,passive:{dodgeChance:.35,openingDash:true}}},
   {star:4,label:'ใช้สกิลทุก 5 ครั้ง · สกิล 400% PATK',patch:{triggerEvery:2,skillPower:4}},
   {star:5,label:'หลบหลีก 45% · สกิล 460% PATK · CRIT DMG ×2',patch:{skillPower:4.6,critDamage:2,passive:{dodgeChance:.45}}}
  ],

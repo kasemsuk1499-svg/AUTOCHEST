@@ -832,6 +832,7 @@ function skillDescription(t,enemy=false){
    lines.push('ทุก '+n+' การโจมตี: โจมตีเป้าหมายเดียว '+Math.round((t.skillPower||2)*100)+'% ATK'+(t.skillGuaranteedCrit?' · ติดคริติคอลแน่นอน':' พร้อมเอฟเฟกต์วงพลัง'));
    break;
   case 'dash':
+   if(t.passive?.openingDash)lines.push('★ 3 ดาวขึ้นไป: เริ่มทุกเวฟ/บอสด้วยสแต็กเทพอัสนีเหินเต็ม วาร์ปได้ตั้งแต่การโจมตีแรก · หลังจากนั้นสะสมสแต็กและคูลดาวน์ตามปกติ');
    lines.push('ทุก '+n+' การโจมตี: เทพอัสนีเหิน วาร์ปไปหลังศัตรูสายยิงไกลที่อยู่ไกลที่สุด (ถ้าไม่มี เลือกศัตรูที่อยู่ไกลที่สุด) และโจมตีด้วยกระสุนวงจักร '+Math.round(t.skillPower*100)+'% PATK · ใช้ได้จากทุกระยะเมื่อสกิลพร้อม · ไม่ทะลุโล่');
    break;
   case 'blink':
@@ -1279,14 +1280,14 @@ function buildFighters(preserve=false){
  const previous=new Map(preserve?fighters.map(f=>[f.id,f]):[]),tags=CORE.teamSynergies(state,HEROES);
  fighters=state.squad.filter(id=>state.owned[id]).map((id,i)=>{
   const old=previous.get(id),progress={...state.owned[id],blessings:CORE.blessingSlots(old?.progress||state.owned[id])};
-  const stat=CORE.teamHeroStats(state,HEROES,id,progress,tags);
+  const stat=CORE.teamHeroStats(state,HEROES,id,progress,tags),openingStacks=CORE.openingSkillStacks(CORE.blessedHero(HEROES[id],progress));
   const place=state.placements?.[id]||CORE.defaultCells[i],point=boardPoint(place.col,place.row);
   const revive=allyRevives.get(id);
   const finalFlameUntil=old?.finalFlameUntil||revive?.finalFlameUntil||0,finalFlameSpent=!!(old?.finalFlameSpent||revive?.finalFlameSpent);
    const hp=finalFlameSpent?0:finalFlameUntil?1:old?Math.max(0,Math.min(stat.hp,Math.round(old.hp/Math.max(1,old.maxHp)*stat.hp))):stat.hp;
   return {id,side:'ally',damageType:CORE.damageType(HEROES[id]),x:point.x,y:point.y,startX:point.x,move:HEROES[id].move,
-   hp,maxHp:stat.hp,atk:stat.atk,dotDamage:stat.dotDamage||0,cool:stat.cool,remaining:old?.remaining??i*.12,
-   castUntil:old?.castUntil||0,exhausted:!!old?.exhausted,explosionCount:old?.explosionCount||0,explosionReadyAt:old?.explosionReadyAt||0,attacks:old?.attacks||0,nextSkillAt:old?.nextSkillAt||0,shield:old?.shield||0,shieldSource:old?.shield>0?old.shieldSource||null:null,tauntUntil:old?.tauntUntil||0,
+   hp,maxHp:stat.hp,atk:stat.atk,dotDamage:stat.dotDamage||0,cool:stat.cool,remaining:old?.remaining??(openingStacks?0:i*.12),
+   castUntil:old?.castUntil||0,exhausted:!!old?.exhausted,explosionCount:old?.explosionCount||0,explosionReadyAt:old?.explosionReadyAt||0,attacks:old?.attacks??(preserve&&combat?0:openingStacks),nextSkillAt:old?.nextSkillAt||0,shield:old?.shield||0,shieldSource:old?.shield>0?old.shieldSource||null:null,tauntUntil:old?.tauntUntil||0,
    attackDown:old?.attackDown||null,vulnerability:old?.vulnerability||null,healDown:old?.healDown||null,
    dots:old?.dots||[],freezeUntil:old?.freezeUntil||0,attackUp:old?.attackUp||null,physicalAttackUp:old?.physicalAttackUp||null,magicAttackUp:old?.magicAttackUp||null,speedUp:old?.speedUp||null,
    focusTarget:old?.focusTarget||null,focusHits:old?.focusHits||0,
@@ -1330,12 +1331,12 @@ function spawnMonster(boss=false,cell=null,quiet=false,forcedId=null){
  if(!boss)encounters++;
  const stat=CORE.enemyStats(HEROES[id],stage,boss,dungeon?'normal':state.mode,night()&&!boss?CORE.nightmareStars(stage):1);
  if(dungeon){stat.hp=Math.max(1,Math.round(stat.hp*.45));stat.atk=Math.max(1,Math.round(stat.atk*.5));stat.stars=1;}
- const hero=CORE.enemyHero(HEROES[id],stat.stars,boss),hp=stat.hp;
+ const hero=CORE.enemyHero(HEROES[id],stat.stars,boss),hp=stat.hp,openingStacks=CORE.openingSkillStacks(hero);
  const entry=cell?boardPoint(cell[0],cell[1]):
   boardPoint(boss?2:(encounters+2)%GRID_COLS,boss?1:encounters%3);
  const foe={id,side:'enemy',damageType:CORE.damageType(hero),boss,stars:stat.stars,level:stat.level,hp,maxHp:hp,atk:stat.atk,
-  remaining:.65+Math.random()*.35,delay:stat.delay,move:hero.move,
-  shield:0,attacks:0,crit:stat.crit,critDamage:stat.critDamage,
+  remaining:openingStacks?0:.65+Math.random()*.35,delay:stat.delay,move:hero.move,
+  shield:0,attacks:openingStacks,crit:stat.crit,critDamage:stat.critDamage,
   cloakUntil:0,ambush:false,attackUntil:0,walking:false,alive:true,
   timeout:boss?35:0,x:entry.x,y:entry.y,strideSeed:encounters};
  const node=el('div',{class:'fighter enemy-unit'+(boss?' boss-unit':'')});
@@ -2009,7 +2010,7 @@ function withTrial(fn){
 }
 function trialUnit(id,side,x,y,hp,maxHp,label,stars=1){
  const progress={level:1,stars},h=HEROES[id],st=h?CORE.stats(h,progress):{atk:100,cool:1,crit:0,critDamage:1};
- const actor={id,side,damageType:CORE.damageType(h),x,y,hp,maxHp,progress,atk:st.atk,cool:st.cool,crit:st.crit,critDamage:st.critDamage,alive:true,shield:0,attacks:0,attackUntil:0,cloakUntil:0,ambush:false,walking:false,label};
+ const actor={id,side,damageType:CORE.damageType(h),x,y,hp,maxHp,progress,atk:st.atk,cool:st.cool,crit:st.crit,critDamage:st.critDamage,alive:true,shield:0,attacks:CORE.openingSkillStacks(CORE.heroAtStars(h,stars)),attackUntil:0,cloakUntil:0,ambush:false,walking:false,label};
  if(side==='ally'&&trial?.id===id)actor.trialCostume=trial.costume;
  const node=el('div',{class:'fighter '+(side==='enemy'?'enemy-unit trial-dummy':'party-fighter')});
  node.innerHTML='<span class="mini-stars">'+(side==='enemy'?'DUMMY':'Lv.1 '+'★'.repeat(stars))+'</span>'+

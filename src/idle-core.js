@@ -264,6 +264,7 @@
  // Skill cadence is separate from normal attack speed and VFX timing.
  const SKILL_MIN_INTERVAL=5;
  const skillAttackCount=hero=>Math.max(1,Math.max(1,Math.floor(number(hero?.triggerEvery,4)))+3-(hero?.blessingCharge||0));
+ const openingSkillStacks=hero=>hero?.effect==='dash'&&hero.passive?.openingDash?skillAttackCount(hero):0;
  const explosionCastSeconds=hero=>Math.max(1,number(hero?.castSeconds,5))+1;
  const explosionRestSeconds=rest=>Math.max(0,number(rest,2))+2;
  function consumeSkillAttack(actor,hero,clock,force=false){
@@ -516,5 +517,5 @@
  }
  window.AUTOCHEST_IDLE_CORE=Object.freeze({BLESSINGS,BLESSING_COST,BLESSING_ODDS,blessingSlots,blessingFor,protectedBlessing,blessingRollStop,setBlessingTarget,rollBlessing,equipBlessing,blessingFarmBonus,blessingRewards,blessedHero,KEY,MAX_LEVEL,MAX_STARS,OFFLINE_CAP_MS,FLOOR_RESET_EVENT,START_TICKETS,ECONOMY,DUNGEON_REWARD_MULT,DUNGEON_ENTRY_COST,dungeonTiers,dungeonReward,canEnterDungeon,payDungeonEntry,claimDungeon,
   initial,maxSquad,defaultCells,fillPlacements,killsNeeded,waveSize,nextEncounter,bossDefeated,waveCleared,stageName,STAGES_PER_FLOOR,floorNumber,bossStars,floorCount,maxStage,floorBossId,nightmareUnlocked,activeRun,nightmareBossCount,nightmareStars,nightmareBossIds,enemySpawnRates,pickEnemyId,canChallengeStage,clearStage,levelCost,shardsNeeded,shardsToMax,ascendCost,
-  normalized,costumeDefs,ownsCostume,grantCostume,buyCostume,equipCostume,farmMaxStage,clampFarmStage,farming,battleStage,FARM_GOALS,farmRates,recordFarmWave,smartFarmStage,heroAtStars,damageType,SKILL_MIN_INTERVAL,skillAttackCount,consumeSkillAttack,explosionCastSeconds,explosionRestSeconds,stats,teamSynergies,synergyBonus,vtuberBonus,teamHeroStats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,universalShardYield,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
+  normalized,costumeDefs,ownsCostume,grantCostume,buyCostume,equipCostume,farmMaxStage,clampFarmStage,farming,battleStage,FARM_GOALS,farmRates,recordFarmWave,smartFarmStage,heroAtStars,damageType,SKILL_MIN_INTERVAL,skillAttackCount,openingSkillStacks,consumeSkillAttack,explosionCastSeconds,explosionRestSeconds,stats,teamSynergies,synergyBonus,vtuberBonus,teamHeroStats,power,monster,enemyHero,enemyStats,farmReward,awardFarmKill,bossReward,offlineLoot,spendLevel,ascend,isMaxHero,convertMaxShards,universalShardYield,shardExchangeRate,heroExchangeCost,exchangeOffer,exchangeHero,draw,summonCost,summonOdds,drawDetailed});
 })();
