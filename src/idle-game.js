@@ -812,7 +812,7 @@ function starPerkLabel(step){
 }
 function starUpgradeHtml(hero,stars=1){
  if(!hero.starUpgrades?.length)return '';
- return '<div class="star-perks"><strong>✦ STAR AWAKENING · โบนัสสะสม</strong>'+hero.starUpgrades.map(step=>'<div class="star-perk '+(stars>=step.star?'unlocked':'locked-perk')+'"><b>'+step.star+'★</b><span>'+escapeText(starPerkLabel(step))+'</span><small>'+(stars>=step.star?'✓':'🔒')+'</small></div>').join('')+'</div>';
+ return '<div class="star-perks"><strong>✦ STAR AWAKENING · โบนัสสะสม</strong>'+[...(hero.starBaseLabel?[{star:1,label:hero.starBaseLabel}]:[]),...hero.starUpgrades].map(step=>'<div class="star-perk '+(stars>=step.star?'unlocked':'locked-perk')+'"><b>'+step.star+'★</b><span>'+escapeText(starPerkLabel(step))+'</span><small>'+(stars>=step.star?'✓':'🔒')+'</small></div>').join('')+'</div>';
 }
 function skillDescription(t,enemy=false){
  const n=CORE.skillAttackCount(t),lines=['โจมตีปกติ 100% ATK เมื่อเป้าหมายอยู่ในระยะ TFT จริง • มีโอกาสคริติคอล'];
@@ -832,8 +832,8 @@ function skillDescription(t,enemy=false){
    lines.push('ทุก '+n+' การโจมตี: โจมตีเป้าหมายเดียว '+Math.round((t.skillPower||2)*100)+'% ATK'+(t.skillGuaranteedCrit?' · ติดคริติคอลแน่นอน':' พร้อมเอฟเฟกต์วงพลัง'));
    break;
   case 'dash':
-   if(t.passive?.openingDash)lines.push('★ 3 ดาวขึ้นไป: เริ่มทุกเวฟ/บอสด้วยสแต็กเทพอัสนีเหินเต็ม วาร์ปได้ตั้งแต่การโจมตีแรก · หลังจากนั้นสะสมสแต็กและคูลดาวน์ตามปกติ');
-   lines.push('ทุก '+n+' การโจมตี: เทพอัสนีเหิน วาร์ปไปหลังเป้าหมายที่ล็อกไว้ หากยังไม่ล็อก เลือกศัตรูสายยิงไกลที่อยู่ไกลที่สุด (ถ้าไม่มี เลือกศัตรูที่อยู่ไกลที่สุด) และโจมตีด้วยกระสุนวงจักร '+Math.round(t.skillPower*100)+'% PATK · ใช้ได้จากทุกระยะเมื่อสกิลพร้อม · ไม่ทะลุโล่');
+   lines.push('กระสุนวงจักร (Rasengan): เมื่อสะสมครบ '+n+' การโจมตีและคูลดาวน์พร้อม จะวาร์ปไปด้านหลังเหยื่อที่ล็อกไว้แล้วโจมตี '+Math.round(t.skillPower*100)+'% PATK · ใช้ได้จากทุกระยะ · ไม่ทะลุโล่ตามปกติ · คูลดาวน์ขั้นต่ำ '+CORE.SKILL_MIN_INTERVAL+' วินาที');
+   if(t.passive?.openingDash)lines.push('★ 3 ดาวขึ้นไป: เริ่มทุกเวฟ/บอสด้วยสแต็กกระสุนวงจักรเต็ม จึงพุ่งล็อกและใช้กระสุนวงจักรทันทีในการโจมตีเปิดฉาก · ครั้งต่อไปใช้สแต็กและคูลดาวน์ปกติ');
    break;
   case 'blink':
    lines.push('ทุก '+n+' การโจมตี: เคลื่อนฉับไวเข้าหาเป้าหมาย ฟัน 200% ATK และตามด้วยโจมตีอีก 50% ATK');
@@ -881,7 +881,7 @@ function skillDescription(t,enemy=false){
  if(t.passive?.magicGuard)lines.push('พาสซีฟ — '+t.passive.name+': รับแทน '+Math.round(t.passive.magicGuard*100)+'% ของดาเมจที่เพื่อนสายเวทได้รับ ไม่ว่าดาเมจมาจากสายใด · ไม่รับแทนตนเอง · โล่ของผู้ปกป้องรับได้ · เลือกผู้ปกป้องที่มีอัตราสูงสุดหนึ่งคน · ไม่ส่งต่อซ้ำ');
  if(t.passive?.bossMultiplier)lines.push('พาสซีฟ — '+t.passive.name+': ดาเมจทุกชนิดต่อบอส ×'+t.passive.bossMultiplier+' ก่อนคริติคอลและการป้องกัน');
  if(t.passive?.healOnAttack)lines.push('พาสซีฟ — '+t.passive.name+': เมื่อโจมตีปกติ ฟื้น HP ให้สมาชิกที่บาดเจ็บหนักที่สุด (ตามเปอร์เซ็นต์ HP) เท่ากับ '+Math.round(t.passive.healOnAttack*100)+'% ของ ATK พื้นฐานในการต่อสู้ของตนเอง');
- if(t.passive?.approachDash)lines.push('พาสซีฟ — พุ่งล็อกเหยื่อ: เมื่อยังไม่มีเป้าหมาย วาร์ปไปหลังศัตรูยิงไกลที่อยู่ไกลที่สุดทันที (หากไม่มี เลือกศัตรูที่ไกลที่สุด) โดยไม่ต้องสะสมสแต็ก ไม่สร้างดาเมจและไม่ใช้คูลดาวน์สกิล จากนั้นโจมตีเป้าหมายเดิมจนตายจริง จึงวาร์ปหาเหยื่อใหม่ · ไม่เปลี่ยนตามระยะหรือยั่วยุ · หากเหยื่อพรางตัวจะรอจนปรากฏตัว');
+ if(t.passive?.approachDash)lines.push('พาสซีฟ — ประกายแสงสีเหลือง (ปลดตั้งแต่ 1★): เริ่มการต่อสู้และทุกครั้งที่เหยื่อตายจริงหรือออกจากสนาม พุ่งไปด้านหลังศัตรูสายยิงไกลที่อยู่ไกลที่สุดทันที (หากไม่มี เลือกศัตรูที่ไกลที่สุด) แล้วล็อกโจมตีเหยื่อเดิมจนตาย · การพุ่งจากพาสซีฟไม่สร้างดาเมจ ไม่ใช้สแต็กหรือคูลดาวน์ · หากสกิลพร้อม สามารถใช้กระสุนวงจักรในการพุ่งเปิดฉากได้ · ไม่เปลี่ยนตามระยะหรือยั่วยุ · รอเหยื่อที่พรางตัวจนปรากฏตัว');
  else if(t.passive?.lockTarget)lines.push('พาสซีฟ — ล็อกเป้าหมายเมื่อโจมตีครั้งแรก: โจมตีและวาร์ปใส่เป้าหมายเดิมจนกว่าจะตายจริงหรือออกจากสนาม · ไม่เปลี่ยนตามระยะหรือยั่วยุ · หากเหยื่อพรางตัวจะรอจนปรากฏตัว');
  if(t.passive?.dodgeChance)lines.push('พาสซีฟ — '+t.passive.name+': มีโอกาส '+Math.round(t.passive.dodgeChance*100)+'% หลบการโจมตีโดยตรงทั้งหมด (รวมสกิล) ไม่เสีย HP หรือโล่ · สุ่มแยกแต่ละฮิต · ไม่หลบ DOT หรือดาเมจรับแทน');
  if(t.passive?.damageReduction)lines.push('พาสซีฟ — '+t.passive.name+': ลดความเสียหายที่ได้รับ '+Math.round(t.passive.damageReduction*100)+'% ตลอดการต่อสู้ ก่อนคำนวณโล่');
