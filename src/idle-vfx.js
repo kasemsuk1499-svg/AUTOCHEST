@@ -6,6 +6,7 @@
  const defaults={
   asuna:{hit:'slashGold',skillHit:'slashGold'},
   minato:{hit:'slashGold',skillHit:'impact',rasengan:'impact',dash:'slashGold',dodge:'cloak'},
+  itachi:{sharingan:{src:'./assets/effects/itachi/sharingan.svg',cols:1,rows:1,frames:1,size:104,ms:760,airtimeMs:760,offsetY:-24,spin:360}},
   kirito:{hit:'slashBlue',skillHit:'slashBlue',revive:'revive'},
   sinon:{projectile:'bullet',skillProjectile:'bullet',hit:'impact',skillHit:'impact'},
   heathcliff:{hit:'impact',shield:'shield'},
@@ -33,7 +34,7 @@
  }
  const bounded=(value,fallback,min,max)=>Number.isFinite(Number(value))&&value!==null&&value!==''?Math.max(min,Math.min(max,Number(value))):fallback;
  function appearance(raw,mode='point'){
-  return {mode,scaleX:bounded(raw.scaleX,1,.1,5),scaleY:bounded(raw.scaleY,1,.1,5),rotation:bounded(raw.rotation,0,-180,180),
+  return {mode,scaleX:bounded(raw.scaleX,1,.1,5),scaleY:bounded(raw.scaleY,1,.1,5),rotation:bounded(raw.rotation,0,-180,180),spin:mode==='point'?bounded(raw.spin,0,-1080,1080):0,
    offsetX:bounded(raw.offsetX,0,-540,540),offsetY:bounded(raw.offsetY,0,-540,540),
    thickness:bounded(raw.thickness,48,4,300),orientation:raw.orientation==='vertical'?'vertical':'horizontal',
    hue:bounded(raw.hue,0,-180,180),saturation:bounded(raw.saturation,100,0,300),brightness:bounded(raw.brightness,100,0,250),colorize:raw.colorize===true};
@@ -89,7 +90,10 @@
   const vertical=spec.mode==='beam'&&spec.orientation==='vertical';
   art.style.width=(vertical?region.height:region.width)+'px';art.style.height=(vertical?region.width:region.height)+'px';
   art.style.transform='translate(-50%,-50%)'+(vertical?' rotate(-90deg)':'');
-  node.replaceChildren(art);paint(art,spec,true);return art;
+  node.replaceChildren(art);paint(art,spec,true);
+  // Spin the artwork itself, not the region anchor or its beam direction.
+  if(spec.spin&&spec.mode==='point'&&art.animate&&!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches){const t=lifetime(spec);art.animate([{rotate:'0deg'},{rotate:spec.spin+'deg'}],{duration:Math.max(1,t.visible),delay:t.delayMs,fill:'both',easing:'cubic-bezier(.2,.65,.35,1)'});}
+  return art;
  }
  function getSpec(hero,event,costumeFx=null,costumeId=''){
   const override=studioMode&&draft?.hero===hero?.id&&draft?.event===event&&(draft.costume||'')===costumeId?draft.spec:null;

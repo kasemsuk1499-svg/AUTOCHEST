@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+ <defs>
+  <radialGradient id="halo"><stop offset=".56" stop-color="#ff1744" stop-opacity=".05"/><stop offset=".72" stop-color="#ff234d" stop-opacity=".65"/><stop offset="1" stop-color="#ff1639" stop-opacity="0"/></radialGradient>
+  <radialGradient id="iris"><stop stop-color="#ff5a60"/><stop offset=".68" stop-color="#da1835"/><stop offset="1" stop-color="#690a1b"/></radialGradient>
+ </defs>
+ <circle cx="128" cy="128" r="126" fill="url(#halo)"/>
+ <circle cx="128" cy="128" r="88" fill="#17080e" stroke="#ff5368" stroke-width="2"/>
+ <circle cx="128" cy="128" r="80" fill="url(#iris)" stroke="#ff8a88" stroke-width="2"/>
+ <circle cx="128" cy="128" r="59" fill="none" stroke="#450815" stroke-width="2" opacity=".65"/>
+ <g fill="#14080e">
+  <path id="blade" d="M128 128 C110 104 106 80 128 48 C137 79 164 96 148 118 C141 128 136 130 128 128Z"/>
+  <path d="M128 128 C110 104 106 80 128 48 C137 79 164 96 148 118 C141 128 136 130 128 128Z" transform="rotate(120 128 128)"/>
+  <path d="M128 128 C110 104 106 80 128 48 C137 79 164 96 148 118 C141 128 136 130 128 128Z" transform="rotate(240 128 128)"/>
+  <circle cx="128" cy="128" r="15"/>
+ </g>
+ <circle cx="128" cy="128" r="97" fill="none" stroke="#ff3757" stroke-width="2" stroke-dasharray="22 17" opacity=".7"/>
+ <circle cx="128" cy="128" r="108" fill="none" stroke="#f63049" stroke-width="1" stroke-dasharray="4 13" opacity=".45"/>
+</svg>

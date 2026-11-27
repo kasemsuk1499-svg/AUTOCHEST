@@ -48,11 +48,11 @@ function selectHero(){
  selectCostume();
 }
 function selectEvent(){
- const event=$('event').value;const notes={sharingan:'แสดงบนอิทาจิเมื่อสะสมสแต็กจากการโจมตีปกติ · กดทดลองพาสซีฟ',tsukuyomi:'แสดงบนศัตรูที่ถูกอ่านจันทราเมื่อเนตรเต็ม · ไม่ติดบอส',susanoo:'แสดงบนอิทาจิขณะเรียกซูซาโนะโอะก่อนฟัน',totsuka:'แสดงที่ศัตรูแต่ละตัวที่ถูกดาบโทสึกะ',totsukaSeal:'แสดงบนศัตรูที่ถูกดาบโทสึกะสังหารเมื่ออิทาจิ 5 ดาว',rasengan:'เอฟเฟกต์กระสุนวงจักร ณ จุดที่โจมตีเป้าหมายหลังวาร์ปด้วยสกิล · แยกจากเส้นทางวาร์ป · กดใช้สกิลในสนามทดลอง',dash:'เอฟเฟกต์ยืดจากตำแหน่งก่อนวาร์ปไปยังจุดลงจริง · กดใช้สกิลในสนามทดลอง',dodge:'แสดงบนตัวละครเมื่อสุ่มหลบสำเร็จ · กดทดสอบหลบหลีก ×5 ในสนามทดลอง',groundFire:'ภาพพื้นไฟยืดตามทางนกที่บินผ่าน · ความกว้างและอายุยึดระบบต่อสู้ ไม่ใช้ค่าขนาด/airtime ของภาพ',freeze:'พรีวิวภาพแช่แข็งได้ทันทีด้วยเล่นภาพ · ในสนามทดลองให้กดใช้สกิลแล้วรอคำสาปครบ 5–6 ครั้ง',dot:'แสดงทุกครั้งที่คำสาปสร้างดาเมจจริง',skillHit:'แสดงที่ศัตรูแต่ละตัวที่ได้รับดาเมจจากสกิลโดยตรง รวมถึงสกิลเวทโจมตีพร้อมฮีล',skillProjectile:'ใช้กับกระสุนสกิลที่เดินทางไปยังเป้าหมาย',heal:'แสดงที่พันธมิตรที่ได้รับการฮีลจริง',area:'แสดงตรงเป้าหมายของค้อน',revive:'แสดงที่ตัวละครที่คืนชีพหรือได้รับการชุบชีวิตจากเพื่อน',shield:'แสดงเมื่อได้รับหรือถูกตีโล่'};
+ const event=$('event').value;const notes={sharingan:'เนตรวงแหวนภาพเดียวหมุนด้วยระบบ · แสดงบนอิทาจิเมื่อสะสมสแต็ก · ปรับองศาหมุนและ Airtime ได้ · กดทดลองพาสซีฟ',tsukuyomi:'แสดงบนศัตรูที่ถูกอ่านจันทราเมื่อเนตรเต็ม · ไม่ติดบอส',susanoo:'แสดงบนอิทาจิขณะเรียกซูซาโนะโอะก่อนฟัน',totsuka:'แสดงที่ศัตรูแต่ละตัวที่ถูกดาบโทสึกะ',totsukaSeal:'แสดงบนศัตรูที่ถูกดาบโทสึกะสังหารเมื่ออิทาจิ 5 ดาว',rasengan:'เอฟเฟกต์กระสุนวงจักร ณ จุดที่โจมตีเป้าหมายหลังวาร์ปด้วยสกิล · แยกจากเส้นทางวาร์ป · กดใช้สกิลในสนามทดลอง',dash:'เอฟเฟกต์ยืดจากตำแหน่งก่อนวาร์ปไปยังจุดลงจริง · กดใช้สกิลในสนามทดลอง',dodge:'แสดงบนตัวละครเมื่อสุ่มหลบสำเร็จ · กดทดสอบหลบหลีก ×5 ในสนามทดลอง',groundFire:'ภาพพื้นไฟยืดตามทางนกที่บินผ่าน · ความกว้างและอายุยึดระบบต่อสู้ ไม่ใช้ค่าขนาด/airtime ของภาพ',freeze:'พรีวิวภาพแช่แข็งได้ทันทีด้วยเล่นภาพ · ในสนามทดลองให้กดใช้สกิลแล้วรอคำสาปครบ 5–6 ครั้ง',dot:'แสดงทุกครั้งที่คำสาปสร้างดาเมจจริง',skillHit:'แสดงที่ศัตรูแต่ละตัวที่ได้รับดาเมจจากสกิลโดยตรง รวมถึงสกิลเวทโจมตีพร้อมฮีล',skillProjectile:'ใช้กับกระสุนสกิลที่เดินทางไปยังเป้าหมาย',heal:'แสดงที่พันธมิตรที่ได้รับการฮีลจริง',area:'แสดงตรงเป้าหมายของค้อน',revive:'แสดงที่ตัวละครที่คืนชีพหรือได้รับการชุบชีวิตจากเพื่อน',shield:'แสดงเมื่อได้รับหรือถูกตีโล่'};
  const hero=H[$('hero').value],mode=V.slotLayout(hero,event),spec=currentSpec();
  $('eventHint').textContent=event==='dash'?notes.dash:mode==='beam'?'ลำแสงยืดตามแนวโจมตีจริงอัตโนมัติ · ไม่ต้องสร้างภาพยาวเท่าสนาม':mode==='field'?'ภาพยืดตามพื้นที่สนามโดยอัตโนมัติ':notes[event]||'แสดงเมื่อกลไกนี้ทำงานจริงในสนาม';
  $('beamSettings').hidden=mode!=='beam';$('pointSettings').hidden=mode==='beam';$('slotMode').textContent=mode==='beam'?'BEAM · ยืดตามแนวยิง':mode==='field'?'FIELD · พื้นที่สนาม':'POINT · จุดแสดงผล';
- if(spec){for(const key of ['scaleX','scaleY','rotation','thickness','orientation','delayMs','airtimeMs','offsetX','offsetY'])$(key).value=spec[key];$('loopFrames').checked=spec.loopFrames;for(const key of ['hue','saturation','brightness'])$(key).value=spec[key];$('colorize').checked=spec.colorize;if(!dataURL)for(const key of ['size','ms','cols','rows','frames','row','col'])$(key).value=spec[key]}
+ if(spec){for(const key of ['scaleX','scaleY','rotation','spin','thickness','orientation','delayMs','airtimeMs','offsetX','offsetY'])$(key).value=spec[key];$('loopFrames').checked=spec.loopFrames;for(const key of ['hue','saturation','brightness'])$(key).value=spec[key];$('colorize').checked=spec.colorize;if(!dataURL)for(const key of ['size','ms','cols','rows','frames','row','col'])$(key).value=spec[key]}
  invalidate();play();
 }
 function num(id,min,max){const n=Number($(id).value);if(!Number.isInteger(n)||n<min||n>max)throw Error(id+' ต้องอยู่ระหว่าง '+min+'–'+max);return n}
@@ -60,7 +60,7 @@ function settings(src){
  const cols=num('cols',1,32),rows=num('rows',1,32),row=num('row',0,rows-1),col=num('col',0,cols-1),frames=num('frames',1,cols*(rows-row)-col);
  if(dataURL&&(ext==='gif'||ext==='webp')&&(cols!==1||rows!==1||frames!==1))throw Error('GIF / WebP ให้ใช้ 1 คอลัมน์ 1 แถว 1 เฟรม');
  const mode=V.slotLayout(H[$('hero').value],$('event').value);
- const raw={scaleX:Number($('scaleX').value),scaleY:Number($('scaleY').value),rotation:Number($('rotation').value),thickness:Number($('thickness').value),orientation:$('orientation').value,offsetX:Number($('offsetX').value),offsetY:Number($('offsetY').value),hue:Number($('hue').value),saturation:Number($('saturation').value),brightness:Number($('brightness').value),colorize:$('colorize').checked};
+ const raw={scaleX:Number($('scaleX').value),scaleY:Number($('scaleY').value),rotation:Number($('rotation').value),spin:Number($('spin').value),thickness:Number($('thickness').value),orientation:$('orientation').value,offsetX:Number($('offsetX').value),offsetY:Number($('offsetY').value),hue:Number($('hue').value),saturation:Number($('saturation').value),brightness:Number($('brightness').value),colorize:$('colorize').checked};
  return {src,cols,rows,row,col,frames,size:num('size',16,400),ms:num('ms',80,3000),...V.appearance(raw,mode),...V.timing({delayMs:num('delayMs',0,5000),airtimeMs:num('airtimeMs',0,10000),loopFrames:$('loopFrames').checked})};
 }
 function currentSource(){return dataURL||currentSpec()?.src||''}
@@ -84,7 +84,7 @@ function play(){
   $('offsetSummary').textContent='X '+spec.offsetX+' · Y '+spec.offsetY+' px (อิงสนามกว้าง 540 px)';
   const time=V.animateLifetime(node,spec);
   $('timingSummary').textContent='เริ่ม '+(time.delayMs/1000).toFixed(2)+'s · อยู่ '+(time.visible/1000).toFixed(2)+'s · จบ '+(time.total/1000).toFixed(2)+'s';
-  status('previewStatus',(dataURL?'ภาพร่าง':'เอฟเฟกต์ที่ใช้งานอยู่')+' • '+spec.frames+' เฟรม · เล่นหนึ่งรอบ '+spec.ms+' ms');
+  status('previewStatus',(dataURL?'ภาพร่าง':'เอฟเฟกต์ที่ใช้งานอยู่')+' • '+spec.frames+' เฟรม · เล่นหนึ่งรอบ '+spec.ms+' ms'+(spec.spin?' · หมุน '+spec.spin+'°':''));
   if(loop)loopTimer=setTimeout(play,time.total+120);
  }catch(e){status('previewStatus',e.message,true)}
 }
@@ -168,7 +168,7 @@ function renderModelScales(remember=true){
  $('previewUnit').style.scale=String(m.idle);
 }
 function draft(){if(!validDraft())throw Error('เลือกภาพก่อน');return {hero:$('hero').value,costume:selectedCostume(),event:$('event').value,spec:settings(currentSource()),model:modelValues()}}
-function openTrial(modelOnly=false){try{const d=modelOnly?{hero:$('hero').value,costume:selectedCostume(),model:modelValues()}:draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&studioCostume='+encodeURIComponent(d.costume)+'&v=0.20.85';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
+function openTrial(modelOnly=false){try{const d=modelOnly?{hero:$('hero').value,costume:selectedCostume(),model:modelValues()}:draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&studioCostume='+encodeURIComponent(d.costume)+'&v=0.20.86';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
 function closeTrial(){$('trialFrame').src='about:blank';$('trialPanel').hidden=true;try{sessionStorage.removeItem(draftKey)}catch(_){}}
 function exportDraft(){try{const d=draft(),url=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='vfx-'+d.hero+'-'+(d.costume?d.costume+'-':'')+d.event+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){status('publishStatus',e.message,true)}}
 async function api(token,path,method='GET',body){
@@ -231,7 +231,7 @@ async function publish(){
 }
 $('hero').replaceChildren(...Object.values(H).map(h=>new Option(h.rarity+' · '+h.name,h.id)));
 $('hero').addEventListener('change',selectHero);$('costume').addEventListener('change',selectCostume);$('event').addEventListener('change',selectEvent);$('asset').addEventListener('change',loadFile);
-for(const id of ['size','ms','cols','rows','frames','row','col','scaleX','scaleY','rotation','thickness','orientation','delayMs','airtimeMs','loopFrames','offsetX','offsetY'])$(id).addEventListener('change',()=>{drawGrid();invalidate();play()});
+for(const id of ['size','ms','cols','rows','frames','row','col','scaleX','scaleY','rotation','spin','thickness','orientation','delayMs','airtimeMs','loopFrames','offsetX','offsetY'])$(id).addEventListener('change',()=>{drawGrid();invalidate();play()});
 for(const [id,dc,dr] of [['lessCols',-1,0],['moreCols',1,0],['lessRows',0,-1],['moreRows',0,1]])$(id).onclick=()=>applyGrid(Math.max(1,Math.min(32,Number($('cols').value)+dc)),Math.max(1,Math.min(32,Number($('rows').value)+dr)));
 $('pickStart').onclick=()=>{pick='start';drawGrid()};$('pickEnd').onclick=()=>{pick='end';drawGrid()};$('allFrames').onclick=()=>applyGrid(Number($('cols').value),Number($('rows').value));
 $('loopBtn').onclick=()=>{loop=!loop;$('loopBtn').setAttribute('aria-pressed',String(loop));$('loopBtn').textContent=loop?'⏸ หยุดวน':'↻ เล่นวน';play()};
