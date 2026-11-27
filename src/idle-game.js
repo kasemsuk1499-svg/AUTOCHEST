@@ -840,7 +840,7 @@ function skillDescription(t,enemy=false){
    if(t.passive.dotFreezeSeconds)lines.push('เมื่อ DOT ครั้งสุดท้ายโดนเป้าหมายที่ยังมีชีวิต: แช่แข็ง '+t.passive.dotFreezeSeconds+' วินาที หยุดเดิน โจมตี และพักเวลาร่ายสกิล · ไม่ทะลุอมตะ');
    break;
   case 'totsuka':
-   lines.push('ทุก '+n+' การโจมตี: เรียกซูซาโนะโอะ ฟันศัตรูรอบเป้าหมายรัศมี 180 px (ประมาณ 2 ช่อง) สูงสุด '+t.passive.totsukaTargets+' ตัว · ร่ายในวินาทีแรก ฟันที่วินาที 2 และ 3 · ฮิตละ '+Math.round(t.skillPower*50)+'% PATK (รวม '+Math.round(t.skillPower*100)+'%) · ยึดพื้นที่เป้าหมายตอนเริ่มร่าย · คูลดาวน์ขั้นต่ำ '+CORE.SKILL_MIN_INTERVAL+' วิ · ไม่ทะลุโล่ตามปกติ');
+   lines.push('ทุก '+n+' การโจมตี: เรียกซูซาโนะโอะ ฟันศัตรูรอบเป้าหมายรัศมี 180 px (ประมาณ 2 ช่อง) สูงสุด '+t.passive.totsukaTargets+' ตัว · ร่าย 0.5 วิ ฟันที่วินาที 1.5 และ 2.5 · ฮิตละ '+Math.round(t.skillPower*50)+'% PATK (รวม '+Math.round(t.skillPower*100)+'%) · ยึดพื้นที่เป้าหมายตอนเริ่มร่าย · คูลดาวน์ขั้นต่ำ '+CORE.SKILL_MIN_INTERVAL+' วิ · ไม่ทะลุโล่ตามปกติ');
    lines.push(t.passive.totsukaSeal?'★ 5 ดาว: ศัตรูที่ HP เหลือ 0 จากดาบโทสึกะถูกผนึกวิญญาณ ห้ามคืนชีพด้วยตนเอง เพื่อน หรือพรตลอดเวฟ/บอสนี้ · ไม่ทะลุอมตะหรือขัดพรอมตะที่ป้องกันความตาย':'ปลด 5 ดาว: ดาบโทสึกะสังหารแล้วผนึกการคืนชีพ');
    break;
   case 'slash':
@@ -1742,9 +1742,9 @@ function advanceExplosion(actor,auto=false){
 function startTotsuka(actor,target){
  if(!actor.alive||actor.hp<=0||actor.castUntil)return false;
  actor.totsukaCast={x:target.x,y:target.y,hits:0};
- actor.castUntil=stageClock+3;actor.walking=false;
+ actor.castUntil=stageClock+2.5;actor.walking=false;
  visualEffect('susanoo',actor);unitFx(actor,'เรียกซูซาโนะโอะ','status');position(actor);
- if(trialContext)trialContext.note='เรียกซูซาโนะโอะ · เตรียมฟันที่ 2 และ 3 วิ';
+ if(trialContext)trialContext.note='เรียกซูซาโนะโอะ · เตรียมฟันที่ 1.5 และ 2.5 วิ';
  return true;
 }
 function advanceTotsuka(actor){
@@ -2219,7 +2219,7 @@ function tickTrial(dt){
      actor.walking=false;
      actor.attacks=0;
      tftAttack(actor,target,cmd==='skill');
-     if(actor.totsukaCast)scene.note='เรียกซูซาโนะโอะ · เตรียมฟันที่ 2 และ 3 วิ';
+     if(actor.totsukaCast)scene.note='เรียกซูซาโนะโอะ · เตรียมฟันที่ 1.5 และ 2.5 วิ';
      else if(h.passive?.sharinganMax)scene.note='เนตรวงแหวน '+(actor.sharinganStacks||0)+'/'+h.passive.sharinganMax+' · PATK +'+Math.round(TFT.sharinganBonus(actor,h).atk*100)+'% · CRIT +'+Math.round(TFT.sharinganBonus(actor,h).crit*100)+' จุด%';
      else if(h.passive?.focusCritStep)scene.note='โอกาสคริติคอลปกติ '+Math.round((actor.crit+Math.min(h.passive.focusCritMax,(actor.focusHits||0)*h.passive.focusCritStep))*100)+'%';
      else scene.note=cmd==='skill'?'ใช้ '+h.skill:cmd==='ambush'?'โจมตีหลังหมดพรางตัว':'โจมตีปกติ';
