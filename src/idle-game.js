@@ -268,7 +268,7 @@ function position(actor){
  actor.node.classList.toggle('tsukuyomi',actor.hp>0&&actor.tsukuyomiUntil>stageClock);
  actor.node.classList.toggle('sealed',!!actor.sealed);
  if(actor.sharinganStacks){actor.node.dataset.sharingan=String(actor.sharinganStacks)+' / 5';}else delete actor.node.dataset.sharingan;
- actor.node.classList.toggle('explosion-casting',actor.hp>0&&!!actor.castUntil&&!actor.exhausted);
+ actor.node.classList.toggle('explosion-casting',actor.hp>0&&!!actor.castUntil&&!actor.totsukaCast&&!actor.exhausted);
  actor.node.classList.toggle('explosion-exhausted',actor.hp>0&&!!actor.exhausted);
  actor.node.classList.toggle('cloaked',actor.cloakUntil>stageClock);
  actor.node.classList.toggle('immortal',TFT.isImmortal(actor,stageClock));
@@ -840,7 +840,7 @@ function skillDescription(t,enemy=false){
    if(t.passive.dotFreezeSeconds)lines.push('เมื่อ DOT ครั้งสุดท้ายโดนเป้าหมายที่ยังมีชีวิต: แช่แข็ง '+t.passive.dotFreezeSeconds+' วินาที หยุดเดิน โจมตี และพักเวลาร่ายสกิล · ไม่ทะลุอมตะ');
    break;
   case 'totsuka':
-   lines.push('ทุก '+n+' การโจมตี: เรียกซูซาโนะโอะ ฟันศัตรูรอบเป้าหมายรัศมี 180 px (ประมาณ 2 ช่อง) สูงสุด '+t.passive.totsukaTargets+' ตัว ตัวละ '+Math.round(t.skillPower*100)+'% PATK · คูลดาวน์ขั้นต่ำ '+CORE.SKILL_MIN_INTERVAL+' วิ · ไม่ทะลุโล่ตามปกติ');
+   lines.push('ทุก '+n+' การโจมตี: เรียกซูซาโนะโอะ ฟันศัตรูรอบเป้าหมายรัศมี 180 px (ประมาณ 2 ช่อง) สูงสุด '+t.passive.totsukaTargets+' ตัว · ร่ายในวินาทีแรก ฟันที่วินาที 2 และ 3 · ฮิตละ '+Math.round(t.skillPower*50)+'% PATK (รวม '+Math.round(t.skillPower*100)+'%) · ยึดพื้นที่เป้าหมายตอนเริ่มร่าย · คูลดาวน์ขั้นต่ำ '+CORE.SKILL_MIN_INTERVAL+' วิ · ไม่ทะลุโล่ตามปกติ');
    lines.push(t.passive.totsukaSeal?'★ 5 ดาว: ศัตรูที่ HP เหลือ 0 จากดาบโทสึกะถูกผนึกวิญญาณ ห้ามคืนชีพด้วยตนเอง เพื่อน หรือพรตลอดเวฟ/บอสนี้ · ไม่ทะลุอมตะหรือขัดพรอมตะที่ป้องกันความตาย':'ปลด 5 ดาว: ดาบโทสึกะสังหารแล้วผนึกการคืนชีพ');
    break;
   case 'slash':
@@ -1308,7 +1308,7 @@ function buildFighters(preserve=false){
    const hp=finalFlameSpent?0:finalFlameUntil?1:old?Math.max(0,Math.min(stat.hp,Math.round(old.hp/Math.max(1,old.maxHp)*stat.hp))):stat.hp;
   return {id,side:'ally',damageType:CORE.damageType(HEROES[id]),x:point.x,y:point.y,startX:point.x,move:HEROES[id].move,
    hp,maxHp:stat.hp,atk:stat.atk,dotDamage:stat.dotDamage||0,cool:stat.cool,remaining:old?.remaining??(openingStacks?0:i*.12),
-   castUntil:old?.castUntil||0,exhausted:!!old?.exhausted,explosionCount:old?.explosionCount||0,explosionReadyAt:old?.explosionReadyAt||0,attacks:old?.attacks??(preserve&&combat?0:openingStacks),nextSkillAt:old?.nextSkillAt||0,shield:old?.shield||0,shieldSource:old?.shield>0?old.shieldSource||null:null,tauntUntil:old?.tauntUntil||0,
+   castUntil:old?.castUntil||0,totsukaCast:old?.totsukaCast?{...old.totsukaCast}:null,exhausted:!!old?.exhausted,explosionCount:old?.explosionCount||0,explosionReadyAt:old?.explosionReadyAt||0,attacks:old?.attacks??(preserve&&combat?0:openingStacks),nextSkillAt:old?.nextSkillAt||0,shield:old?.shield||0,shieldSource:old?.shield>0?old.shieldSource||null:null,tauntUntil:old?.tauntUntil||0,
    attackDown:old?.attackDown||null,vulnerability:old?.vulnerability||null,healDown:old?.healDown||null,
    dots:old?.dots||[],freezeUntil:old?.freezeUntil||0,attackUp:old?.attackUp||null,physicalAttackUp:old?.physicalAttackUp||null,magicAttackUp:old?.magicAttackUp||null,speedUp:old?.speedUp||null,
    focusTarget:old?.focusTarget||null,focusHits:old?.focusHits||0,sharinganStacks:old?.sharinganStacks||0,sharinganSeen:old?.sharinganSeen||new Set(),sealed:!!old?.sealed,tsukuyomiUntil:old?.tsukuyomiUntil||0,lockedTarget:old?.lockedTarget||null,assassinAcquired:!!(old?.assassinAcquired||old?.lockedTarget),
@@ -1531,6 +1531,7 @@ function finishDamage(target){
  const bar=target.side==='enemy'?target.bar:target.hpbar;
  if(bar)bar.style.width=Math.max(0,target.hp/target.maxHp*100)+'%';
  if(target.hp===0){
+  if(target.totsukaCast){target.totsukaCast=null;target.castUntil=0;target.attackUntil=0;}
   target.dots=[];target.freezeUntil=0;target.tsukuyomiUntil=0;target.healDown=null;
   const linked=TFT.linkedRevive(target,combatHero(target),target.side==='ally'?fighters:enemies,stageClock);
   if(linked||TFT.tryRevive(target,combatHero(target),stageClock,target.side==='ally'?(allyRevives.get(target.id)?.count||0):0)){
@@ -1737,16 +1738,42 @@ function advanceExplosion(actor,auto=false){
  if(trialContext)trialContext.note='EXPLOSION! สำเร็จ · หมดแรงจนจบการต่อสู้';
  return true;
 }
+// Totsuka's two hits use the simulation clock, not browser timers.
+function startTotsuka(actor,target){
+ if(!actor.alive||actor.hp<=0||actor.castUntil)return false;
+ actor.totsukaCast={x:target.x,y:target.y,hits:0};
+ actor.castUntil=stageClock+3;actor.walking=false;
+ visualEffect('susanoo',actor);unitFx(actor,'เรียกซูซาโนะโอะ','status');position(actor);
+ if(trialContext)trialContext.note='เรียกซูซาโนะโอะ · เตรียมฟันที่ 2 และ 3 วิ';
+ return true;
+}
+function advanceTotsuka(actor){
+ const cast=actor.totsukaCast;if(!cast)return false;
+ if(!actor.alive||actor.hp<=0){actor.totsukaCast=null;actor.castUntil=0;return true;}
+ const hero=combatHero(actor);actor.walking=false;
+ // freeze pauses castUntil in the common combat loop, shifting both hit times.
+ while(cast.hits<2&&stageClock+1e-9>=actor.castUntil-(1-cast.hits)){
+  cast.hits++;
+  actor.attackUntil=stageClock+(hero.visual?.attackMs||440)/1000;
+  pose(actor,true);playAttackAnimation(actor);
+  unitFx(actor,'ดาบโทสึกะ '+cast.hits+'/2','status');
+  const nearby=(actor.side==='ally'?enemies:fighters).filter(u=>u.hp>0&&u.alive!==false&&(u.cloakUntil||0)<=stageClock&&TFT.pxDist(u,cast)<=(hero.slamRadius||180)).sort((a,b)=>TFT.pxDist(a,cast)-TFT.pxDist(b,cast)).slice(0,hero.passive.totsukaTargets||3);
+  for(const e of nearby){
+   if((!trialContext&&!combat)||!actor.alive||actor.hp<=0||actor.totsukaCast!==cast)break;
+   tftDamage(actor,e,actor.atk*hero.skillPower/2,0,false,false,'totsuka',false,true);
+  }
+  if((!trialContext&&!combat)||!actor.alive||actor.hp<=0||actor.totsukaCast!==cast)return true;
+  if(trialContext)trialContext.note='ดาบโทสึกะ · ฮิต '+cast.hits+'/2';
+ }
+ if(cast.hits>=2){actor.totsukaCast=null;actor.castUntil=0;if(trialContext)trialContext.note='ดาบโทสึกะครบ 2 ฮิต';}
+ else if(actor.attackUntil<=stageClock)pose(actor,false);
+ position(actor);return true;
+}
 function tftSkill(attacker,target){
  const hero=combatHero(attacker),effect=hero.effect;
  const foes=()=>attacker.side==='ally'?enemies.filter(x=>x.hp>0):fighters.filter(x=>x.alive);
  switch(effect){
-  case 'totsuka':{
-   const nearby=foes().filter(u=>u.hp>0&&u.alive!==false&&(u.cloakUntil||0)<=stageClock&&TFT.pxDist(u,target)<=(hero.slamRadius||180)).sort((a,b)=>TFT.pxDist(a,target)-TFT.pxDist(b,target)).slice(0,hero.passive.totsukaTargets||3);
-   visualEffect('susanoo',attacker);
-   for(const e of nearby){if(!trialContext&&!combat)break;tftDamage(attacker,e,attacker.atk*hero.skillPower,0,false,false,'totsuka',false,true);}
-   return true;
-  }
+  case 'totsuka':return startTotsuka(attacker,target);
   case 'dot':{
    const targets=foes().sort((a,b)=>TFT.pxDist(a,target)-TFT.pxDist(b,target)).slice(0,hero.passive.dotTargets);
    for(const e of targets){
@@ -1879,6 +1906,7 @@ function tftAttack(attacker,target,forceSkill=false){
  if(special){
   if(effect!=='cloakshot')mul*=hero.skillPower||2;
   if(tftSkill(attacker,target)){
+   if(attacker.totsukaCast)return;
    attacker.attackUntil=stageClock+(hero.visual?.attackMs||360)/1000;
    pose(attacker,true);
    playAttackAnimation(attacker);
@@ -1945,7 +1973,7 @@ function tick(dt){
   for(const f of fighters){
   if(!f.alive)continue;
   if(TFT.isFrozen(f,stageClock)){f.walking=false;if(f.castUntil)f.castUntil+=t;position(f);continue;}
-  if(advanceExplosion(f,true)){if(!combat)return;continue}
+  if(advanceTotsuka(f)||advanceExplosion(f,true)){if(!combat)return;continue}
   f.remaining-=t;
   if(!backgroundSession&&f.attackUntil<stageClock&&f.sprite!==heroImages(f.id).idle){
    pose(f,false);f.node.classList.remove('burst');
@@ -1963,7 +1991,7 @@ function tick(dt){
  for(const foe of enemies.slice()){
   if(foe.hp<=0)continue;
   if(TFT.isFrozen(foe,stageClock)){foe.walking=false;if(foe.castUntil)foe.castUntil+=t;position(foe);continue;}
-  if(advanceExplosion(foe,true)){if(!combat)return;continue}
+  if(advanceTotsuka(foe)||advanceExplosion(foe,true)){if(!combat)return;continue}
   if(!backgroundSession&&foe.attackUntil<stageClock&&foe.sprite!==HEROES[foe.id].images.idle){
    pose(foe,false);foe.node.classList.remove('burst');
   }
@@ -2120,7 +2148,7 @@ function renderTrial(){
  const h=combatHero(scene.hero);
  $('trialPassive').disabled=busy||!scene.hero.alive||!!scene.hero.exhausted||!(h.passive||h.guard||h.fireTrail||h.effect==='cloakshot');
  if($('trialRevive')){$('trialRevive').hidden=!h.passive?.finalFlameSeconds;$('trialRevive').disabled=busy||!scene.hero.alive||!!scene.hero.finalFlameUntil;$('trialRevive').textContent='🔥 ทดสอบคืนชีพ '+(scene.hero.reviveCount||0)+'/2';}
- $('trialNote').textContent=scene.hero.finalFlameSpent?'🔥 เพลิงสุดท้ายดับ · ตายถาวร':scene.hero.finalFlameUntil?'🔥 อมตะ '+Math.max(0,scene.hero.finalFlameUntil-stageClock).toFixed(1)+' วินาที · โจมตีและใช้สกิลได้':fireTrails.length?'🔥 ทางไฟ '+fireTrails.length+' เส้น · ซ้อนทับได้ · จางตามแนวบิน':progress.frozen?'❄ แช่แข็ง '+progress.frozen+' เป้าหมาย · เหลือ '+(Math.ceil(progress.seconds*10)/10).toFixed(1)+' วินาที':progress.pending?'คำสาปกำลังทำงาน · เหลือ '+progress.left+' ครั้งก่อนจบ'+(h.passive?.dotFreezeSeconds?'และแช่แข็ง':''):scene.note;
+ $('trialNote').textContent=scene.hero.totsukaCast?'ซูซาโนะโอะ · ฮิต '+scene.hero.totsukaCast.hits+'/2 · เหลือ '+Math.max(0,scene.hero.castUntil-stageClock).toFixed(1)+' วิ':scene.hero.finalFlameSpent?'🔥 เพลิงสุดท้ายดับ · ตายถาวร':scene.hero.finalFlameUntil?'🔥 อมตะ '+Math.max(0,scene.hero.finalFlameUntil-stageClock).toFixed(1)+' วินาที · โจมตีและใช้สกิลได้':fireTrails.length?'🔥 ทางไฟ '+fireTrails.length+' เส้น · ซ้อนทับได้ · จางตามแนวบิน':progress.frozen?'❄ แช่แข็ง '+progress.frozen+' เป้าหมาย · เหลือ '+(Math.ceil(progress.seconds*10)/10).toFixed(1)+' วินาที':progress.pending?'คำสาปกำลังทำงาน · เหลือ '+progress.left+' ครั้งก่อนจบ'+(h.passive?.dotFreezeSeconds?'และแช่แข็ง':''):scene.note;
  const key=JSON.stringify(scene.events);
  if(scene.lastLog!==key){
   scene.lastLog=key;$('trialLog').innerHTML=scene.events.map(e=>'<div class="trial-event '+e.kind+'"><span>'+escapeText(e.name)+'</span><b>'+escapeText(e.label)+'</b></div>').join('');
@@ -2165,7 +2193,7 @@ function tickTrial(dt){
   if(actor.attackUntil<=stageClock){pose(actor,false);actor.node.classList.remove('burst')}
   advanceFinalFlames();advanceTftShots(t);advanceDots();advanceFireTrails();
   if(TFT.isFrozen(actor,stageClock)){actor.walking=false;if(actor.castUntil)actor.castUntil+=t;renderTrial();return;}
-  if(actor.castUntil){advanceExplosion(actor,false);renderTrial();return}
+  if(actor.castUntil){if(!advanceTotsuka(actor))advanceExplosion(actor,false);renderTrial();return}
   if(!scene.active&&scene.queue.length&&stageClock>=scene.nextAt&&!shots.length)scene.active=scene.queue.shift();
   if(scene.active){
    const cmd=scene.active,target=h.passive?.approachDash&&!['hit','lethal','taunt','protect','healTest'].includes(cmd)?selectAssassinTarget(actor,enemies,h,cmd==='skill'):h.passive?.lockTarget?TFT.selectCombatTarget(actor,enemies,stageClock,h):enemies.find(u=>u.hp>0);
@@ -2191,7 +2219,8 @@ function tickTrial(dt){
      actor.walking=false;
      actor.attacks=0;
      tftAttack(actor,target,cmd==='skill');
-     if(h.passive?.sharinganMax)scene.note='เนตรวงแหวน '+(actor.sharinganStacks||0)+'/'+h.passive.sharinganMax+' · PATK +'+Math.round(TFT.sharinganBonus(actor,h).atk*100)+'% · CRIT +'+Math.round(TFT.sharinganBonus(actor,h).crit*100)+' จุด%';
+     if(actor.totsukaCast)scene.note='เรียกซูซาโนะโอะ · เตรียมฟันที่ 2 และ 3 วิ';
+     else if(h.passive?.sharinganMax)scene.note='เนตรวงแหวน '+(actor.sharinganStacks||0)+'/'+h.passive.sharinganMax+' · PATK +'+Math.round(TFT.sharinganBonus(actor,h).atk*100)+'% · CRIT +'+Math.round(TFT.sharinganBonus(actor,h).crit*100)+' จุด%';
      else if(h.passive?.focusCritStep)scene.note='โอกาสคริติคอลปกติ '+Math.round((actor.crit+Math.min(h.passive.focusCritMax,(actor.focusHits||0)*h.passive.focusCritStep))*100)+'%';
      else scene.note=cmd==='skill'?'ใช้ '+h.skill:cmd==='ambush'?'โจมตีหลังหมดพรางตัว':'โจมตีปกติ';
      scene.active=null;scene.nextAt=stageClock+Math.max(.3,h.cool);
