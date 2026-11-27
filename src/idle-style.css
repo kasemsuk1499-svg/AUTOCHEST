@@ -890,3 +890,6 @@ body.background-idle #heroLayer,body.background-idle #monsterLayer,body.backgrou
 
 /* Keep the blessing panel stable during repeated rolls; never animate text/card replacement. */
 .blessing-panel .blessing-slot,.blessing-panel .blessing-run-status{animation:none!important;transition:none!important}.blessing-filter [hidden]{display:none!important}.blessing-slot>strong{min-height:1.5em}.blessing-slot p{min-height:3em}.blessing-run-status{min-height:2em;font-variant-numeric:tabular-nums}
+
+/* Formation synergy: keep existing tag panel and distinguish members outside the allowed row. */
+.synergy-row-rule{font-size:10px;color:#b5c9e2;margin:4px 0}.synergy-members span.wrong-row{opacity:.65;filter:saturate(.35);border-color:#d6a65d}.synergy-members span.receives{border-color:#75d0a2;box-shadow:inset 0 0 0 1px #75d0a2}.hero-synergy-note.row-blocked{color:#efc78e;border-color:#987444;background:#3b3026}.board-cell.formation-row-4{--formation-tint:#67b69b}.board-cell.formation-row-5{--formation-tint:#e3b963}.board-cell.formation-row-6{--formation-tint:#909be2}.board-cell[class*="formation-row-"]{box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--formation-tint) 52%,transparent)}

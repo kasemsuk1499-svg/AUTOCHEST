@@ -285,10 +285,10 @@ function renderGrid(){
    const ally=row>=ALLY_START_ROW,enemy=row<=2;
    const occupied=state.squad.find(id=>state.placements?.[id]?.col===col&&state.placements?.[id]?.row===row);
    const current=selectedCell?.col===col&&selectedCell?.row===row;
-   const cls='board-cell '+(ally?'ally-cell':enemy?'enemy-cell':'mid-cell')+
+   const cls='board-cell '+(ally?'ally-cell formation-row-'+row:enemy?'enemy-cell':'mid-cell')+
     (occupied?' occupied-cell':'')+(current?' selected-cell':'');
    return ally?'<button type="button" class="'+cls+'" data-col="'+col+'" data-row="'+row+
-    '" aria-label="ช่องทีม คอลัมน์ '+(col+1)+' แถว '+(row-3)+'">'+
+    '" aria-label="ช่องทีม คอลัมน์ '+(col+1)+' แถว'+formationRowName(row)+'" title="แถว'+formationRowName(row)+'">'+
     (current?'<span class="board-selected-marker">✦</span>':'')+'</button>':
     '<div class="'+cls+'" aria-hidden="true"></div>';
   }).join('')).join('');
@@ -308,7 +308,8 @@ function moveHeroToCell(id,col,row){
    unit.walking=false;position(unit);
   }
  }
- selected=id;renderGrid();renderTeam();renderHeroes();renderSelected();save();
+ for(const unit of fighters)applyLiveHeroStats(unit.id);
+ selected=id;renderGrid();renderTeam();renderHeroes();renderSelected();updateResources();save();
  toast('♟️ วาง '+HEROES[id].name+' ที่ช่อง '+(col+1)+' / '+(row-3));
  return true;
 }
@@ -538,6 +539,8 @@ function levelBatch(id,maximum=5){
  return {count,gold:paidGold,exp:paidExp};
 }
 function neededMaterials(price,have,label){return have>=price?'✓ '+label+' พร้อม':'ขาด '+fmt(price-have)+' '+label}
+const formationRowName=row=>({4:'หน้า',5:'กลาง',6:'หลัง'})[row]||'';
+const synergyRowLabel=t=>t.rows?'แถว'+t.rows.map(formationRowName).join(' / '):'ทุกแถว';
 function synergyEffect(t){
  if(t.special)return t.special;
  return [['hp','HP'],['atk','ATK ทุกประเภท'],['physicalAtk','PATK'],['magicAtk','MATK'],['dotDamage','DMG ต่อเนื่อง'],['healPower','ฟื้นฟูทั้งทีม'],['antiHealPower','พลังลดฟื้นฟูทั้งทีม'],['speed','ความเร็วโจมตี'],['crit','CRIT']].filter(([k])=>t[k]).map(([k,label])=>label+' +'+Math.round(t[k]*100)+(k==='crit'?' จุด%':'%')).join(' · ');
@@ -550,8 +553,9 @@ function renderSynergies(){
   const target=t.next?.count||t.active?.count||t.tiers[0].count;
   return '<div class="synergy-row '+(t.active?'synergy-active':'')+'"><div class="synergy-line"><strong>'+t.icon+' '+escapeText(t.name)+'</strong><b>'+t.members.length+'/'+target+(t.active?' ✓':'')+'</b></div>'+
    '<div class="synergy-effect">'+(t.active?escapeText(synergyEffect(t.active)):'ยังไม่ทำงาน')+'</div>'+
+   (t.rows?'<div class="synergy-row-rule">♟ '+synergyRowLabel(t)+' · '+(t.active?'รับโบนัส '+t.recipients.length+'/'+t.members.length+' ตัว':'นับสมาชิกทุกแถว')+'</div>':'')+
    '<div class="synergy-tier-line">'+t.tiers.map(x=>'<span class="'+(t.active?.count===x.count?'reached':'')+'">'+x.count+' ตัว · '+escapeText(synergyEffect(x))+'</span>').join('')+'</div>'+
-   '<div class="synergy-members">'+t.available.map(id=>'<span class="'+(t.members.includes(id)?'deployed':'')+'" title="'+escapeText(HEROES[id].name)+'"><img loading="lazy" src="'+heroImages(id).art+'" alt="'+escapeText(HEROES[id].name)+'"></span>').join('')+'</div>'+
+   '<div class="synergy-members">'+t.available.map(id=>{const deployed=t.members.includes(id),eligible=t.eligible.includes(id),receives=t.recipients.includes(id);return '<span class="'+(deployed?'deployed ':'')+(receives?'receives ':'')+(deployed&&!eligible?'wrong-row':'')+'" title="'+escapeText(HEROES[id].name+(deployed&&t.rows?' · แถว'+formationRowName(state.placements?.[id]?.row)+' · '+(!eligible?'ผิดแถว ไม่รับโบนัส':receives?'ได้รับโบนัส':'รอเปิดแท็ก'):''))+'"><img loading="lazy" src="'+heroImages(id).art+'" alt="'+escapeText(HEROES[id].name)+'"></span>'}).join('')+'</div>'+
    (t.next?'<small>ขาดอีก '+(t.next.count-t.members.length)+' ตัวสำหรับขั้นถัดไป</small>':'<small>ครบขั้นสูงสุด</small>')+'</div>';
  }).join('');
 }
@@ -748,7 +752,8 @@ function renderSelected(){
   CORE.teamHeroStats(state,HEROES,id,{...p,level:p.level+1},tags):stats;
  const nextStar=p.stars<CORE.MAX_STARS?
   CORE.teamHeroStats(state,HEROES,id,{...p,stars:p.stars+1},tags):stats;
- const activeTags=tags.filter(t=>t.active&&t.members.includes(id));
+ const activeTags=tags.filter(t=>t.active&&t.recipients.includes(id));
+ const rowBlockedTags=tags.filter(t=>t.active&&t.members.includes(id)&&!t.eligible.includes(id));
  const atMax=p.level>=CORE.MAX_LEVEL,atStarMax=p.stars>=CORE.MAX_STARS;
  const cost=CORE.levelCost(p.level),starNeed=CORE.shardsNeeded(p.stars),starGold=CORE.ascendCost(p.stars);
  const lvGood=canLevel(id),starGood=canStar(id),batch=levelBatch(id,5);
@@ -764,6 +769,7 @@ function renderSelected(){
   (inTeam?'<span class="equipped-tag">⚔️ ในทีม</span>':'<span class="reserve-tag">สำรอง</span>')+'</div>'+
   '</div></div>'+
   (activeTags.length?'<div class="hero-synergy-note">✦ โบนัสแท็ก: '+activeTags.map(t=>escapeText(t.name+' ('+synergyEffect(t.active)+')')).join(' · ')+'</div>':'')+
+  (rowBlockedTags.length?'<div class="hero-synergy-note row-blocked">♟ ไม่ได้รับโบนัส: '+rowBlockedTags.map(t=>escapeText(t.name+' ('+synergyRowLabel(t)+')')).join(' · ')+'</div>':'')+
   '<div class="detail-stats upgrade-stat-row"><div><small>❤️ HP</small><strong>'+fmt(stats.hp)+'</strong></div>'+
   '<div><small>'+attackTypeLabel(hero)+'</small><strong>'+fmt(stats.atk)+'</strong></div>'+
   '<div><small>🎯 CRIT</small><strong>'+Math.round(stats.crit*100)+'%</strong></div></div>'+
@@ -924,7 +930,7 @@ function openSkill(id,source='hero',unit=null){
   '<div class="skill-modal-layout"><div class="skill-portrait"><img loading="lazy" src="'+escapeText(enemy?h.images.art:heroImages(id).art)+'" alt="'+escapeText(h.name)+'"></div>'+
   '<div class="skill-modal-main"><div class="skill-status">'+escapeText(label)+'</div><h3>'+escapeText(h.name)+'</h3>'+
   '<p>'+escapeText(h.subtitle||'')+'</p><div class="skill-tags">'+rarityBadge(h)+'<span>'+escapeText(h.role||h.team)+'</span>'+
-  (h.traits||[]).map(x=>'<span>'+escapeText(x)+'</span>').join('')+(h.faction==='celestial_beast'&&!CORE.teamSynergies(state,HEROES).some(t=>t.id==='celestial_beast')?'<span>🦊 สัตว์สวรรค์</span>':'')+CORE.teamSynergies(state,HEROES).filter(t=>t.available.includes(id)).map(t=>'<span>'+escapeText(t.icon+' '+t.name)+(!enemy&&t.active&&t.members.includes(id)?' ✓':'')+'</span>').join('')+'</div>'+
+  (h.traits||[]).map(x=>'<span>'+escapeText(x)+'</span>').join('')+(h.faction==='celestial_beast'&&!CORE.teamSynergies(state,HEROES).some(t=>t.id==='celestial_beast')?'<span>🦊 สัตว์สวรรค์</span>':'')+CORE.teamSynergies(state,HEROES).filter(t=>t.available.includes(id)).map(t=>'<span>'+escapeText(t.icon+' '+t.name)+(!enemy&&t.active&&t.recipients.includes(id)?' ✓':!enemy&&t.active&&t.members.includes(id)&&!t.eligible.includes(id)?' · ผิดแถว':'')+(t.rows?' · '+synergyRowLabel(t):'')+'</span>').join('')+'</div>'+
   '<div class="skill-stats">'+stats.map(([k,v])=>'<div><small>'+escapeText(k)+'</small><strong>'+escapeText(v)+'</strong></div>').join('')+
   '</div></div></div><section class="skill-ability"><small>⚔ AUTO SKILL · IDLE MODE</small>'+
   '<h3>✨ '+escapeText(h.skill)+'</h3><ul>'+

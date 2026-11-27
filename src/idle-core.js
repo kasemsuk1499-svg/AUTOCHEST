@@ -321,11 +321,11 @@
   {id:'celestial_beast',name:'สัตว์สวรรค์',icon:'🦊',match:h=>factionOf(h)==='celestial_beast',showFuture:true,tiers:[{count:2,dotDamage:.15},{count:3,dotDamage:.25},{count:5,dotDamage:.40},{count:7,dotDamage:.55}]},
   {id:'fate',name:'Fate',icon:'👑',match:h=>factionOf(h)==='fate',tiers:[{count:2,hp:.10,atk:.10}]},
   {id:'duo',name:'คู่ดาบแห่ง Aincrad',icon:'💞',match:h=>h.id==='asuna'||h.id==='kirito',tiers:[{count:2,speed:.08}]},
-  {id:'warrior',name:'นักรบ',icon:'🗡️',match:h=>h.team==='นักรบ',tiers:[{count:2,speed:.10},{count:3,speed:.18}]},
-  {id:'mage',name:'พลังเวท',icon:'🔮',match:h=>damageType(h)==='magic',tiers:[{count:2,magicAtk:.10},{count:3,magicAtk:.18},{count:5,magicAtk:.25},{count:7,magicAtk:.35}]},
-  {id:'physical',name:'พลังกายภาพ',icon:'⚔️',match:h=>damageType(h)==='physical',tiers:[{count:2,physicalAtk:.10},{count:3,physicalAtk:.18},{count:5,physicalAtk:.25},{count:7,physicalAtk:.35}]},
-  {id:'ranged',name:'ยิงไกล',icon:'🎯',match:h=>h.team==='ยิงไกล',tiers:[{count:2,crit:.10},{count:3,crit:.18}]},
-  {id:'tank',name:'ป้องกัน',icon:'🛡️',match:h=>h.team==='ป้องกัน',tiers:[{count:2,hp:.18},{count:3,hp:.28}]}
+  {id:'warrior',rows:[5],name:'นักรบ',icon:'🗡️',match:h=>h.team==='นักรบ',tiers:[{count:2,speed:.10},{count:3,speed:.18}]},
+  {id:'mage',rows:[6],name:'พลังเวท',icon:'🔮',match:h=>damageType(h)==='magic',tiers:[{count:2,magicAtk:.10},{count:3,magicAtk:.18},{count:5,magicAtk:.25},{count:7,magicAtk:.35}]},
+  {id:'physical',rows:[4,5],name:'พลังกายภาพ',icon:'⚔️',match:h=>damageType(h)==='physical',tiers:[{count:2,physicalAtk:.10},{count:3,physicalAtk:.18},{count:5,physicalAtk:.25},{count:7,physicalAtk:.35}]},
+  {id:'ranged',rows:[6],name:'ยิงไกล',icon:'🎯',match:h=>h.team==='ยิงไกล',tiers:[{count:2,crit:.10},{count:3,crit:.18}]},
+  {id:'tank',rows:[4],name:'ป้องกัน',icon:'🛡️',match:h=>h.team==='ป้องกัน',tiers:[{count:2,hp:.18},{count:3,hp:.28}]}
  ];
  function teamSynergies(state,roster){
   const ids=[...new Set(state.squad)].filter(id=>state.owned[id]&&roster[id]);
@@ -335,12 +335,14 @@
    const members=ids.filter(id=>available.includes(id));
    const active=tiers.filter(t=>t.count<=members.length).at(-1)||null;
    const next=tiers.find(t=>t.count>members.length)||null;
-   return {...def,available,members,tiers,active,next};
+   const eligible=members.filter(id=>!def.rows||def.rows.includes((state.placements?.[id]||defaultCells[state.squad.indexOf(id)])?.row));
+   const recipients=active?eligible:[];
+   return {...def,available,members,eligible,recipients,tiers,active,next};
   }).filter(tag=>tag.tiers.length);
  }
  function synergyBonus(id,tags){
   const bonus={hp:0,atk:0,physicalAtk:0,magicAtk:0,dotDamage:0,speed:0,crit:0};
-  for(const tag of tags)if(tag.active&&tag.members.includes(id))
+  for(const tag of tags)if(tag.active&&(tag.recipients||tag.members).includes(id))
    for(const key of Object.keys(bonus))bonus[key]+=tag.active[key]||0;
   return bonus;
  }
