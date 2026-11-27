@@ -1246,6 +1246,33 @@
         "airtimeMs": 0,
         "loopFrames": true
       }
+    },
+    "itachi": {
+      "totsukaSeal": {
+        "src": "./assets/effects/combat-atlas.svg",
+        "cols": 4,
+        "rows": 12,
+        "row": 5,
+        "col": 0,
+        "frames": 4,
+        "size": 105,
+        "ms": 440,
+        "mode": "point",
+        "scaleX": 1,
+        "scaleY": 1,
+        "rotation": 0,
+        "offsetX": 0,
+        "offsetY": 0,
+        "thickness": 48,
+        "orientation": "horizontal",
+        "hue": 0,
+        "saturation": 100,
+        "brightness": 100,
+        "colorize": false,
+        "delayMs": 0,
+        "airtimeMs": 0,
+        "loopFrames": false
+      }
     }
   },
   "costumes": {
