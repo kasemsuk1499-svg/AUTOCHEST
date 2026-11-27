@@ -2,14 +2,14 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id),H=window.AUTOCHEST_CHARACTERS.HEROES,V=window.AUTOCHEST_VFX;
 const repo='kasemsuk1499-svg/AUTOCHEST',base='https://api.github.com/repos/'+repo,manifestPath='assets/effects/published.json',draftKey='AUTOCHEST_VFX_DRAFT';
-const labels={dash:'แดช · เส้นทางวาร์ป',dodge:'หลบหลีก · เมื่อหลบสำเร็จ',freeze:'แช่แข็ง · เมื่อคำสาปครบ',dot:'คำสาป · ดาเมจต่อเนื่อง',hit:'โจมตีปกติ · ตอนโดน',skillHit:'สกิล · ตอนโดน',projectile:'กระสุนปกติ',skillProjectile:'กระสุนสกิล',area:'กระแทกวงกว้าง',heal:'ฟื้นฟู HP',buff:'บัฟทีม',debuff:'ดีบัฟศัตรู',shield:'โล่',revive:'คืนชีพ',cloak:'พรางตัว',cast:'วงเวทขณะร่าย',aftermath:'ควันหลังระเบิด',cleave:'ฟันหมู่ปกติ',groundFire:'ทางไฟ · พื้นสนาม'};
+const labels={rasengan:'กระสุนวงจักร · Rasengan',dash:'แดช · เส้นทางวาร์ป',dodge:'หลบหลีก · เมื่อหลบสำเร็จ',freeze:'แช่แข็ง · เมื่อคำสาปครบ',dot:'คำสาป · ดาเมจต่อเนื่อง',hit:'โจมตีปกติ · ตอนโดน',skillHit:'สกิล · ตอนโดน',projectile:'กระสุนปกติ',skillProjectile:'กระสุนสกิล',area:'กระแทกวงกว้าง',heal:'ฟื้นฟู HP',buff:'บัฟทีม',debuff:'ดีบัฟศัตรู',shield:'โล่',revive:'คืนชีพ',cloak:'พรางตัว',cast:'วงเวทขณะร่าย',aftermath:'ควันหลังระเบิด',cleave:'ฟันหมู่ปกติ',groundFire:'ทางไฟ · พื้นสนาม'};
 let file=null,dataURL='',ext='',busy=false,sequence=0,sheet=null,pick='start',loop=false,loopTimer=0;
 const status=(id,msg,error=false)=>{$(id).textContent=msg;$(id).classList.toggle('error',error)};
 function eventsFor(h){
  const ranged=h.melee!==true&&Number(h.range)>=1.8,events=['hit'];
  if(h.effect==='explosion')return ['hit','projectile','cast','area','aftermath'];
  const direct=!['heal','shield','slam','chain'].includes(h.effect);
- if(direct||h.support?.damageTargets)events.push('skillHit');
+ if(direct||h.support?.damageTargets)events.push(h.effect==='dash'?'rasengan':'skillHit');
  if(ranged)events.push('projectile');
  if((ranged&&direct)||h.effect==='pierce')events.push('skillProjectile');
  if(h.cleave)events.push('cleave');
@@ -47,7 +47,7 @@ function selectHero(){
  selectCostume();
 }
 function selectEvent(){
- const event=$('event').value;const notes={dash:'เอฟเฟกต์ยืดจากตำแหน่งก่อนวาร์ปไปยังจุดลงจริง · กดใช้สกิลในสนามทดลอง',dodge:'แสดงบนตัวละครเมื่อสุ่มหลบสำเร็จ · กดทดสอบหลบหลีก ×5 ในสนามทดลอง',groundFire:'ภาพพื้นไฟยืดตามทางนกที่บินผ่าน · ความกว้างและอายุยึดระบบต่อสู้ ไม่ใช้ค่าขนาด/airtime ของภาพ',freeze:'พรีวิวภาพแช่แข็งได้ทันทีด้วยเล่นภาพ · ในสนามทดลองให้กดใช้สกิลแล้วรอคำสาปครบ 5–6 ครั้ง',dot:'แสดงทุกครั้งที่คำสาปสร้างดาเมจจริง',skillHit:'แสดงที่ศัตรูแต่ละตัวที่ได้รับดาเมจจากสกิลโดยตรง รวมถึงสกิลเวทโจมตีพร้อมฮีล',skillProjectile:'ใช้กับกระสุนสกิลที่เดินทางไปยังเป้าหมาย',heal:'แสดงที่พันธมิตรที่ได้รับการฮีลจริง',area:'แสดงตรงเป้าหมายของค้อน',revive:'แสดงที่ตัวละครที่คืนชีพหรือได้รับการชุบชีวิตจากเพื่อน',shield:'แสดงเมื่อได้รับหรือถูกตีโล่'};
+ const event=$('event').value;const notes={rasengan:'เอฟเฟกต์กระสุนวงจักร ณ จุดที่โจมตีเป้าหมายหลังวาร์ปด้วยสกิล · แยกจากเส้นทางวาร์ป · กดใช้สกิลในสนามทดลอง',dash:'เอฟเฟกต์ยืดจากตำแหน่งก่อนวาร์ปไปยังจุดลงจริง · กดใช้สกิลในสนามทดลอง',dodge:'แสดงบนตัวละครเมื่อสุ่มหลบสำเร็จ · กดทดสอบหลบหลีก ×5 ในสนามทดลอง',groundFire:'ภาพพื้นไฟยืดตามทางนกที่บินผ่าน · ความกว้างและอายุยึดระบบต่อสู้ ไม่ใช้ค่าขนาด/airtime ของภาพ',freeze:'พรีวิวภาพแช่แข็งได้ทันทีด้วยเล่นภาพ · ในสนามทดลองให้กดใช้สกิลแล้วรอคำสาปครบ 5–6 ครั้ง',dot:'แสดงทุกครั้งที่คำสาปสร้างดาเมจจริง',skillHit:'แสดงที่ศัตรูแต่ละตัวที่ได้รับดาเมจจากสกิลโดยตรง รวมถึงสกิลเวทโจมตีพร้อมฮีล',skillProjectile:'ใช้กับกระสุนสกิลที่เดินทางไปยังเป้าหมาย',heal:'แสดงที่พันธมิตรที่ได้รับการฮีลจริง',area:'แสดงตรงเป้าหมายของค้อน',revive:'แสดงที่ตัวละครที่คืนชีพหรือได้รับการชุบชีวิตจากเพื่อน',shield:'แสดงเมื่อได้รับหรือถูกตีโล่'};
  const hero=H[$('hero').value],mode=V.slotLayout(hero,event),spec=currentSpec();
  $('eventHint').textContent=event==='dash'?notes.dash:mode==='beam'?'ลำแสงยืดตามแนวโจมตีจริงอัตโนมัติ · ไม่ต้องสร้างภาพยาวเท่าสนาม':mode==='field'?'ภาพยืดตามพื้นที่สนามโดยอัตโนมัติ':notes[event]||'แสดงเมื่อกลไกนี้ทำงานจริงในสนาม';
  $('beamSettings').hidden=mode!=='beam';$('pointSettings').hidden=mode==='beam';$('slotMode').textContent=mode==='beam'?'BEAM · ยืดตามแนวยิง':mode==='field'?'FIELD · พื้นที่สนาม':'POINT · จุดแสดงผล';
@@ -139,7 +139,7 @@ async function loadFile(){
  }catch(e){if(seq!==sequence)return;status('fileInfo',e.message,true);sync()}
 }
 function draft(){if(!validDraft())throw Error('เลือกภาพก่อน');return {hero:$('hero').value,costume:selectedCostume(),event:$('event').value,spec:settings(currentSource())}}
-function openTrial(){try{const d=draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&studioCostume='+encodeURIComponent(d.costume)+'&v=0.20.67';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
+function openTrial(){try{const d=draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&studioCostume='+encodeURIComponent(d.costume)+'&v=0.20.77';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
 function closeTrial(){$('trialFrame').src='about:blank';$('trialPanel').hidden=true;try{sessionStorage.removeItem(draftKey)}catch(_){}}
 function exportDraft(){try{const d=draft(),url=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='vfx-'+d.hero+'-'+(d.costume?d.costume+'-':'')+d.event+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){status('publishStatus',e.message,true)}}
 async function api(token,path,method='GET',body){

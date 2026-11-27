@@ -1492,7 +1492,7 @@ function vtuberTeamBonus(actor){
  }
  position(target);
  if(damage>0){unitFx(target,(dot?'DOT ':critical?'CRIT ':'')+'−'+fmt(damage),'damage',critical);if(visual)visualEffect(visual,attacker,target.x,target.y,critical?1.18:1)}
- if(absorbed>0){unitFx(target,'โล่ −'+fmt(absorbed),'shield',false);shieldEffect(target,shieldSource)}
+ if(absorbed>0){unitFx(target,'โล่ −'+fmt(absorbed),'shield',false);shieldEffect(target,shieldSource);if(!damage&&visual==='rasengan')visualEffect(visual,attacker,target.x,target.y,critical?1.18:1)}
  if(!damage&&!absorbed)statusFx(target,'zero','0');
  if(critical)ring(target.x,target.y);
  if(transferred)finishDamage(split.guard);
@@ -1803,7 +1803,7 @@ function tftSkill(attacker,target){
    if(hero.passive?.lockTarget)attacker.lockedTarget=victim;
    warpToVictim(attacker,victim);
    unitFx(attacker,'⚡ เทพอัสนีเหิน','buff');
-   tftDamage(attacker,victim,attacker.atk*hero.skillPower,0,false,false,'skillHit');
+   tftDamage(attacker,victim,attacker.atk*hero.skillPower,0,false,false,'rasengan',false,true);
    return true;
   }
   case 'blink':

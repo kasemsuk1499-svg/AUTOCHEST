@@ -5,7 +5,7 @@
  const specs=Object.fromEntries(rows.map((name,row)=>[name,{src:atlas,cols:4,rows:12,row,frames:4,size: name==='hammer'?180:name==='shield'||name==='heal'||name==='revive'?122:105,ms:440}]));
  const defaults={
   asuna:{hit:'slashGold',skillHit:'slashGold'},
-  minato:{hit:'slashGold',skillHit:'impact',dash:'slashGold',dodge:'cloak'},
+  minato:{hit:'slashGold',skillHit:'impact',rasengan:'impact',dash:'slashGold',dodge:'cloak'},
   kirito:{hit:'slashBlue',skillHit:'slashBlue',revive:'revive'},
   sinon:{projectile:'bullet',skillProjectile:'bullet',hit:'impact',skillHit:'impact'},
   heathcliff:{hit:'impact',shield:'shield'},
@@ -13,7 +13,7 @@
   silica:{projectile:'bullet',heal:'heal',buff:'buff',hit:'impact'},
   deathgun:{projectile:'darkBullet',skillProjectile:'darkBullet',hit:'impact',cloak:'cloak',skillHit:'impact'}
  };
- const generic={dash:'slashGold',dodge:'cloak',freeze:'shield',dot:'debuff',hit:'impact',skillHit:'impact',projectile:'bullet',skillProjectile:'bullet',area:'hammer',heal:'heal',shield:'shield',revive:'revive',buff:'buff',debuff:'debuff',cloak:'cloak',cast:'buff',aftermath:'impact',cleave:'slashGold',groundFire:false};
+ const generic={rasengan:'impact',dash:'slashGold',dodge:'cloak',freeze:'shield',dot:'debuff',hit:'impact',skillHit:'impact',projectile:'bullet',skillProjectile:'bullet',area:'hammer',heal:'heal',shield:'shield',revive:'revive',buff:'buff',debuff:'debuff',cloak:'cloak',cast:'buff',aftermath:'impact',cleave:'slashGold',groundFire:false};
  let published={},publishedCostumes={},draft=null;
  const studioMode=new URLSearchParams(window.location?.search||'').has('studioTrial');
  if(studioMode){try{draft=JSON.parse(sessionStorage.getItem('AUTOCHEST_VFX_DRAFT')||'null')}catch(_){}}
@@ -86,9 +86,11 @@
  }
  function getSpec(hero,event,costumeFx=null,costumeId=''){
   const override=studioMode&&draft?.hero===hero?.id&&draft?.event===event&&(draft.costume||'')===costumeId?draft.spec:null;
-  const key=published[hero?.id]?.[event]??hero?.visual?.fx?.[event]??defaults[hero?.id]?.[event]??generic[event];
+  // Rasengan is a named impact slot; preserve any previously published skill-hit artwork until it is replaced.
+  const legacy=event==='rasengan'&&hero?.effect==='dash'?'skillHit':event;
+  const key=published[hero?.id]?.[event]??published[hero?.id]?.[legacy]??hero?.visual?.fx?.[event]??hero?.visual?.fx?.[legacy]??defaults[hero?.id]?.[event]??generic[event];
   const base=typeof key==='string'?specs[key]:key;
-  const costume=(costumeId?publishedCostumes[hero?.id]?.[costumeId]?.[event]:undefined)??costumeFx?.[event];
+  const costume=(costumeId?(publishedCostumes[hero?.id]?.[costumeId]?.[event]??publishedCostumes[hero?.id]?.[costumeId]?.[legacy]):undefined)??costumeFx?.[event]??costumeFx?.[legacy];
   if(override===false||(!override&&(costume===false||(!costume&&key===false))))return null;
   const raw=override??(costume?{...base,cols:1,rows:1,row:0,col:0,frames:1,...costume}:base);
   if(!raw||typeof raw.src!=='string'||!(/^\.\/assets\/effects\/[a-z0-9_/-]+\.(svg|png|webp|gif)$/i.test(raw.src)||/^\.\/assets\/heroes\/[a-z0-9_-]+\/costumes\/[a-z0-9_-]+\/vfx\/[a-z0-9_-]+\.(svg|png|webp|gif)$/i.test(raw.src)||(override===raw&&/^data:image\/(png|gif|webp);base64,[a-z0-9+/=]+$/i.test(raw.src))))return null;
