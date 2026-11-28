@@ -165,7 +165,8 @@
   return state.bossRetryWaves;
  };
  const stageName=stage=>['ทุ่งหญ้าแห่งการเริ่มต้น','ป่าแห่งความทรงจำ','หุบเขาเหล็ก','วิหารรัตติกาล','ปราสาทลอยฟ้า'][floorNumber(stage)-1]||('ชั้นที่ '+floorNumber(stage));
- const levelCost=level=>({gold:Math.round(75*Math.pow(level,1.35)),exp:Math.round(32*Math.pow(level,1.25)*1.15)});
+ // Gold grows at the same rate as EXP; spare farming gold covers stars and other sinks.
+ const levelCost=level=>({gold:Math.round(52.5*Math.pow(level,1.25)),exp:Math.round(32*Math.pow(level,1.25)*1.15)});
  const shardsNeeded=stars=>stars>=MAX_STARS?0:stars===1?3:stars===2?6:stars===3?10:15;
  const shardsToMax=stars=>{let total=0;for(let n=stars;n<MAX_STARS;n++)total+=shardsNeeded(n);return total;};
  const ascendCost=stars=>250*stars*stars;
