@@ -232,14 +232,39 @@ function invaderPatrol(foe,t){
  if(foe.y<INVADER_FRONT_Y)moveTo(foe,fallback,3,t);
  else foe.walking=false;
 }
+// Studio Flip X normalizes artwork to face right. Runtime facing is independent of side.
+function applyModelFacing(actor){
+ if(backgroundSession||!actor.img||!actor.modelAppearance)return;
+ const {scale,flip}=actor.modelAppearance,dir=actor.facing||(actor.side==='enemy'?-1:1);
+ const modelTransform=(dir*(flip.flipX?-scale:scale))+' '+(flip.flipY?-scale:scale);
+ if(actor.modelScale!==modelTransform){actor.modelScale=modelTransform;actor.img.style.setProperty('--model-scale',modelTransform);actor.img.style.translate=flip.flipY?'0 '+(-100*scale)+'%':'';}
+ const strike=flip.flipX?'-6px':'6px';
+ if(actor.strikeLocalX!==strike){actor.strikeLocalX=strike;actor.img.style.setProperty('--strike-local-x',strike);}
+}
+function faceDirection(actor,dx,threshold=.025){
+ if(!Number.isFinite(dx)||Math.abs(dx)<=threshold)return;
+ const dir=dx<0?-1:1;
+ if(actor.facing!==dir){actor.facing=dir;applyModelFacing(actor);}
+}
+function faceTarget(actor,target){
+ if(target)faceDirection(actor,target.x-actor.x,.30);
+}
+function pursueFacing(actor,target,hero,dt,side){
+ const x=actor.x,result=TFT.pursue(actor,target,hero,dt,side);
+ // While striking, keep the last attack direction; otherwise walk facing actual motion.
+ if(!(actor.attackUntil>stageClock)){
+  if(result.moved)faceDirection(actor,actor.x-x,.008);
+  else faceTarget(actor,target);
+ }
+ return result;
+}
 function pose(actor,attack){
  if(backgroundSession||!actor.img)return;
  const slot=attack?'attack':'idle',image=actorImages(actor)[slot];
  if(actor.sprite!==image){actor.img.src=image;actor.sprite=image}
  const scale=VFX?.modelScale(HEROES[actor.id],slot,actorCostume(actor)?.id||'')??1;
  const flip=VFX?.modelFlip?.(HEROES[actor.id],slot,actorCostume(actor)?.id||'')||{};
- const modelTransform=(flip.flipX?-scale:scale)+' '+(flip.flipY?-scale:scale);
- if(actor.modelScale!==modelTransform){actor.modelScale=modelTransform;actor.img.style.setProperty('--model-scale',modelTransform);actor.img.style.translate=flip.flipY?'0 '+(-100*scale)+'%':'';}
+ actor.modelAppearance={scale,flip};applyModelFacing(actor);
 }
 // Translate on the compositor instead of restarting a 280ms CSS transition each frame.
 let arenaSize={width:0,height:0};
@@ -1308,7 +1333,7 @@ function buildFighters(preserve=false){
   const revive=allyRevives.get(id);
   const finalFlameUntil=old?.finalFlameUntil||revive?.finalFlameUntil||0,finalFlameSpent=!!(old?.finalFlameSpent||revive?.finalFlameSpent);
    const hp=finalFlameSpent?0:finalFlameUntil?1:old?Math.max(0,Math.min(stat.hp,Math.round(old.hp/Math.max(1,old.maxHp)*stat.hp))):stat.hp;
-  return {id,side:'ally',damageType:CORE.damageType(HEROES[id]),x:point.x,y:point.y,startX:point.x,move:HEROES[id].move,
+  return {id,side:'ally',facing:old?.facing||1,damageType:CORE.damageType(HEROES[id]),x:point.x,y:point.y,startX:point.x,move:HEROES[id].move,
    hp,maxHp:stat.hp,atk:stat.atk,dotDamage:stat.dotDamage||0,cool:stat.cool,remaining:old?.remaining??(openingStacks?0:i*.12),
    castUntil:old?.castUntil||0,totsukaCast:old?.totsukaCast?{...old.totsukaCast}:null,exhausted:!!old?.exhausted,explosionCount:old?.explosionCount||0,explosionReadyAt:old?.explosionReadyAt||0,attacks:old?.attacks??(preserve&&combat?0:openingStacks),nextSkillAt:old?.nextSkillAt||0,shield:old?.shield||0,shieldSource:old?.shield>0?old.shieldSource||null:null,tauntUntil:old?.tauntUntil||0,
    attackDown:old?.attackDown||null,vulnerability:old?.vulnerability||null,healDown:old?.healDown||null,
@@ -1358,7 +1383,7 @@ function spawnMonster(boss=false,cell=null,quiet=false,forcedId=null){
  const hero=CORE.enemyHero(HEROES[id],stat.stars,boss),hp=stat.hp,openingStacks=CORE.openingSkillStacks(hero);
  const entry=cell?boardPoint(cell[0],cell[1]):
   boardPoint(boss?2:(encounters+2)%GRID_COLS,boss?1:encounters%3);
- const foe={id,side:'enemy',damageType:CORE.damageType(hero),boss,stars:stat.stars,level:stat.level,hp,maxHp:hp,atk:stat.atk,
+ const foe={id,side:'enemy',facing:-1,damageType:CORE.damageType(hero),boss,stars:stat.stars,level:stat.level,hp,maxHp:hp,atk:stat.atk,
   remaining:openingStacks?0:.65+Math.random()*.35,delay:stat.delay,move:hero.move,
   shield:0,attacks:openingStacks,crit:stat.crit,critDamage:stat.critDamage,
   cloakUntil:0,ambush:false,attackUntil:0,walking:false,alive:true,
@@ -1454,6 +1479,7 @@ function defeatMonster(foe){
 // Free positioning dash acquires a victim; only the charged skill deals Rasengan damage.
 function warpToVictim(actor,victim){
  const from={x:actor.x,y:actor.y},back=actor.side==='ally'?-1:1;
+ faceTarget(actor,victim);
  actor.x=Math.max(5.5,Math.min(94.5,victim.x));
  actor.y=Math.max(8,Math.min(92,victim.y+back*7));
  actor.walking=false;
@@ -1757,7 +1783,7 @@ function advanceTotsuka(actor){
  while(cast.hits<2&&stageClock+1e-9>=actor.castUntil-.5*(1-cast.hits)){
   cast.hits++;
   actor.attackUntil=stageClock+(hero.visual?.attackMs||440)/1000;
-  pose(actor,true);playAttackAnimation(actor);
+  faceTarget(actor,cast);pose(actor,true);playAttackAnimation(actor);
   unitFx(actor,'ดาบโทสึกะ '+cast.hits+'/2','status');
   const nearby=(actor.side==='ally'?enemies:fighters).filter(u=>u.hp>0&&u.alive!==false&&(u.cloakUntil||0)<=stageClock&&TFT.pxDist(u,cast)<=(hero.slamRadius||180)).sort((a,b)=>TFT.pxDist(a,cast)-TFT.pxDist(b,cast)).slice(0,hero.passive.totsukaTargets||3);
   for(const e of nearby){
@@ -1868,7 +1894,7 @@ function tftSkill(attacker,target){
   case 'blink':
    attacker.x=Math.max(5.5,Math.min(94.5,target.x+(Math.random()-.5)*5));
    attacker.y=Math.max(8,Math.min(92,target.y+(Math.random()-.5)*4));
-   position(attacker);ring(attacker.x,attacker.y);
+   faceTarget(attacker,target);position(attacker);ring(attacker.x,attacker.y);
    break;
   case 'slash':
    if(hero.passive?.skillImmortalSeconds){attacker.immortalUntil=Math.max(attacker.immortalUntil||0,stageClock+hero.passive.skillImmortalSeconds);position(attacker);visualEffect('buff',attacker);statusFx(attacker,'immune','อมตะ');}
@@ -1901,6 +1927,7 @@ function tftAttack(attacker,target,forceSkill=false){
  if(!target||target.hp<=0||attacker.exhausted||attacker.castUntil||TFT.isFrozen(attacker,stageClock))return;
  const hero=combatHero(attacker),effect=hero.effect||'';
  if(hero.passive?.lockTarget){const locked=TFT.lockedTarget(attacker,attacker.side==='ally'?enemies:fighters);if(locked){if((locked.cloakUntil||0)>stageClock)return;target=locked;}}
+ faceTarget(attacker,target);
  const ambush=attacker.ambush&&attacker.cloakUntil<=stageClock;
  if(ambush)attacker.ambush=false;
  const special=CORE.consumeSkillAttack(attacker,hero,stageClock,forceSkill);
@@ -1982,7 +2009,7 @@ function tick(dt){
   }
   const target=pickEnemy(f);
   if(!target){f.walking=false;position(f);continue}
-  const close=TFT.pursue(f,target,combatHero(f),t,'ally').inRange;
+  const close=pursueFacing(f,target,combatHero(f),t,'ally').inRange;
   position(f);
   if((close||dashCharged(f,combatHero(f)))&&f.remaining<=0&&f.cloakUntil<=stageClock){
    heroAttack(f,target);
@@ -2000,7 +2027,7 @@ function tick(dt){
   foe.remaining-=t;
   const target=targetHero(foe);
   if(target){
-   const close=TFT.pursue(foe,target,combatHero(foe),t,'enemy').inRange;
+   const close=pursueFacing(foe,target,combatHero(foe),t,'enemy').inRange;
    position(foe);
    if((close||dashCharged(foe,combatHero(foe)))&&foe.remaining<=0&&foe.cloakUntil<=stageClock){
     enemyAttack(foe,target);
@@ -2089,7 +2116,7 @@ function withTrial(fn){
 }
 function trialUnit(id,side,x,y,hp,maxHp,label,stars=1){
  const progress={level:1,stars},h=HEROES[id],st=h?CORE.stats(h,progress):{atk:100,cool:1,crit:0,critDamage:1};
- const actor={id,side,damageType:CORE.damageType(h),x,y,hp,maxHp,progress,atk:st.atk,cool:st.cool,crit:st.crit,critDamage:st.critDamage,alive:true,shield:0,attacks:CORE.openingSkillStacks(CORE.heroAtStars(h,stars)),attackUntil:0,cloakUntil:0,ambush:false,walking:false,label};
+ const actor={id,side,facing:side==='enemy'?-1:1,damageType:CORE.damageType(h),x,y,hp,maxHp,progress,atk:st.atk,cool:st.cool,crit:st.crit,critDamage:st.critDamage,alive:true,shield:0,attacks:CORE.openingSkillStacks(CORE.heroAtStars(h,stars)),attackUntil:0,cloakUntil:0,ambush:false,walking:false,label};
  if(side==='ally'&&trial?.id===id)actor.trialCostume=trial.costume;
  const node=el('div',{class:'fighter '+(side==='enemy'?'enemy-unit trial-dummy':'party-fighter')});
  node.innerHTML='<span class="mini-stars">'+(side==='enemy'?'DUMMY':'Lv.1 '+'★'.repeat(stars))+'</span>'+
@@ -2216,7 +2243,7 @@ function tickTrial(dt){
    }else if(!target||!actor.alive){
     scene.active=null;scene.queue=[];scene.note='รีเซ็ตสนามเพื่อทดลองใหม่';
    }else if(actor.cloakUntil<=stageClock){
-    const close=TFT.pursue(actor,target,h,t,'ally').inRange;
+    const close=pursueFacing(actor,target,h,t,'ally').inRange;
     if(close||(h.effect==='dash'&&cmd==='skill')){
      actor.walking=false;
      actor.attacks=0;
