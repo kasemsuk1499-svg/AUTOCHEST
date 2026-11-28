@@ -1763,8 +1763,12 @@
     },
     "artoria": {
       "costume_01": {
-        "idle": 0.83,
-        "attack": 1.37
+        "idle": 0.98,
+        "attack": 1.32,
+        "idleFlipX": true,
+        "idleFlipY": false,
+        "attackFlipX": true,
+        "attackFlipY": false
       },
       "original": {
         "idle": 1,
