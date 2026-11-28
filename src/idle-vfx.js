@@ -135,10 +135,45 @@
    const t=timing(spec);node.animate(frames,{duration:spec.ms,delay:t.delayMs,iterations:t.loopFrames?Infinity:1,fill:'both'});
   }
  }
- function preload(heroes){
-  const urls=new Set([atlas]);
-  for(const hero of Object.values(heroes))for(const event of Object.keys(generic)){const s=getSpec(hero,event);if(s)urls.add(s.src)}
-  for(const url of urls){const img=new Image();img.src=url;img.decode?.().catch(()=>{});}
+ // Warm only assets requested by active fighters, with bounded parallel decoding.
+ // No image objects are held after loading; the browser manages its own decoded cache.
+ const warmQueue=new Set(),warming=new Set(),warmRecent=new Set();
+ const MAX_WARM_QUEUE=48,MAX_WARM_RECENT=96,MAX_WARM_PARALLEL=2;
+ let warmScheduled=false;
+ function pumpWarm(){
+  warmScheduled=false;
+  if(document.hidden){warmQueue.clear();return;}
+  while(warming.size<MAX_WARM_PARALLEL&&warmQueue.size){
+   const url=warmQueue.values().next().value;warmQueue.delete(url);warming.add(url);
+   const img=new Image();img.decoding='async';let done=false;
+   const finish=ok=>{if(done)return;done=true;img.onload=img.onerror=null;warming.delete(url);
+    if(ok){warmRecent.add(url);if(warmRecent.size>MAX_WARM_RECENT)warmRecent.delete(warmRecent.values().next().value);}
+    scheduleWarm();
+   };
+   img.onerror=()=>finish(false);
+   img.onload=()=>{if(img.decode&&!/\.gif(?:[?#]|$)/i.test(url))img.decode().then(()=>finish(true),()=>finish(true));else finish(true);};
+   img.src=url;
+  }
  }
- window.AUTOCHEST_VFX=Object.freeze({modelScale,modelFlip,flipTransform,getSpec,paint,preload,loadPublished,slotLayout,appearance,colorFilter,rayEnd,visualOffset,geometry,placeRegion,timing,lifetime,animateLifetime});
+ function scheduleWarm(){
+  if(warmScheduled||document.hidden||!warmQueue.size||warming.size>=MAX_WARM_PARALLEL)return;
+  warmScheduled=true;
+  if(typeof requestIdleCallback==='function')requestIdleCallback(pumpWarm,{timeout:600});
+  else setTimeout(pumpWarm,0);
+ }
+ function warmAssets(urls){
+  if(document.hidden)return;
+  for(const url of urls){if(typeof url!=='string'||!url||url.startsWith('data:')||warming.has(url)||warmRecent.has(url)||warmQueue.has(url))continue;
+   if(warmQueue.size>=MAX_WARM_QUEUE)break;warmQueue.add(url);}
+  scheduleWarm();
+ }
+ function cancelPreload(){warmQueue.clear();}
+ function preloadActor(hero,costumeFx=null,costumeId=''){
+  if(!hero)return;
+  const urls=new Set([atlas]);
+  for(const event of Object.keys(generic)){const s=getSpec(hero,event,costumeFx,costumeId);if(s)urls.add(s.src);}
+  warmAssets(urls);
+ }
+ function preload(heroes){for(const hero of Object.values(heroes))preloadActor(hero);}
+ window.AUTOCHEST_VFX=Object.freeze({modelScale,modelFlip,flipTransform,getSpec,paint,preload,preloadActor,warmAssets,cancelPreload,loadPublished,slotLayout,appearance,colorFilter,rayEnd,visualOffset,geometry,placeRegion,timing,lifetime,animateLifetime});
 })();
