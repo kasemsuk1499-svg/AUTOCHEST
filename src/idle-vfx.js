@@ -123,6 +123,8 @@
   return (a.colorize?'grayscale(1) sepia(1) saturate(4) ':'')+'hue-rotate('+a.hue+'deg) saturate('+a.saturation+'%) brightness('+a.brightness+'%)'+(a.opacity===100?'':' opacity('+a.opacity+'%)');
  }
  function paint(node,spec,animate=true){
+  // Repainting a looping sprite must replace its old programmatic animation.
+  for(const a of node.getAnimations?.()||[]){if((typeof CSSAnimation!=='undefined'&&a instanceof CSSAnimation)||(typeof CSSTransition!=='undefined'&&a instanceof CSSTransition))continue;a.cancel();}
   node.style.filter=colorFilter(spec);
   if(node.classList.contains('fire-ground-art'))node.style.transform=flipTransform(spec).trim();
   node.style.backgroundImage='url("'+spec.src+'")';
