@@ -1714,6 +1714,16 @@
         "attackFlipX": true,
         "attackFlipY": false
       }
+    },
+    "deathgun": {
+      "original": {
+        "idle": 1,
+        "attack": 1.46,
+        "idleFlipX": false,
+        "idleFlipY": false,
+        "attackFlipX": false,
+        "attackFlipY": false
+      }
     }
   }
 }
