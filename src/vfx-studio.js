@@ -52,6 +52,7 @@ function selectEvent(){
  const hero=H[$('hero').value],mode=V.slotLayout(hero,event),spec=currentSpec();
  $('eventHint').textContent=event==='dash'?notes.dash:mode==='beam'?'ลำแสงยืดตามแนวโจมตีจริงอัตโนมัติ · ไม่ต้องสร้างภาพยาวเท่าสนาม':mode==='field'?'ภาพยืดตามพื้นที่สนามโดยอัตโนมัติ':notes[event]||'แสดงเมื่อกลไกนี้ทำงานจริงในสนาม';
  $('beamSettings').hidden=mode!=='beam';$('pointSettings').hidden=mode==='beam';$('slotMode').textContent=mode==='beam'?'BEAM · ยืดตามแนวยิง':mode==='field'?'FIELD · พื้นที่สนาม':'POINT · จุดแสดงผล';
+ $('opacity').value=spec?.opacity??100;
  $('flipX').checked=spec?.flipX===true;$('flipY').checked=spec?.flipY===true;
  if(spec){for(const key of ['scaleX','scaleY','rotation','spin','thickness','orientation','delayMs','airtimeMs','offsetX','offsetY'])$(key).value=spec[key];$('loopFrames').checked=spec.loopFrames;for(const key of ['hue','saturation','brightness'])$(key).value=spec[key];$('colorize').checked=spec.colorize;if(!dataURL)for(const key of ['size','ms','cols','rows','frames','row','col'])$(key).value=spec[key]}
  invalidate();play();
@@ -61,14 +62,14 @@ function settings(src){
  const cols=num('cols',1,32),rows=num('rows',1,32),row=num('row',0,rows-1),col=num('col',0,cols-1),frames=num('frames',1,cols*(rows-row)-col);
  if(dataURL&&(ext==='gif'||ext==='webp')&&(cols!==1||rows!==1||frames!==1))throw Error('GIF / WebP ให้ใช้ 1 คอลัมน์ 1 แถว 1 เฟรม');
  const mode=V.slotLayout(H[$('hero').value],$('event').value);
- const raw={flipX:$('flipX').checked,flipY:$('flipY').checked,scaleX:Number($('scaleX').value),scaleY:Number($('scaleY').value),rotation:Number($('rotation').value),spin:Number($('spin').value),thickness:Number($('thickness').value),orientation:$('orientation').value,offsetX:Number($('offsetX').value),offsetY:Number($('offsetY').value),hue:Number($('hue').value),saturation:Number($('saturation').value),brightness:Number($('brightness').value),colorize:$('colorize').checked};
+ const raw={flipX:$('flipX').checked,flipY:$('flipY').checked,scaleX:Number($('scaleX').value),scaleY:Number($('scaleY').value),rotation:Number($('rotation').value),spin:Number($('spin').value),thickness:Number($('thickness').value),orientation:$('orientation').value,offsetX:Number($('offsetX').value),offsetY:Number($('offsetY').value),hue:Number($('hue').value),saturation:Number($('saturation').value),brightness:Number($('brightness').value),opacity:Number($('opacity').value),colorize:$('colorize').checked};
  return {src,cols,rows,row,col,frames,size:num('size',16,400),ms:num('ms',80,3000),...V.appearance(raw,mode),...V.timing({delayMs:num('delayMs',0,5000),airtimeMs:num('airtimeMs',0,10000),loopFrames:$('loopFrames').checked})};
 }
 function currentSource(){return dataURL||currentSpec()?.src||''}
 function validDraft(){return !!(currentSource()&&!busy)}
 function sync(){let v=validDraft();for(const id of ['trialBtn','exportBtn'])$(id).disabled=!v;$('publishBtn').disabled=busy||!v||!$('token').value.trim();$('publishModelBtn').disabled=busy||!$('token').value.trim();}
 function invalidate(){if(!$('trialPanel').hidden)closeTrial();sync()}
-function updateDyeReadout(){for(const [id,suffix] of [['hue','°'],['saturation','%'],['brightness','%']])$(id+'Value').textContent=$(id).value+suffix;}
+function updateDyeReadout(){for(const [id,suffix] of [['hue','°'],['saturation','%'],['brightness','%'],['opacity','%']])$(id+'Value').textContent=$(id).value+suffix;}
 function play(){
  updateDyeReadout();
  clearTimeout(loopTimer);
@@ -170,7 +171,7 @@ function renderModelScales(remember=true){
  $('previewUnit').style.scale=(m.idleFlipX?-m.idle:m.idle)+' '+(m.idleFlipY?-m.idle:m.idle);
 }
 function draft(){if(!validDraft())throw Error('เลือกภาพก่อน');return {hero:$('hero').value,costume:selectedCostume(),event:$('event').value,spec:settings(currentSource()),model:modelValues()}}
-function openTrial(modelOnly=false){try{const d=modelOnly?{hero:$('hero').value,costume:selectedCostume(),model:modelValues()}:draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&studioCostume='+encodeURIComponent(d.costume)+'&v=0.20.91';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
+function openTrial(modelOnly=false){try{const d=modelOnly?{hero:$('hero').value,costume:selectedCostume(),model:modelValues()}:draft();sessionStorage.setItem(draftKey,JSON.stringify(d));$('trialPanel').hidden=false;$('trialFrame').src='./index.html?studioTrial='+encodeURIComponent(d.hero)+'&studioCostume='+encodeURIComponent(d.costume)+'&v=0.20.93';$('trialPanel').scrollIntoView({block:'start',behavior:'smooth'})}catch(e){status('previewStatus',e.message,true)}}
 function closeTrial(){$('trialFrame').src='about:blank';$('trialPanel').hidden=true;try{sessionStorage.removeItem(draftKey)}catch(_){}}
 function exportDraft(){try{const d=draft(),url=URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='vfx-'+d.hero+'-'+(d.costume?d.costume+'-':'')+d.event+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){status('publishStatus',e.message,true)}}
 async function api(token,path,method='GET',body){
@@ -237,8 +238,8 @@ for(const id of ['size','ms','cols','rows','frames','row','col','scaleX','scaleY
 for(const [id,dc,dr] of [['lessCols',-1,0],['moreCols',1,0],['lessRows',0,-1],['moreRows',0,1]])$(id).onclick=()=>applyGrid(Math.max(1,Math.min(32,Number($('cols').value)+dc)),Math.max(1,Math.min(32,Number($('rows').value)+dr)));
 $('pickStart').onclick=()=>{pick='start';drawGrid()};$('pickEnd').onclick=()=>{pick='end';drawGrid()};$('allFrames').onclick=()=>applyGrid(Number($('cols').value),Number($('rows').value));
 $('loopBtn').onclick=()=>{loop=!loop;$('loopBtn').setAttribute('aria-pressed',String(loop));$('loopBtn').textContent=loop?'⏸ หยุดวน':'↻ เล่นวน';play()};
-for(const id of ['hue','saturation','brightness','colorize'])$(id).addEventListener('input',()=>{invalidate();play()});
-$('resetDye').onclick=()=>{$('hue').value=0;$('saturation').value=100;$('brightness').value=100;$('colorize').checked=false;invalidate();play()};
+for(const id of ['hue','saturation','brightness','opacity','colorize'])$(id).addEventListener('input',()=>{invalidate();play()});
+$('resetDye').onclick=()=>{$('hue').value=0;$('saturation').value=100;$('brightness').value=100;$('opacity').value=100;$('colorize').checked=false;invalidate();play()};
 $('resetFlip').onclick=()=>{$('flipX').checked=false;$('flipY').checked=false;invalidate();play()};
 $('resetOffset').onclick=()=>{$('offsetX').value=0;$('offsetY').value=0;invalidate();play()};
 $('playBtn').onclick=play;$('trialBtn').onclick=()=>openTrial(false);$('modelTrial').onclick=()=>openTrial(true);$('closeTrial').onclick=closeTrial;$('exportBtn').onclick=exportDraft;$('token').oninput=sync;$('forgetToken').onclick=()=>{$('token').value='';sync()};$('publishBtn').onclick=publish;$('publishModelBtn').onclick=publishModel;
