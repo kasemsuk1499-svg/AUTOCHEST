@@ -26,6 +26,14 @@
   const value=override??publishedModels[id]?.[costumeId||'original']?.[key]??publishedModels[id]?.original?.[key]??1;
   return Math.max(.5,Math.min(2,Number.isFinite(Number(value))?Number(value):1));
  }
+ // Flip flags are independent from scale, inherited by costumes like model scale.
+ function modelFlip(hero,pose,costumeId=''){
+  const key=pose==='attack'?'attack':'idle',id=hero?.id;
+  const override=studioMode&&draft?.hero===id&&(draft.costume||'')===costumeId?draft.model:undefined;
+  const read=axis=>{const k=key+'Flip'+axis;return (override?.[k]??publishedModels[id]?.[costumeId||'original']?.[k]??publishedModels[id]?.original?.[k])===true};
+  return {flipX:read('X'),flipY:read('Y')};
+ }
+ function flipTransform(raw){return raw.flipX||raw.flipY?' scale('+(raw.flipX?-1:1)+','+(raw.flipY?-1:1)+')':'';}
  // The game owns slot geometry. Uploaded art can tune appearance, never hit detection.
  function slotLayout(hero,event){
   const mode=hero?.visual?.layout?.[event];
@@ -34,7 +42,7 @@
  }
  const bounded=(value,fallback,min,max)=>Number.isFinite(Number(value))&&value!==null&&value!==''?Math.max(min,Math.min(max,Number(value))):fallback;
  function appearance(raw,mode='point'){
-  return {mode,scaleX:bounded(raw.scaleX,1,.1,5),scaleY:bounded(raw.scaleY,1,.1,5),rotation:bounded(raw.rotation,0,-180,180),spin:mode==='point'?bounded(raw.spin,0,-1080,1080):0,
+  return {mode,flipX:raw.flipX===true,flipY:raw.flipY===true,scaleX:bounded(raw.scaleX,1,.1,5),scaleY:bounded(raw.scaleY,1,.1,5),rotation:bounded(raw.rotation,0,-180,180),spin:mode==='point'?bounded(raw.spin,0,-1080,1080):0,
    offsetX:bounded(raw.offsetX,0,-540,540),offsetY:bounded(raw.offsetY,0,-540,540),
    thickness:bounded(raw.thickness,48,4,300),orientation:raw.orientation==='vertical'?'vertical':'horizontal',
    hue:bounded(raw.hue,0,-180,180),saturation:bounded(raw.saturation,100,0,300),brightness:bounded(raw.brightness,100,0,250),colorize:raw.colorize===true};
@@ -89,7 +97,7 @@
   const art=node.ownerDocument.createElement('span');art.style.position='absolute';art.style.left='50%';art.style.top='50%';art.style.pointerEvents='none';
   const vertical=spec.mode==='beam'&&spec.orientation==='vertical';
   art.style.width=(vertical?region.height:region.width)+'px';art.style.height=(vertical?region.width:region.height)+'px';
-  art.style.transform='translate(-50%,-50%)'+(vertical?' rotate(-90deg)':'');
+  art.style.transform='translate(-50%,-50%)'+(vertical?' rotate(-90deg)':'')+flipTransform(spec);
   node.replaceChildren(art);paint(art,spec,true);
   // Spin the artwork itself, not the region anchor or its beam direction.
   if(spec.spin&&spec.mode==='point'&&art.animate&&!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches){const t=lifetime(spec);art.animate([{rotate:'0deg'},{rotate:spec.spin+'deg'}],{duration:Math.max(1,t.visible),delay:t.delayMs,fill:'both',easing:'cubic-bezier(.2,.65,.35,1)'});}
@@ -116,6 +124,7 @@
  }
  function paint(node,spec,animate=true){
   node.style.filter=colorFilter(spec);
+  if(node.classList.contains('fire-ground-art'))node.style.transform=flipTransform(spec).trim();
   node.style.backgroundImage='url("'+spec.src+'")';
   node.style.backgroundSize=(spec.cols*100)+'% '+(spec.rows*100)+'%';
   node.style.backgroundRepeat='no-repeat';
@@ -131,5 +140,5 @@
   for(const hero of Object.values(heroes))for(const event of Object.keys(generic)){const s=getSpec(hero,event);if(s)urls.add(s.src)}
   for(const url of urls){const img=new Image();img.src=url;img.decode?.().catch(()=>{});}
  }
- window.AUTOCHEST_VFX=Object.freeze({modelScale,getSpec,paint,preload,loadPublished,slotLayout,appearance,colorFilter,rayEnd,visualOffset,geometry,placeRegion,timing,lifetime,animateLifetime});
+ window.AUTOCHEST_VFX=Object.freeze({modelScale,modelFlip,flipTransform,getSpec,paint,preload,loadPublished,slotLayout,appearance,colorFilter,rayEnd,visualOffset,geometry,placeRegion,timing,lifetime,animateLifetime});
 })();
