@@ -1824,6 +1824,16 @@
         "attackFlipX": false,
         "attackFlipY": false
       }
+    },
+    "kazuma": {
+      "original": {
+        "idle": 0.94,
+        "attack": 1.21,
+        "idleFlipX": true,
+        "idleFlipY": false,
+        "attackFlipX": false,
+        "attackFlipY": false
+      }
     }
   }
 }
