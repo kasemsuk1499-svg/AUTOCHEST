@@ -236,6 +236,7 @@ function invaderPatrol(foe,t){
 function applyModelFacing(actor){
  if(backgroundSession||!actor.img||!actor.modelAppearance)return;
  const {scale,flip}=actor.modelAppearance,dir=actor.facing||(actor.side==='enemy'?-1:1);
+ if(actor.node&&actor.renderedFacing!==dir){actor.node.style.setProperty('--actor-facing',String(dir));actor.renderedFacing=dir;}
  const modelTransform=(dir*(flip.flipX?-scale:scale))+' '+(flip.flipY?-scale:scale);
  if(actor.modelScale!==modelTransform){actor.modelScale=modelTransform;actor.img.style.setProperty('--model-scale',modelTransform);actor.img.style.translate=flip.flipY?'0 '+(-100*scale)+'%':'';}
  const strike=flip.flipX?'-6px':'6px';
@@ -1298,9 +1299,27 @@ function renderVfxRegion(spec,from,to=null,scale=1){
  const time=VFX.lifetime(spec);node.style.setProperty('--vfx-duration',time.visible+'ms');node.style.setProperty('--vfx-delay',time.delayMs+'ms');
  VFX.placeRegion(node,spec,region);VFX.animateLifetime(node,spec);addTransientFx(node,time.total);
 }
+// Susanoo is an actor-local effect: it follows the fighter and mirrors with facing,
+ // while its own authored Flip X, dimensions, offsets, tint and airtime remain intact.
+function renderAttachedSusanoo(actor,spec,scale=1){
+ if(backgroundSession||!actor.node||actor.hp<=0)return;
+ actor.node.querySelector('.attached-susanoo')?.remove();
+ const host=el('span',{class:'attached-susanoo'}),node=el('span',{class:'image-vfx'});
+ const region=VFX.geometry(spec,arenaSize,{x:0,y:0},null,scale),time=VFX.lifetime(spec);
+ host.style.setProperty('--actor-facing',String(actor.facing||(actor.side==='enemy'?-1:1)));
+ node.style.setProperty('--vfx-duration',time.visible+'ms');node.style.setProperty('--vfx-delay',time.delayMs+'ms');
+ VFX.placeRegion(node,spec,region);
+ node.style.left='calc(50% + '+region.left+'px)';node.style.top='calc(50% + '+region.top+'px)';
+ host.appendChild(node);actor.node.prepend(host);
+ // Inherit the live direction rather than copying it at the instant of casting.
+ host.style.removeProperty('--actor-facing');
+ actor.node.style.setProperty('--actor-facing',String(actor.facing||(actor.side==='enemy'?-1:1)));
+ VFX.animateLifetime(node,spec);setTimeout(()=>host.remove(),time.total);
+}
 function visualEffect(event,actor,x=actor.x,y=actor.y,scale=1){
  if(backgroundSession)return;
  const spec=VFX?.getSpec(HEROES[actor.id],event,costumeFxFor(actor),actorCostume(actor)?.id||'');if(!spec)return;
+ if(event==='susanoo'&&actor.node){renderAttachedSusanoo(actor,spec,scale);return;}
  renderVfxRegion(spec,spec.mode==='beam'?actor:{x,y},spec.mode==='beam'?{x,y}:null,scale);
 }
 // Use the shield creator's artwork at the protected unit, even if the creator has left combat.
@@ -1561,6 +1580,7 @@ function finishDamage(target){
  const bar=target.side==='enemy'?target.bar:target.hpbar;
  if(bar)bar.style.width=Math.max(0,target.hp/target.maxHp*100)+'%';
  if(target.hp===0){
+  target.node?.querySelector('.attached-susanoo')?.remove();
   if(target.totsukaCast){target.totsukaCast=null;target.castUntil=0;target.attackUntil=0;}
   target.dots=[];target.freezeUntil=0;target.tsukuyomiUntil=0;target.healDown=null;
   const linked=TFT.linkedRevive(target,combatHero(target),target.side==='ally'?fighters:enemies,stageClock);
@@ -1771,7 +1791,7 @@ function advanceExplosion(actor,auto=false){
 // Totsuka's two hits use the simulation clock, not browser timers.
 function startTotsuka(actor,target){
  if(!actor.alive||actor.hp<=0||actor.castUntil)return false;
- actor.totsukaCast={x:target.x,y:target.y,hits:0};
+ faceTarget(actor,target);actor.totsukaCast={x:target.x,y:target.y,hits:0};
  actor.castUntil=stageClock+1.75;actor.walking=false;
  visualEffect('susanoo',actor);unitFx(actor,'เรียกซูซาโนะโอะ','status');position(actor);
  if(trialContext)trialContext.note='เรียกซูซาโนะโอะ · เตรียมฟันที่ 1.25 และ 1.75 วิ';
@@ -2072,6 +2092,7 @@ function startBackground(){
  document.body.classList.add('background-idle');
  // Keep projectile/trail nodes alive for their real combat state; discard only transient decoration.
  for(const n of $('fxLayer').querySelectorAll('.image-vfx,.fx-number,.fx-ring,.fx-cloak,.fx-bolt'))n.remove();
+ for(const n of document.querySelectorAll('.attached-susanoo'))n.remove();
  for(const u of [...fighters,...enemies,...fallenEnemies])if(u.img){u.img.removeAttribute('src');u.sprite='';}
  save();
  if(!studioMode)backgroundTimer=setInterval(backgroundTick,250);
