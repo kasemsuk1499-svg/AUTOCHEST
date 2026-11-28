@@ -1629,6 +1629,16 @@
         "idle": 0.97,
         "attack": 1.22
       }
+    },
+    "asuna": {
+      "original": {
+        "idle": 1,
+        "attack": 1,
+        "idleFlipX": true,
+        "idleFlipY": false,
+        "attackFlipX": true,
+        "attackFlipY": false
+      }
     }
   }
 }
