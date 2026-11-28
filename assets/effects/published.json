@@ -1758,6 +1758,16 @@
         "attackFlipX": false,
         "attackFlipY": false
       }
+    },
+    "megumin": {
+      "original": {
+        "idle": 1,
+        "attack": 1.44,
+        "idleFlipX": true,
+        "idleFlipY": false,
+        "attackFlipX": false,
+        "attackFlipY": false
+      }
     }
   }
 }
