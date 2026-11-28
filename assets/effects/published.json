@@ -1737,6 +1737,14 @@
       "costume_01": {
         "idle": 0.83,
         "attack": 1.37
+      },
+      "original": {
+        "idle": 1,
+        "attack": 1.06,
+        "idleFlipX": false,
+        "idleFlipY": false,
+        "attackFlipX": false,
+        "attackFlipY": false
       }
     },
     "itachi": {
