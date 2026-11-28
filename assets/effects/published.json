@@ -1764,7 +1764,7 @@
     "artoria": {
       "costume_01": {
         "idle": 0.98,
-        "attack": 1.32,
+        "attack": 1.51,
         "idleFlipX": true,
         "idleFlipY": false,
         "attackFlipX": true,
