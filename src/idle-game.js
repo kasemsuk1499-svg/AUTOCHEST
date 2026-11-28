@@ -3,10 +3,22 @@
 const $=id=>document.getElementById(id);
 const HEROES=window.AUTOCHEST_CHARACTERS?.HEROES;
 const CORE=window.AUTOCHEST_IDLE_CORE;
-const combatHero=actor=>actor?.side==='ally'?CORE.blessedHero(HEROES[actor?.id],actor.progress):CORE.enemyHero(HEROES[actor?.id],actor?.stars||1,!!actor?.boss);
+// The effective hero is immutable for a given star/blessing/side combination.
+const combatHeroCache=new WeakMap();
+function combatHero(actor){
+ if(!actor||!HEROES[actor.id])return undefined;
+ const ally=actor.side==='ally',stars=(ally?actor.progress?.stars:actor.stars)||1,boss=!!actor.boss,blessing=ally?CORE.blessingFor(actor.progress):null;
+ const cached=combatHeroCache.get(actor);
+ if(cached&&cached.id===actor.id&&cached.ally===ally&&cached.stars===stars&&cached.boss===boss&&cached.blessing===blessing)return cached.hero;
+ const hero=ally?CORE.blessedHero(HEROES[actor.id],actor.progress):CORE.enemyHero(HEROES[actor.id],stars,boss);
+ combatHeroCache.set(actor,{id:actor.id,ally,stars,boss,blessing,hero});return hero;
+}
 const TFT=window.AUTOCHEST_TFT_COMBAT;
 const blessingFx=actor=>actor?.side==='ally'?CORE.blessingFor(actor.progress)?.effects||{}:{};
 const VFX=window.AUTOCHEST_VFX;
+let assetWarmReady=false;
+function setText(node,value){const text=String(value);if(node&&node.textContent!==text)node.textContent=text;}
+function setWidth(node,value){if(node&&node.style.width!==value)node.style.width=value;}
 if(!TFT)throw Error('TFT combat module missing: src/idle-tft-combat.js');
 if(!HEROES||!CORE)throw Error('Character and Idle Core modules must be loaded before idle-game.js');
 const IDS=Object.keys(HEROES);
@@ -46,6 +58,12 @@ const run=()=>CORE.activeRun(state),night=()=>state.mode==='nightmare';
  }
  function actorImages(actor){return actorCostume(actor)||HEROES[actor.id].images;}
  function costumeFxFor(actor){return actorCostume(actor)?.fx||null;}
+ function warmActor(actor){
+  if(!assetWarmReady||document.hidden||!HEROES[actor?.id]||!VFX)return;
+  const costume=actorCostume(actor),images=costume||HEROES[actor.id].images;
+  VFX.warmAssets([images.idle,images.attack]);VFX.preloadActor(HEROES[actor.id],costume?.fx||null,costume?.id||'');
+ }
+ function warmActiveActors(){if(trial){for(const actor of [...trial.fighters,...trial.enemies])warmActor(actor);}else for(const actor of [...fighters,...enemies])warmActor(actor);}
  function probeCostumeFx(url){
   return new Promise(resolve=>{const img=new Image();img.onload=()=>resolve(true);img.onerror=()=>resolve(false);img.src=url;});
  }
@@ -56,7 +74,7 @@ const run=()=>CORE.activeRun(state),night=()=>state.mode==='nightmare';
   });
  }
  function syncCostumeSprites(id){
-  for(const actor of fighters)if(actor.id===id)pose(actor,actor.attackUntil>stageClock);
+  for(const actor of fighters)if(actor.id===id){pose(actor,actor.attackUntil>stageClock);warmActor(actor);}
  }
  async function loadCostumeAssets(){
   await Promise.all(IDS.flatMap(id=>CORE.costumeDefs(HEROES,id).map(async def=>{
@@ -297,7 +315,7 @@ function position(actor){
  actor.node.classList.toggle('frozen',actor.hp>0&&TFT.isFrozen(actor,stageClock)&&!(actor.tsukuyomiUntil>stageClock));
  actor.node.classList.toggle('tsukuyomi',actor.hp>0&&actor.tsukuyomiUntil>stageClock);
  actor.node.classList.toggle('sealed',!!actor.sealed);
- if(actor.sharinganStacks){actor.node.dataset.sharingan=String(actor.sharinganStacks)+' / 5';}else delete actor.node.dataset.sharingan;
+ // The floating Sharingan counter was removed; stack state remains in combat only.
  actor.node.classList.toggle('explosion-casting',actor.hp>0&&!!actor.castUntil&&!actor.totsukaCast&&!actor.exhausted);
  actor.node.classList.toggle('explosion-exhausted',actor.hp>0&&!!actor.exhausted);
  actor.node.classList.toggle('cloaked',actor.cloakUntil>stageClock);
@@ -427,54 +445,54 @@ function renderDungeonControls(){
 }
 function updateResources(){
  if(backgroundSession)return;
- $('goldValue').textContent=fmt(state.gold);
- $('expValue').textContent=fmt(state.heroExp);
- $('rubyValue').textContent=fmt(state.rubies);
- $('ticketValue').textContent=fmt(state.tickets);
- $('teamPower').textContent=fmt(CORE.power(state,HEROES));
+ setText($('goldValue'),fmt(state.gold));
+ setText($('expValue'),fmt(state.heroExp));
+ setText($('rubyValue'),fmt(state.rubies));
+ setText($('ticketValue'),fmt(state.tickets));
+ setText($('teamPower'),fmt(CORE.power(state,HEROES)));
  const p=run(),stage=battleStage(),bossCount=night()?CORE.nightmareBossCount(stage):1;
- $('stageName').textContent=(night()?'☾ NIGHTMARE · ':'')+CORE.stageName(stage);
+ setText($('stageName'),(night()?'☾ NIGHTMARE · ':'')+CORE.stageName(stage));
  updateStageBackground(stage);
- $('stageNumber').textContent=fmt(stage)+' / '+fmt(CORE.maxStage(HEROES));
- if($('floorProgress'))$('floorProgress').textContent=(night()?'NM FLOOR ':'FLOOR ')+CORE.floorNumber(stage)+' / '+CORE.floorCount(HEROES);
+ setText($('stageNumber'),fmt(stage)+' / '+fmt(CORE.maxStage(HEROES)));
+ if($('floorProgress'))setText($('floorProgress'),(night()?'NM FLOOR ':'FLOOR ')+CORE.floorNumber(stage)+' / '+CORE.floorCount(HEROES));
  const floorBoss=HEROES[CORE.floorBossId(stage,HEROES)];
- if($('floorBossName'))$('floorBossName').textContent=floorBoss?'👑 '+floorBoss.name+' · '+'★'.repeat(CORE.bossStars(stage))+(night()?' · บอส '+bossCount+' ตัว':''):'ยังไม่มีบอสประจำชั้น';
- $('bestStage').textContent=String(p.stage).padStart(2,'0');
- $('normalModeBtn').textContent='NORMAL · '+state.stage;
- $('nightmareModeBtn').textContent=CORE.nightmareUnlocked(state)?'☾ NIGHTMARE · '+state.nightmare.stage:'🔒 NIGHTMARE · ผ่าน Normal 5';
+ if($('floorBossName'))setText($('floorBossName'),floorBoss?'👑 '+floorBoss.name+' · '+'★'.repeat(CORE.bossStars(stage))+(night()?' · บอส '+bossCount+' ตัว':''):'ยังไม่มีบอสประจำชั้น');
+ setText($('bestStage'),String(p.stage).padStart(2,'0'));
+ setText($('normalModeBtn'),'NORMAL · '+state.stage);
+ setText($('nightmareModeBtn'),CORE.nightmareUnlocked(state)?'☾ NIGHTMARE · '+state.nightmare.stage:'🔒 NIGHTMARE · ผ่าน Normal 5');
  $('normalModeBtn').classList.toggle('selected',!dungeon&&!night());$('nightmareModeBtn').classList.toggle('selected',!dungeon&&night());
  $('nightmareModeBtn').disabled=!CORE.nightmareUnlocked(state);
  const need=CORE.killsNeeded(p.stage);
- $('killCounter').textContent=p.kills+' / '+need;
+ setText($('killCounter'),p.kills+' / '+need);
  $('killFill').style.width=Math.min(100,p.kills/need*100)+'%';
- $('teamCount').textContent=state.squad.length+' / '+CORE.maxSquad(state.stage);
- $('ownedCount').textContent=Object.keys(state.owned).length+' / '+IDS.length;
- $('autoBossBtn').textContent=state.autoBoss?'🔄 AUTO BOSS ON':'⏸ AUTO BOSS OFF';
+ setText($('teamCount'),state.squad.length+' / '+CORE.maxSquad(state.stage));
+ setText($('ownedCount'),Object.keys(state.owned).length+' / '+IDS.length);
+ setText($('autoBossBtn'),state.autoBoss?'🔄 AUTO BOSS ON':'⏸ AUTO BOSS OFF');
  $('autoBossBtn').classList.toggle('selected',state.autoBoss);
  refreshFormationControls();
  const floorComplete=!CORE.canChallengeStage(p,HEROES);
  $('challengeBtn').disabled=floorComplete||!!combat?.boss||p.kills<need;
- $('challengeBtn').textContent=floorComplete?'🏆 ถึงขอบเขตชั้นปัจจุบัน · ฟาร์มต่อ':combat?.boss?'👑 บอสเหลือ '+enemies.length+' ตัว':p.kills<need?'👑 ปลดล็อกบอส '+p.kills+'/'+need:night()?'👑 ท้าบอส '+bossCount+' ตัว!':'👑 ท้าทาย '+(floorBoss?.name||'บอส')+'!';
+ setText($('challengeBtn'),floorComplete?'🏆 ถึงขอบเขตชั้นปัจจุบัน · ฟาร์มต่อ':combat?.boss?'👑 บอสเหลือ '+enemies.length+' ตัว':p.kills<need?'👑 ปลดล็อกบอส '+p.kills+'/'+need:night()?'👑 ท้าบอส '+bossCount+' ตัว!':'👑 ท้าทาย '+(floorBoss?.name||'บอส')+'!');
  $('bossTimer').hidden=!combat?.boss;
  $('fightLabel').classList.toggle('boss-mode',!!combat?.boss);
- $('fightLabel').textContent=combat?.boss?'BOSS BATTLE':combat?'WAVE '+waveCount:'WAVE READY';
- if(combat?.boss){$('bossCountdown').textContent=Math.max(0,Math.ceil(bossTime))}
+ setText($('fightLabel'),combat?.boss?'BOSS BATTLE':combat?'WAVE '+waveCount:'WAVE READY');
+ if(combat?.boss){setText($('bossCountdown'),Math.max(0,Math.ceil(bossTime)))}
  const farm=CORE.blessingRewards(CORE.farmReward(stage,state.mode),farmWave?.bonus||CORE.blessingFarmBonus(state));
- $('farmGain').textContent='+'+fmt(farm.gold)+' G / +'+fmt(farm.exp)+' EXP / +'+fmt(farm.rubies)+' 💎 · 🎟 '+state.farmTicketKills+'/'+CORE.ECONOMY.killsPerTicket;
+ setText($('farmGain'),'+'+fmt(farm.gold)+' G / +'+fmt(farm.exp)+' EXP / +'+fmt(farm.rubies)+' 💎 · 🎟 '+state.farmTicketKills+'/'+CORE.ECONOMY.killsPerTicket);
  $('autoBossBtn').disabled=!!dungeon||farming();
   if(farming()&&!dungeon){$('autoBossBtn').textContent='🔒 AUTO BOSS OFF · FARM';$('autoBossBtn').classList.remove('selected');$('challengeBtn').disabled=true;$('challengeBtn').textContent='🪙 โหมดฟาร์ม · ไม่ท้าบอส';$('killCounter').textContent=p.kills+' / '+need+' · ด่านหลัก';}
- $('farmGainLabel').textContent=dungeon?'รางวัลเมื่อชนะ':'รางวัลต่อศัตรู';
+ setText($('farmGainLabel'),dungeon?'รางวัลเมื่อชนะ':'รางวัลต่อศัตรู');
  if(dungeon){
-  $('stageName').textContent=dungeonName(dungeon.kind);
-  $('stageNumber').textContent='ระดับ '+dungeon.tier;
-  $('floorProgress').textContent='RESOURCE DUNGEON';
-  $('floorBossName').textContent='👑 ผู้พิทักษ์ · ความยากแบบผ่อนปรน';
-  $('bestStage').textContent=String(state.stage).padStart(2,'0');
-  $('killCounter').textContent='0 / 1';
+  setText($('stageName'),dungeonName(dungeon.kind));
+  setText($('stageNumber'),'ระดับ '+dungeon.tier);
+  setText($('floorProgress'),'RESOURCE DUNGEON');
+  setText($('floorBossName'),'👑 ผู้พิทักษ์ · ความยากแบบผ่อนปรน');
+  setText($('bestStage'),String(state.stage).padStart(2,'0'));
+  setText($('killCounter'),'0 / 1');
   $('killFill').style.width=Math.max(0,Math.min(100,(1-(combat?.hp||0)/Math.max(1,combat?.maxHp||1))*100))+'%';
   $('challengeBtn').disabled=false;$('challengeBtn').textContent='↩ ออกจากดันเจี้ยน';
-  $('fightLabel').textContent='DUNGEON';
-  $('farmGain').textContent='+'+fmt(CORE.dungeonReward(dungeon.kind,dungeon.stage))+' '+(dungeon.kind==='gold'?'Gold':'EXP');
+  setText($('fightLabel'),'DUNGEON');
+  setText($('farmGain'),'+'+fmt(CORE.dungeonReward(dungeon.kind,dungeon.stage))+' '+(dungeon.kind==='gold'?'Gold':'EXP'));
  }
  renderDungeonControls();renderFarmControls();updateSummonWallet();
  refreshUpgradeAvailability();
@@ -559,8 +577,8 @@ function syncReadyMark(node,id,team=false){
  const mark=node.querySelector(team?'.team-ready':'.collection-ready');
  if(mark){
   const label=star?starReadyLabel(id):level?'⬆ อัปเลเวล':'';
-  mark.textContent=star&&team?'★↑':team&&level?'⬆':label;
-  mark.title=label;mark.setAttribute('aria-label',label);
+  setText(mark,star&&team?'★↑':team&&level?'⬆':label);
+  if(mark.title!==label)mark.title=label;if(mark.getAttribute('aria-label')!==label)mark.setAttribute('aria-label',label);
  }
 }
 function levelBatch(id,maximum=5){
@@ -1378,7 +1396,7 @@ function buildFighters(preserve=false){
   layer.appendChild(node);hero.node=node;hero.img=node.querySelector('img');
   hero.hpbar=node.querySelector('.mini-hp i');hero.sprite=backgroundSession?'':heroImages(hero.id).idle;
   hero.hpbar.style.width=Math.max(0,hero.hp/hero.maxHp*100)+'%';
-  pose(hero,false);position(hero);
+  pose(hero,false);position(hero);warmActor(hero);
   if(!hero.alive)node.style.opacity='.2';
  }
 }
@@ -1421,7 +1439,7 @@ function spawnMonster(boss=false,cell=null,quiet=false,forcedId=null){
  foe.node=node;foe.img=node.querySelector('img');foe.bar=node.querySelector('.enemy-hp i');
  foe.sprite=backgroundSession?'':hero.images.idle;pose(foe,false);
  enemies.push(foe);combat=enemies[0];
- position(foe);travelScene();
+ position(foe);warmActor(foe);travelScene();
  if(!quiet){
   $('battleMessage').textContent=boss?'👑 บอส '+hero.name+' '+ '★'.repeat(stat.stars)+' ปรากฏตัว!':
    '⚔️ เวฟ '+waveCount+' · ศัตรู '+enemies.length+' ตัว';
@@ -2056,7 +2074,7 @@ function tick(dt){
     foe.remaining=Math.max(.06,foe.remaining+TFT.attackInterval(foe,foe.delay,stageClock));
    }
   }else{foe.walking=false;position(foe)}
-  if(!backgroundSession)foe.bar.style.width=foe.hp/foe.maxHp*100+'%';
+  if(!backgroundSession)setWidth(foe.bar,foe.hp/foe.maxHp*100+'%');
  }
  advanceTftShots(t);
  if(!combat)return;
@@ -2067,11 +2085,11 @@ function tick(dt){
  }
  if(backgroundSession)return;
  for(const f of fighters){
-  f.hpbar.style.width=Math.max(0,f.hp/f.maxHp*100)+'%';
-  f.node.style.opacity=f.alive?'1':'.2';
+  setWidth(f.hpbar,Math.max(0,f.hp/f.maxHp*100)+'%');
+  const opacity=f.alive?'1':'0.2';if(f.node.style.opacity!==opacity)f.node.style.opacity=opacity;
  }
  $('bossTimer').hidden=!combat?.boss;
- if(combat?.boss)$('bossCountdown').textContent=Math.ceil(bossTime);
+ if(combat?.boss)setText($('bossCountdown'),Math.ceil(bossTime));
 }
 // Hidden combat uses exactly the live tick pipeline. No estimated loot or artificial wins.
 // Browser throttling can slow or pause this mode; bound each wake to avoid CPU spikes.
@@ -2090,6 +2108,7 @@ function startBackground(){
  if(frameRequest)cancelAnimationFrame(frameRequest);frameRequest=0;lastFrame=0;
  backgroundSession={last:performance.now()};
  document.body.classList.add('background-idle');
+ VFX?.cancelPreload?.();
  // Keep projectile/trail nodes alive for their real combat state; discard only transient decoration.
  for(const n of $('fxLayer').querySelectorAll('.image-vfx,.fx-number,.fx-ring,.fx-cloak,.fx-bolt'))n.remove();
  for(const n of document.querySelectorAll('.attached-susanoo'))n.remove();
@@ -2111,7 +2130,7 @@ function stopBackground(){
   for(const shot of shots)if(shot.node){imageProjectile(shot.node,shot.owner,!!shot.pierce||shot.visual==='skillHit');positionShot(shot);}
   for(const f of fireTrails){const art=f.node?.querySelector('.fire-ground-art'),spec=VFX?.getSpec(HEROES[f.owner.id],'groundFire',costumeFxFor(f.owner),actorCostume(f.owner)?.id||'');if(art&&spec)VFX.paint(art,{...spec,delayMs:0,loopFrames:true},true);positionFireTrail(f);}
   $('battleLog').textContent=logLines.join('   ·   ');
-  save();renderPanels();refreshArenaSize();
+  save();renderPanels();refreshArenaSize();if(trial)withTrial(warmActiveActors);else warmActiveActors();
  }
  scheduleFrame();
 }
@@ -2171,7 +2190,7 @@ function resetTrial(){
  $('trialStats').textContent='HP '+fmt(st.hp)+' · '+attackTypeLabel(h)+' '+fmt(st.atk)+' · '+(h.globalRange?'ทั่วสนาม':h.range+' ช่อง');
  $('trialPassive').disabled=!(h.passive||h.guard||h.fireTrail||h.effect==='cloakshot');
  $('trialPassive').textContent=h.passive?.sharinganMax?'ทดสอบเนตรวงแหวน ×5':h.passive?.dodgeChance?'ทดสอบหลบหลีก ×5':h.fireTrail?'ทดสอบทางไฟซ้อน':h.debuff?.healDown?'ทดสอบตัดฮีล':h.passive?.magicGuard?'ทดสอบรับดาเมจแทน':h.effect==='explosion'?'ทดลองหมดแรง':h.passive?.reviveHp?'ทดสอบคืนชีพตัวเอง':h.support?.reviveHp?'ทดสอบชุบเพื่อน':h.passive?.aquaReviveHp?'ทดสอบคืนชีพ':h.passive?.focusCritStep?'ทดสอบคริต่อเนื่อง':h.passive?.healOnAttack?'ทดสอบฮีลปกติ':h.guard?'ทดสอบยั่วยุ':h.effect==='cloakshot'?'ทดสอบซุ่มยิง':h.passive?.damageReduction?'ทดสอบลดดาเมจ':'ทดลองพาสซีฟ';
- withTrial(renderTrial);
+ withTrial(()=>{renderTrial();warmActiveActors();});
 }
 // Keep the whole delayed skill sequence visible in Hero Trial.
 function trialDotProgress(scene,clock){
@@ -2184,7 +2203,7 @@ function trialDotProgress(scene,clock){
 }
 function renderTrial(){
  for(const u of [...fighters,...enemies]){
-  position(u);u.hpbar.style.width=u.hp/u.maxHp*100+'%';
+  position(u);setWidth(u.hpbar,u.hp/u.maxHp*100+'%');
   const dotLeft=u.hp>0?Math.max(0,...(u.dots||[]).map(d=>d.left)):0;
   const frozen=u.hp>0&&TFT.isFrozen(u,stageClock);
   const antiHeal=TFT.debuffValue(u,'healDown',stageClock),burn=fireTrails.filter(f=>f.side!==u.side&&TFT.fireContains(f,u,stageClock)).length;
@@ -2649,10 +2668,9 @@ if(pending.minutes>0)openOffline();
 refreshArenaSize();
 if(typeof ResizeObserver==='function')new ResizeObserver(refreshArenaSize).observe($('stageViewport'));
 else window.addEventListener('resize',refreshArenaSize);
-if(VFX){VFX.preload(HEROES);VFX.loadPublished().then(()=>{VFX.preload(HEROES);for(const actor of [...fighters,...enemies])pose(actor,actor.attackUntil>stageClock)})}
+if(VFX){VFX.loadPublished().then(()=>{assetWarmReady=true;for(const actor of [...fighters,...enemies])pose(actor,actor.attackUntil>stageClock);if(trial)withTrial(warmActiveActors);else if(!studioMode)warmActiveActors();})}
 if(studioMode)document.body.classList.add('studio-trial-mode');
-// Decode sprites before their first attack so changing pose is not a network stall.
-for(const hero of Object.values(HEROES))for(const url of new Set([hero.images.idle,hero.images.attack])){const img=new Image();img.src=url;img.decode?.().catch(()=>{});}
+// Active actors warm their own sprites and effects; the collection stays lazy-loaded.
 loadCostumeAssets().catch(error=>console.warn('Costume asset check:',error)).then(()=>{if(studioMode)openTrial(studioTrialId,new URLSearchParams(location.search).get('studioCostume')||'')});
 if(document.hidden)startBackground();else scheduleFrame();
 })();
