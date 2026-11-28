@@ -1658,6 +1658,16 @@
         "attackFlipX": true,
         "attackFlipY": false
       }
+    },
+    "kirito": {
+      "original": {
+        "idle": 1,
+        "attack": 1,
+        "idleFlipX": true,
+        "idleFlipY": false,
+        "attackFlipX": true,
+        "attackFlipY": false
+      }
     }
   }
 }
