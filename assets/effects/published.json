@@ -1870,6 +1870,16 @@
         "attackFlipX": false,
         "attackFlipY": false
       }
+    },
+    "qingmei": {
+      "original": {
+        "idle": 1.25,
+        "attack": 1.25,
+        "idleFlipX": false,
+        "idleFlipY": false,
+        "attackFlipX": false,
+        "attackFlipY": false
+      }
     }
   }
 }
