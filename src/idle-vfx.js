@@ -45,7 +45,7 @@
   return {mode,flipX:raw.flipX===true,flipY:raw.flipY===true,scaleX:bounded(raw.scaleX,1,.1,5),scaleY:bounded(raw.scaleY,1,.1,5),rotation:bounded(raw.rotation,0,-180,180),spin:mode==='point'?bounded(raw.spin,0,-1080,1080):0,
    offsetX:bounded(raw.offsetX,0,-540,540),offsetY:bounded(raw.offsetY,0,-540,540),
    thickness:bounded(raw.thickness,48,4,300),orientation:raw.orientation==='vertical'?'vertical':'horizontal',
-   hue:bounded(raw.hue,0,-180,180),saturation:bounded(raw.saturation,100,0,300),brightness:bounded(raw.brightness,100,0,250),colorize:raw.colorize===true};
+   hue:bounded(raw.hue,0,-180,180),saturation:bounded(raw.saturation,100,0,300),brightness:bounded(raw.brightness,100,0,250),opacity:bounded(raw.opacity,100,0,100),colorize:raw.colorize===true};
  }
  // Backward compatible: zero airtime means playback duration for regions,
  // and natural flight lifetime for travelling projectiles.
@@ -119,8 +119,8 @@
  }
  function colorFilter(raw){
   const a=appearance(raw);
-  if(!a.colorize&&a.hue===0&&a.saturation===100&&a.brightness===100)return 'none';
-  return (a.colorize?'grayscale(1) sepia(1) saturate(4) ':'')+'hue-rotate('+a.hue+'deg) saturate('+a.saturation+'%) brightness('+a.brightness+'%)';
+  if(!a.colorize&&a.hue===0&&a.saturation===100&&a.brightness===100&&a.opacity===100)return 'none';
+  return (a.colorize?'grayscale(1) sepia(1) saturate(4) ':'')+'hue-rotate('+a.hue+'deg) saturate('+a.saturation+'%) brightness('+a.brightness+'%)'+(a.opacity===100?'':' opacity('+a.opacity+'%)');
  }
  function paint(node,spec,animate=true){
   node.style.filter=colorFilter(spec);
