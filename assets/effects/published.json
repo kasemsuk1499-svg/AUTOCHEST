@@ -1860,6 +1860,16 @@
         "attackFlipX": false,
         "attackFlipY": false
       }
+    },
+    "mamon": {
+      "original": {
+        "idle": 1.12,
+        "attack": 1.06,
+        "idleFlipX": false,
+        "idleFlipY": false,
+        "attackFlipX": false,
+        "attackFlipY": false
+      }
     }
   }
 }
