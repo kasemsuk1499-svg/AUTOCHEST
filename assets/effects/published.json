@@ -1842,6 +1842,16 @@
         "attackFlipX": false,
         "attackFlipY": false
       }
+    },
+    "maruko": {
+      "original": {
+        "idle": 1.12,
+        "attack": 1.18,
+        "idleFlipX": false,
+        "idleFlipY": false,
+        "attackFlipX": false,
+        "attackFlipY": false
+      }
     }
   }
 }
