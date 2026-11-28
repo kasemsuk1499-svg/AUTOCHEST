@@ -237,7 +237,9 @@ function pose(actor,attack){
  const slot=attack?'attack':'idle',image=actorImages(actor)[slot];
  if(actor.sprite!==image){actor.img.src=image;actor.sprite=image}
  const scale=VFX?.modelScale(HEROES[actor.id],slot,actorCostume(actor)?.id||'')??1;
- if(actor.modelScale!==scale){actor.modelScale=scale;actor.img.style.setProperty('--model-scale',String(scale));}
+ const flip=VFX?.modelFlip?.(HEROES[actor.id],slot,actorCostume(actor)?.id||'')||{};
+ const modelTransform=(flip.flipX?-scale:scale)+' '+(flip.flipY?-scale:scale);
+ if(actor.modelScale!==modelTransform){actor.modelScale=modelTransform;actor.img.style.setProperty('--model-scale',modelTransform);actor.img.style.translate=flip.flipY?'0 '+(-100*scale)+'%':'';}
 }
 // Translate on the compositor instead of restarting a 280ms CSS transition each frame.
 let arenaSize={width:0,height:0};
@@ -248,16 +250,16 @@ function refreshArenaSize(){
  for(const shot of shots)positionShot(shot);
  for(const f of fireTrails)positionFireTrail(f);
 }
-function setArenaPosition(node,x,y,angle=null){
+function setArenaPosition(node,x,y,angle=null,artTransform=''){
  if(backgroundSession||!node)return;
  const px=x*arenaSize.width/100,py=y*arenaSize.height/100;
- const transform='translate3d('+px.toFixed(2)+'px,'+py.toFixed(2)+'px,0) translate(-50%,-50%)'+(angle===null?'':' rotate('+angle+'rad)');
+ const transform='translate3d('+px.toFixed(2)+'px,'+py.toFixed(2)+'px,0) translate(-50%,-50%)'+(angle===null?'':' rotate('+angle+'rad)')+artTransform;
  if(node.style.transform!==transform)node.style.transform=transform;
 }
 function setShotVisualPosition(node,x,y,angle){
  if(!node)return;
  const offset=VFX?.visualOffset({offsetX:Number(node.dataset.fxOffsetX)||0,offsetY:Number(node.dataset.fxOffsetY)||0},arenaSize)||{x:0,y:0};
- setArenaPosition(node,x+offset.x*100/Math.max(1,arenaSize.width),y+offset.y*100/Math.max(1,arenaSize.height),angle+(Number(node.dataset.fxRotation)||0)*Math.PI/180);
+ setArenaPosition(node,x+offset.x*100/Math.max(1,arenaSize.width),y+offset.y*100/Math.max(1,arenaSize.height),angle+(Number(node.dataset.fxRotation)||0)*Math.PI/180,VFX?.flipTransform?.({flipX:node.dataset.fxFlipX==='true',flipY:node.dataset.fxFlipY==='true'})||'');
 }
 function positionShot(shot){const angle=shot.pierce?Math.atan2(shot.pierce.dy*arenaSize.height/TFT.H,shot.pierce.dx*arenaSize.width/TFT.W):shot.target?Math.atan2((shot.target.y-shot.y)*arenaSize.height,(shot.target.x-shot.x)*arenaSize.width):null;setShotVisualPosition(shot.node,shot.x,shot.y,angle||0)}
 function position(actor){
@@ -1288,7 +1290,7 @@ function imageProjectile(node,actor,special=false){
  const spec=VFX?.getSpec(HEROES[actor.id],special?'skillProjectile':'projectile',costumeFxFor(actor),actorCostume(actor)?.id||'');if(!spec)return false;
  node.classList.add('image-projectile');
  const size=(spec.src.endsWith('/combat-atlas.svg')?(special?58:36):spec.size)*Math.min(1,arenaSize.width/540);
- node.style.width=size*spec.scaleX+'px';node.style.height=size*spec.scaleY+'px';node.dataset.fxRotation=String(spec.rotation);node.dataset.fxOffsetX=String(spec.offsetX);node.dataset.fxOffsetY=String(spec.offsetY);VFX.paint(node,spec,spec.frames>1&&!spec.src.endsWith('/combat-atlas.svg'));VFX.animateLifetime(node,spec,true);return true;
+ node.style.width=size*spec.scaleX+'px';node.style.height=size*spec.scaleY+'px';node.dataset.fxRotation=String(spec.rotation);node.dataset.fxFlipX=String(!!spec.flipX);node.dataset.fxFlipY=String(!!spec.flipY);node.dataset.fxOffsetX=String(spec.offsetX);node.dataset.fxOffsetY=String(spec.offsetY);VFX.paint(node,spec,spec.frames>1&&!spec.src.endsWith('/combat-atlas.svg'));VFX.animateLifetime(node,spec,true);return true;
 }
 function ring(x,y,cloak=false){
  if(backgroundSession)return;
