@@ -1851,6 +1851,14 @@
         "idleFlipY": false,
         "attackFlipX": false,
         "attackFlipY": false
+      },
+      "costume_01": {
+        "idle": 1.18,
+        "attack": 1.32,
+        "idleFlipX": false,
+        "idleFlipY": false,
+        "attackFlipX": false,
+        "attackFlipY": false
       }
     }
   }
