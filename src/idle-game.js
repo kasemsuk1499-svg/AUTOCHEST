@@ -1267,6 +1267,34 @@ function claimOffline(){
 // Keep the effect layer bounded during long idle farming sessions.
 const MAX_VISUAL_EFFECTS=70,MAX_ACTIVE_SHOTS=36;
 const fxLanes=new WeakMap();
+// Explicitly release transient resources, including infinite sprite-sheet animations.
+// A single timer per visual is cancelled if its owner is removed early.
+const fxTimers=new Map();
+function stopVisualAnimations(node){
+ if(!node)return;
+ for(const animation of node.getAnimations?.({subtree:true})||[]){
+  // CSS animations are managed by the element's class/attachment lifecycle.
+  if((typeof CSSAnimation!=='undefined'&&animation instanceof CSSAnimation)||(typeof CSSTransition!=='undefined'&&animation instanceof CSSTransition))continue;
+  animation.cancel();
+ }
+}
+function disposeVisual(node){
+ if(!node)return;
+ for(const [visual,timer] of fxTimers)if(visual===node||node.contains(visual)){clearTimeout(timer);fxTimers.delete(visual);}
+ stopVisualAnimations(node);node.remove();
+}
+function clearVisualChildren(layer){
+ if(!layer)return;
+ for(const node of Array.from(layer.children))disposeVisual(node);
+}
+function expireVisual(node,duration){
+ const timer=setTimeout(()=>{fxTimers.delete(node);disposeVisual(node);},Math.max(0,duration));
+ fxTimers.set(node,timer);
+}
+function retireEnemyVisual(actor){
+ if(!actor.node)return;
+ disposeVisual(actor.node);if(actor.img){actor.img.removeAttribute('src');actor.sprite='';}
+}
 function effectLayer(){return $(trialContext?'trialFx':'fxLayer')}
 function addTransientFx(node,duration){
  if(backgroundSession)return;
@@ -1274,11 +1302,11 @@ function addTransientFx(node,duration){
  if(layer.childElementCount>=MAX_VISUAL_EFFECTS){
   // Prioritize actual combat numbers; remove the oldest decorative effect first.
   const old=layer.querySelector('.image-vfx,.fx-ring,.fx-cloak,.fx-bolt');
-  if(old)old.remove();
-  else if(node.classList.contains('fx-number'))layer.querySelector('.fx-number')?.remove();
-  else return;
+  if(old)disposeVisual(old);
+  else if(node.classList.contains('fx-number')){const first=layer.querySelector('.fx-number');if(first)disposeVisual(first);else{disposeVisual(node);return;}}
+  else{disposeVisual(node);return;}
  }
- layer.appendChild(node);setTimeout(()=>node.remove(),duration);
+ layer.appendChild(node);expireVisual(node,duration);
 }
 function spawnFx(label,x,y,critical=false,kind='status',lane=0){
  const fx=el('span',{class:'fx-number fx-'+kind+(critical?' critical':'')},escapeText(label));
@@ -1321,7 +1349,7 @@ function renderVfxRegion(spec,from,to=null,scale=1){
  // while its own authored Flip X, dimensions, offsets, tint and airtime remain intact.
 function renderAttachedSusanoo(actor,spec,scale=1){
  if(backgroundSession||!actor.node||actor.hp<=0)return;
- actor.node.querySelector('.attached-susanoo')?.remove();
+ disposeVisual(actor.node.querySelector('.attached-susanoo'));
  const host=el('span',{class:'attached-susanoo'}),node=el('span',{class:'image-vfx'});
  const region=VFX.geometry(spec,arenaSize,{x:0,y:0},null,scale),time=VFX.lifetime(spec);
  host.style.setProperty('--actor-facing',String(actor.facing||(actor.side==='enemy'?-1:1)));
@@ -1332,7 +1360,7 @@ function renderAttachedSusanoo(actor,spec,scale=1){
  // Inherit the live direction rather than copying it at the instant of casting.
  host.style.removeProperty('--actor-facing');
  actor.node.style.setProperty('--actor-facing',String(actor.facing||(actor.side==='enemy'?-1:1)));
- VFX.animateLifetime(node,spec);setTimeout(()=>host.remove(),time.total);
+ VFX.animateLifetime(node,spec);expireVisual(host,time.total);
 }
 function visualEffect(event,actor,x=actor.x,y=actor.y,scale=1){
  if(backgroundSession)return;
@@ -1351,6 +1379,7 @@ function visualEffect(event,actor,x=actor.x,y=actor.y,scale=1){
 }
 function imageProjectile(node,actor,special=false){
  if(backgroundSession)return false;
+ stopVisualAnimations(node);
  const spec=VFX?.getSpec(HEROES[actor.id],special?'skillProjectile':'projectile',costumeFxFor(actor),actorCostume(actor)?.id||'');if(!spec)return false;
  node.classList.add('image-projectile');
  const size=(spec.src.endsWith('/combat-atlas.svg')?(special?58:36):spec.size)*Math.min(1,arenaSize.width/540);
@@ -1362,7 +1391,7 @@ function ring(x,y,cloak=false){
  node.style.left=x+'%';node.style.top=y+'%';
  addTransientFx(node,850);
 }
-function clearFx(){for(const node of Array.from($('fxLayer').children))if(!node.classList.contains('fx-number')&&!node.classList.contains('image-vfx'))node.remove()}
+function clearFx(){for(const node of Array.from($('fxLayer').children))if(!node.classList.contains('fx-number')&&!node.classList.contains('image-vfx'))disposeVisual(node);}
 function buildFighters(preserve=false){
  const previous=new Map(preserve?fighters.map(f=>[f.id,f]):[]),tags=CORE.teamSynergies(state,HEROES);
  fighters=state.squad.filter(id=>state.owned[id]).map((id,i)=>{
@@ -1384,7 +1413,7 @@ function buildFighters(preserve=false){
    attackUntil:0,alive:hp>0&&(!old||old.alive),walking:false,progress,blessingSaved:!!old?.blessingSaved,blessingKills:old?.blessingKills||0,nextBlessingRegen:old?.nextBlessingRegen??stageClock+1};
  });
  if(preserve)for(const foe of enemies){const old=foe.lockedTarget;if(old?.side==='ally')foe.lockedTarget=fighters.find(f=>f.id===old.id&&f.alive&&f.hp>0)||null;}
- const layer=$('heroLayer');layer.replaceChildren();
+ const layer=$('heroLayer');clearVisualChildren(layer);
  for(const hero of fighters){
   const base=HEROES[hero.id],node=el('div',{class:'fighter party-fighter'});
   node.dataset.inspectId=hero.id;node.dataset.inspectSide='ally';
@@ -1403,7 +1432,7 @@ function buildFighters(preserve=false){
 function beginTravel(seconds=1.6){
  bossTime=0;combat=null;enemies=[];fallenEnemies=[];respawn=seconds;travel=0;allyRevives.clear();farmWave=null;farmElapsed=0;
  clearTftShots();
- $('monsterLayer').replaceChildren();clearFx();blessingFightersDirty=false;buildFighters();travelScene();
+ clearVisualChildren($('monsterLayer'));clearFx();blessingFightersDirty=false;buildFighters();travelScene();
  $('battleMessage').textContent=!farming()&&run().bossRetryWaves?
   '🪙 ฟาร์มด่าน '+run().stage+' • อีก '+run().bossRetryWaves+' เวฟจะท้าบอสใหม่':
   '♟️ เตรียมรับเวฟ '+(waveCount+1)+'...';
@@ -1448,7 +1477,7 @@ function spawnMonster(boss=false,cell=null,quiet=false,forcedId=null){
 }
 function spawnBossEncounter(){
  if(farming()||!CORE.canChallengeStage(run(),HEROES))return;
-  enemies=[];fallenEnemies=[];$('monsterLayer').replaceChildren();clearTftShots();
+  enemies=[];fallenEnemies=[];clearVisualChildren($('monsterLayer'));clearTftShots();
  const stage=run().stage,ids=night()?CORE.nightmareBossIds(stage,HEROES):[CORE.floorBossId(stage,HEROES)];
  const cells=ids.length===1?[[2,1]]:ids.length===2?[[1,1],[4,1]]:[[1,1],[3,0],[4,2]];
  bossTime=night()?55:35;
@@ -1491,7 +1520,7 @@ function defeatMonster(foe){
  if(!foe||!enemies.includes(foe))return;
  if(foe.boss){
   if(!fallenEnemies.includes(foe))fallenEnemies.push(foe);
-  enemies=enemies.filter(x=>x!==foe);foe.node?.remove();combat=enemies[0]||null;
+  enemies=enemies.filter(x=>x!==foe);retireEnemyVisual(foe);combat=enemies[0]||null;
   if(!combat){victoryBoss();return;}
   $('battleMessage').textContent='👑 บอสเหลือ '+enemies.length+' ตัว';updateResources();return;
  }
@@ -1504,7 +1533,7 @@ function defeatMonster(foe){
   if(reward.tickets){log('🎟️ ฟาร์มครบ '+CORE.ECONOMY.killsPerTicket+' ตัว! ได้ตั๋วสุ่ม +'+reward.tickets);save();}
  }
  if(!fallenEnemies.includes(foe))fallenEnemies.push(foe);
- enemies=enemies.filter(x=>x!==foe);foe.node?.remove();
+ enemies=enemies.filter(x=>x!==foe);retireEnemyVisual(foe);
  combat=enemies[0]||null;
  if(!combat){
   // Only spawn a fresh group AFTER the entire wave is defeated.
@@ -1598,7 +1627,7 @@ function finishDamage(target){
  const bar=target.side==='enemy'?target.bar:target.hpbar;
  if(bar)bar.style.width=Math.max(0,target.hp/target.maxHp*100)+'%';
  if(target.hp===0){
-  target.node?.querySelector('.attached-susanoo')?.remove();
+  disposeVisual(target.node?.querySelector('.attached-susanoo'));
   if(target.totsukaCast){target.totsukaCast=null;target.castUntil=0;target.attackUntil=0;}
   target.dots=[];target.freezeUntil=0;target.tsukuyomiUntil=0;target.healDown=null;
   const linked=TFT.linkedRevive(target,combatHero(target),target.side==='ally'?fighters:enemies,stageClock);
@@ -1700,7 +1729,7 @@ function fireLayer(){
   if(spec&&!backgroundSession)VFX.paint(art,{...spec,delayMs:0,loopFrames:true},true);
   node.appendChild(art);f.node=node;node.style.display='none';fireLayer().appendChild(node);fireTrails.push(f);return f;
  }
- function clearFireTrails(){for(const f of fireTrails)f.node?.remove();fireTrails=[]}
+ function clearFireTrails(){for(const f of fireTrails)disposeVisual(f.node);fireTrails=[]}
  function advanceFireTrails(){
   for(const f of fireTrails.slice()){
    if(!fireTrails.includes(f))return;
@@ -1709,7 +1738,7 @@ function fireLayer(){
     if(hit.target.hp>0&&hit.target.alive!==false)tftDamage(f.owner,hit.target,hit.power,0,false,false,null,true);
     if(!trialContext&&!combat)return;
    }
-   if(TFT.fireBounds(f,stageClock).expired){f.node?.remove();fireTrails=fireTrails.filter(x=>x!==f)}
+   if(TFT.fireBounds(f,stageClock).expired){disposeVisual(f.node);fireTrails=fireTrails.filter(x=>x!==f)}
    else positionFireTrail(f);
   }
  }
@@ -1732,7 +1761,7 @@ function fireLayer(){
   speed,radius:hero.pierceRadius||36,power:attacker.atk*(hero.skillPower||2.4),pierceShield:hero.pierceShield!==false,node});
 }
 function clearTftShots(){
- for(const b of shots)if(b.node)b.node.remove();
+ for(const b of shots)disposeVisual(b.node);
  shots=[];clearFireTrails();
 }
 function advanceTftShots(t){
@@ -1749,13 +1778,13 @@ function advanceTftShots(t){
     tftDamage(bullet.owner,target,bullet.power,0,false,bullet.pierceShield!==false,'skillHit');
     if(target.hp>0)ring(target.x,target.y);
    }
-   if(result.expired){finished.add(bullet);bullet.node?.remove()}
+   if(result.expired){finished.add(bullet);disposeVisual(bullet.node)}
    else if(bullet.node)positionShot(bullet);
    continue;
   }
   const r=TFT.advanceShot(bullet,t);
   if(r.expired){
-   finished.add(bullet);bullet.node?.remove();
+   finished.add(bullet);disposeVisual(bullet.node);
    if(r.hit){
     let mul=1;
     const h=combatHero(bullet.owner);
@@ -2110,8 +2139,10 @@ function startBackground(){
  document.body.classList.add('background-idle');
  VFX?.cancelPreload?.();
  // Keep projectile/trail nodes alive for their real combat state; discard only transient decoration.
- for(const n of $('fxLayer').querySelectorAll('.image-vfx,.fx-number,.fx-ring,.fx-cloak,.fx-bolt'))n.remove();
- for(const n of document.querySelectorAll('.attached-susanoo'))n.remove();
+ for(const n of $('fxLayer').querySelectorAll('.image-vfx,.fx-number,.fx-ring,.fx-cloak,.fx-bolt'))disposeVisual(n);
+ for(const n of document.querySelectorAll('.attached-susanoo'))disposeVisual(n);
+ for(const b of shots)stopVisualAnimations(b.node);
+ for(const f of fireTrails)stopVisualAnimations(f.node);
  for(const u of [...fighters,...enemies,...fallenEnemies])if(u.img){u.img.removeAttribute('src');u.sprite='';}
  save();
  if(!studioMode)backgroundTimer=setInterval(backgroundTick,250);
@@ -2121,7 +2152,7 @@ function stopBackground(){
   backgroundSession=null;clearInterval(backgroundTimer);backgroundTimer=0;
   document.body.classList.remove('background-idle');
   lastFrame=0;lastHUD=0;
-  for(const u of [...fighters,...enemies,...fallenEnemies]){
+  for(const u of [...fighters,...enemies]){
    if(u.img){u.sprite='';pose(u,u.attackUntil>stageClock);}
    const bar=u.hpbar||u.bar;if(bar)bar.style.width=Math.max(0,u.hp/u.maxHp*100)+'%';
    if(u.node)u.node.style.opacity=u.hp>0&&u.alive!==false?'1':'.2';
@@ -2171,7 +2202,7 @@ function trialUnit(id,side,x,y,hp,maxHp,label,stars=1){
 function resetTrial(){
  if($('trialModal').hidden)return;
  const id=$('trialHero').value,stars=Number($('trialStars').value)||1,h=CORE.heroAtStars(HEROES[id],stars),bossTrial=$('trialCount').value==='boss',count=bossTrial?1:Number($('trialCount').value),st=CORE.stats(HEROES[id],{level:1,stars}),arena=$('trialArena');
- $('trialUnits').replaceChildren();$('trialFx').replaceChildren();$('trialArena').querySelector('.fire-ground-layer')?.replaceChildren();$('trialLog').replaceChildren();
+ clearVisualChildren($('trialUnits'));clearVisualChildren($('trialFx'));clearVisualChildren($('trialArena').querySelector('.fire-ground-layer'));$('trialLog').replaceChildren();
  trial={id,costume:$('trialCostume').value,clock:0,size:{width:arena.clientWidth,height:arena.clientHeight},fighters:[],enemies:[],shots:[],fireTrails:[],revives:new Map(),events:[],queue:[],active:null,nextAt:0,lastLog:'',note:'พร้อมทดลอง'};
  trial.hero=trialUnit(id,'ally',50,78,st.hp,st.hp,undefined,stars);
  trial.fighters.push(trial.hero);
@@ -2304,8 +2335,8 @@ function tickTrial(dt){
 }
 function recoverTrial(error){
  if(!trial)return;
- trial.error=true;trial.active=null;trial.queue=[];trial.shots=[];trial.nextAt=trial.clock;trial.deadline=0;
- $('trialFx').replaceChildren();
+ trial.error=true;trial.active=null;trial.queue=[];trial.shots=[];trial.fireTrails=[];trial.nextAt=trial.clock;trial.deadline=0;
+ clearVisualChildren($('trialFx'));clearVisualChildren($('trialArena').querySelector('.fire-ground-layer'));
  trial.note='เกิดข้อผิดพลาดในการทดลอง · กดรีเซ็ตสนามเพื่อเริ่มใหม่';
  $('trialNote').textContent=trial.note;
  for(const id of ['trialNormal','trialSkill','trialPassive','trialHit','trialRevive'])if($(id))$(id).disabled=true;
@@ -2328,7 +2359,7 @@ function openTrial(id,costume){
 function closeTrial(){
  if($('trialModal').hidden)return;
  if(studioMode){resetTrial();return}
- trial=null;$('trialModal').hidden=true;$('trialUnits').replaceChildren();$('trialFx').replaceChildren();$('trialArena').querySelector('.fire-ground-layer')?.replaceChildren();
+ trial=null;$('trialModal').hidden=true;clearVisualChildren($('trialUnits'));clearVisualChildren($('trialFx'));clearVisualChildren($('trialArena').querySelector('.fire-ground-layer'));
  if(trialReturnFocus?.isConnected)trialReturnFocus.focus();trialReturnFocus=null;
 }
 document.addEventListener('click',e=>{const b=e.target.closest('[data-trial-hero]');if(b&&!b.disabled){e.preventDefault();openTrial(b.dataset.trialHero,b.dataset.trialCostume)}});
