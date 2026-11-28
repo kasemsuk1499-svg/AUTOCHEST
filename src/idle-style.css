@@ -899,3 +899,6 @@ body.background-idle #heroLayer,body.background-idle #monsterLayer,body.backgrou
 
 /* Itachi status presentation; no changes to combat geometry. */
 /* Stack counters are intentionally hidden in the battlefield; combat state is unchanged. */.fighter.tsukuyomi img{filter:drop-shadow(0 0 7px #ed4859) saturate(.55)!important;animation:none!important}.fighter.sealed{filter:grayscale(1)}
+
+/* Susanoo follows its actor behind the model; mirror the entire authored offset/art in local space. */
+.fighter>.attached-susanoo{position:absolute;inset:0;z-index:-1;pointer-events:none;transform:scaleX(var(--actor-facing,1));transform-origin:50% 50%;overflow:visible}
