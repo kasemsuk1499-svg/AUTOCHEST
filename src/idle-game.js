@@ -260,7 +260,9 @@ function pursueFacing(actor,target,hero,dt,side){
 }
 function pose(actor,attack){
  if(backgroundSession||!actor.img)return;
- const slot=attack?'attack':'idle',image=actorImages(actor)[slot];
+ // Explosion uses the attack artwork throughout casting, including paused/frozen casts.
+ const casting=HEROES[actor.id]?.effect==='explosion'&&!!actor.castUntil&&!actor.exhausted&&actor.alive!==false&&actor.hp>0;
+ const slot=attack||casting?'attack':'idle',image=actorImages(actor)[slot];
  if(actor.sprite!==image){actor.img.src=image;actor.sprite=image}
  const scale=VFX?.modelScale(HEROES[actor.id],slot,actorCostume(actor)?.id||'')??1;
  const flip=VFX?.modelFlip?.(HEROES[actor.id],slot,actorCostume(actor)?.id||'')||{};
@@ -1742,7 +1744,7 @@ function showHealing(results,source){
 function startExplosion(actor){
  const hero=combatHero(actor);
  if(!actor.alive||actor.hp<=0||actor.castUntil||actor.exhausted)return false;
- actor.castUntil=stageClock+CORE.explosionCastSeconds(hero);actor.walking=false;position(actor);
+ actor.castUntil=stageClock+CORE.explosionCastSeconds(hero);actor.walking=false;pose(actor,true);position(actor);
  visualEffect('cast',actor);unitFx(actor,'ร่าย EXPLOSION!','status');
  if(trialContext)trialContext.note='กำลังร่าย EXPLOSION!';return true;
 }
@@ -1755,7 +1757,7 @@ function advanceExplosion(actor,auto=false){
   if(auto&&party()&&stageClock>= (actor.explosionReadyAt||0)&&(actor.side==='ally'?enemies:fighters).some(e=>e.hp>0&&e.alive!==false)){actor.exhausted=false;startExplosion(actor);}
   return true;
  }
- if(actor.castUntil&&actor.explosionCount&&!party()){actor.castUntil=0;actor.exhausted=true;position(actor);return true}
+ if(actor.castUntil&&actor.explosionCount&&!party()){actor.castUntil=0;actor.exhausted=true;pose(actor,false);position(actor);return true}
  if(!actor.castUntil){const targets=actor.side==='ally'?enemies:fighters;if(auto&&targets.some(e=>e.hp>0&&e.alive!==false))startExplosion(actor);return !!auto}
  if(stageClock+1e-9<actor.castUntil){actor.walking=false;position(actor);return true}
  actor.castUntil=0;actor.exhausted=true;actor.explosionCount=(actor.explosionCount||0)+1;actor.explosionReadyAt=stageClock+CORE.explosionRestSeconds(party()?.rest||2);actor.walking=false;pose(actor,false);position(actor);
